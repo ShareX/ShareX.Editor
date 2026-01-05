@@ -1,3 +1,4 @@
+using ShareX.Ava.Common;
 using ShareX.Editor.ImageEffects;
 using ShareX.Editor.ViewModels;
 using System;
@@ -5,46 +6,65 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 
-namespace ShareX.Editor.Services;
-
-/// <summary>
-/// Discovers available ImageEffects and wraps them for the UI.
-/// </summary>
-public static class EffectCatalogService
+namespace ShareX.Editor.Services
 {
-    public static List<EffectViewModel> GetAllEffects()
+    /// <summary>
+    /// Service for discovering and cataloging all available ImageEffects
+    /// </summary>
+    public static class EffectCatalogService
     {
-        var assembly = typeof(ImageEffect).Assembly;
-        var effectTypes = assembly.GetTypes()
-            .Where(t => t.IsSubclassOf(typeof(ImageEffect)) && !t.IsAbstract)
-            .ToList();
-
-        var effectViewModels = new List<EffectViewModel>();
-
-        foreach (var type in effectTypes)
+        /// <summary>
+        /// Get all available effects from the ImageEffects assembly
+        /// </summary>
+        public static List<EffectViewModel> GetAllEffects()
         {
-            try
+            var assembly = typeof(ImageEffect).Assembly;
+            var effectTypes = assembly.GetTypes()
+                .Where(t => t.IsSubclassOf(typeof(ImageEffect)) && !t.IsAbstract)
+                .ToList();
+
+            var effectViewModels = new List<EffectViewModel>();
+
+            foreach (var type in effectTypes)
             {
-                if (Activator.CreateInstance(type) is ImageEffect instance)
+                try
                 {
-                    effectViewModels.Add(new EffectViewModel(instance));
+                    var instance = (ImageEffect?)Activator.CreateInstance(type);
+                    if (instance != null)
+                    {
+                        effectViewModels.Add(new EffectViewModel(instance));
+                    }
+                }
+                catch (Exception ex)
+                {
+                    // Log or ignore effects that fail to instantiate
+                    DebugHelper.WriteException(ex, $"Failed to instantiate effect: {type.Name}");
                 }
             }
-            catch
-            {
-                // Ignore effects that fail to instantiate; keep editor resilient.
-            }
+
+            return effectViewModels;
         }
 
-        return effectViewModels;
-    }
+        /// <summary>
+        /// Get effects filtered by category
+        /// </summary>
+        public static List<EffectViewModel> GetEffectsByCategory(string category)
+        {
+            return GetAllEffects()
+                .Where(e => e.Category.Equals(category, StringComparison.OrdinalIgnoreCase))
+                .ToList();
+        }
 
-    public static List<string> GetCategories()
-    {
-        return GetAllEffects()
-            .Select(e => e.Category)
-            .Distinct(StringComparer.OrdinalIgnoreCase)
-            .OrderBy(c => c, StringComparer.OrdinalIgnoreCase)
-            .ToList();
+        /// <summary>
+        /// Get all unique effect categories
+        /// </summary>
+        public static List<string> GetCategories()
+        {
+            return GetAllEffects()
+                .Select(e => e.Category)
+                .Distinct()
+                .OrderBy(c => c)
+                .ToList();
+        }
     }
 }

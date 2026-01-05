@@ -5,7 +5,7 @@ using System;
 using System.Collections.Generic;
 using System.Reflection;
 
-namespace ShareX.Ava.UI.ViewModels
+namespace ShareX.Editor.ViewModels
 {
     /// <summary>
     /// ViewModel wrapper for ImageEffect instances with observable properties
