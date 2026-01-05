@@ -1,7 +1,7 @@
 #region License Information (GPL v3)
 
 /*
-    ShareX.Ava - The Avalonia UI implementation of ShareX
+    ShareX.Editor - The UI-agnostic Editor library for ShareX
     Copyright (c) 2007-2025 ShareX Team
 
     This program is free software; you can redistribute it and/or
@@ -23,8 +23,7 @@
 
 #endregion License Information (GPL v3)
 
-using Avalonia;
-using Avalonia.Media;
+using SkiaSharp;
 
 namespace ShareX.Editor.Annotations;
 
@@ -41,52 +40,43 @@ public class SpotlightAnnotation : Annotation
     /// <summary>
     /// Size of the canvas (needed for full overlay)
     /// </summary>
-    public Size CanvasSize { get; set; }
+    public SKSize CanvasSize { get; set; }
 
     public SpotlightAnnotation()
     {
         ToolType = EditorTool.Spotlight;
     }
 
-    public override void Render(DrawingContext context)
+    public override void Render(SKCanvas canvas)
     {
         if (CanvasSize.Width <= 0 || CanvasSize.Height <= 0) return;
 
-        // Normalize the spotlight rectangle (ensure it goes from min to max)
-        var spotX = Math.Min(StartPoint.X, EndPoint.X);
-        var spotY = Math.Min(StartPoint.Y, EndPoint.Y);
-        var spotW = Math.Abs(EndPoint.X - StartPoint.X);
-        var spotH = Math.Abs(EndPoint.Y - StartPoint.Y);
-        var spotlightRect = new Rect(spotX, spotY, spotW, spotH);
+        var spotlightRect = GetBounds();
 
-        // Create dark overlay brush
-        var overlayBrush = new SolidColorBrush(Color.FromArgb(DarkenOpacity, 0, 0, 0));
+        // Create dark overlay using path with EvenOdd fill rule
+        using var path = new SKPath { FillType = SKPathFillType.EvenOdd };
         
-        // Create geometry for the darkening overlay using EvenOdd fill rule
-        // This creates a frame around the spotlight rectangle
-        var pathGeometry = new PathGeometry { FillRule = FillRule.EvenOdd };
+        // Outer rectangle: full canvas
+        path.AddRect(new SKRect(0, 0, CanvasSize.Width, CanvasSize.Height));
         
-        // Outer figure: full canvas
-        var outerFigure = new PathFigure { StartPoint = new Point(0, 0), IsClosed = true };
-        outerFigure.Segments.Add(new LineSegment { Point = new Point(CanvasSize.Width, 0) });
-        outerFigure.Segments.Add(new LineSegment { Point = new Point(CanvasSize.Width, CanvasSize.Height) });
-        outerFigure.Segments.Add(new LineSegment { Point = new Point(0, CanvasSize.Height) });
-        pathGeometry.Figures.Add(outerFigure);
-        
-        // Inner figure: spotlight rectangle (hole)
-        var innerFigure = new PathFigure { StartPoint = spotlightRect.TopLeft, IsClosed = true };
-        innerFigure.Segments.Add(new LineSegment { Point = spotlightRect.TopRight });
-        innerFigure.Segments.Add(new LineSegment { Point = spotlightRect.BottomRight });
-        innerFigure.Segments.Add(new LineSegment { Point = spotlightRect.BottomLeft });
-        pathGeometry.Figures.Add(innerFigure);
+        // Inner rectangle: spotlight (hole)
+        path.AddRect(spotlightRect);
         
         // Draw the overlay (darkens everything except the rectangle)
-        context.DrawGeometry(overlayBrush, null, pathGeometry);
+        using var paint = new SKPaint
+        {
+            Color = new SKColor(0, 0, 0, DarkenOpacity),
+            Style = SKPaintStyle.Fill,
+            IsAntialias = true
+        };
+        
+        canvas.DrawPath(path, paint);
     }
 
-    public override bool HitTest(Point point, double tolerance = 5)
+    public override bool HitTest(SKPoint point, float tolerance = 5)
     {
-        var rect = new Rect(StartPoint, EndPoint);
-        return rect.Inflate(tolerance).Contains(point);
+        var bounds = GetBounds();
+        var inflated = SKRect.Inflate(bounds, tolerance, tolerance);
+        return inflated.Contains(point);
     }
 }

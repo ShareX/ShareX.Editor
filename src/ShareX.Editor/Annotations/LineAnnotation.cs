@@ -1,7 +1,7 @@
 #region License Information (GPL v3)
 
 /*
-    ShareX.Ava - The Avalonia UI implementation of ShareX
+    ShareX.Editor - The UI-agnostic Editor library for ShareX
     Copyright (c) 2007-2025 ShareX Team
 
     This program is free software; you can redistribute it and/or
@@ -23,8 +23,7 @@
 
 #endregion License Information (GPL v3)
 
-using Avalonia;
-using Avalonia.Media;
+using SkiaSharp;
 
 namespace ShareX.Editor.Annotations;
 
@@ -38,31 +37,31 @@ public class LineAnnotation : Annotation
         ToolType = EditorTool.Line;
     }
 
-    public override void Render(DrawingContext context)
+    public override void Render(SKCanvas canvas)
     {
-        var pen = CreatePen();
-        context.DrawLine(pen, StartPoint, EndPoint);
+        using var paint = CreateStrokePaint();
+        canvas.DrawLine(StartPoint, EndPoint, paint);
     }
 
-    public override bool HitTest(Point point, double tolerance = 5)
+    public override bool HitTest(SKPoint point, float tolerance = 5)
     {
         // Calculate distance from point to line segment
         var dx = EndPoint.X - StartPoint.X;
         var dy = EndPoint.Y - StartPoint.Y;
-        var lineLength = Math.Sqrt(dx * dx + dy * dy);
-        if (lineLength < 0.001) return false;
+        var lineLength = (float)Math.Sqrt(dx * dx + dy * dy);
+        if (lineLength < 0.001f) return false;
         
         var t = Math.Max(0, Math.Min(1, 
             ((point.X - StartPoint.X) * (EndPoint.X - StartPoint.X) + 
              (point.Y - StartPoint.Y) * (EndPoint.Y - StartPoint.Y)) / (lineLength * lineLength)));
         
-        var projection = new Point(
-            StartPoint.X + t * (EndPoint.X - StartPoint.X),
-            StartPoint.Y + t * (EndPoint.Y - StartPoint.Y));
+        var projection = new SKPoint(
+            StartPoint.X + (float)t * (EndPoint.X - StartPoint.X),
+            StartPoint.Y + (float)t * (EndPoint.Y - StartPoint.Y));
         
         var pdx = point.X - projection.X;
         var pdy = point.Y - projection.Y;
-        var distance = Math.Sqrt(pdx * pdx + pdy * pdy);
+        var distance = (float)Math.Sqrt(pdx * pdx + pdy * pdy);
         return distance <= tolerance;
     }
 }

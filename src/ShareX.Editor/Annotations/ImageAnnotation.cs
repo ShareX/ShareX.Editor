@@ -1,7 +1,4 @@
-using Avalonia;
-using Avalonia.Media;
-using Avalonia.Media.Imaging;
-using System.IO;
+using SkiaSharp;
 
 namespace ShareX.Editor.Annotations;
 
@@ -10,17 +7,12 @@ namespace ShareX.Editor.Annotations;
 /// </summary>
 public class ImageAnnotation : Annotation
 {
-    private Bitmap? _imageBitmap;
+    private SKBitmap? _imageBitmap;
     
     /// <summary>
     /// File path to the image (if external)
     /// </summary>
     public string ImagePath { get; set; } = "";
-
-    /// <summary>
-    /// Base64 encoded data or similar if embedded directly?
-    /// For now, we rely on the Bitmap being loaded.
-    /// </summary>
 
     public ImageAnnotation()
     {
@@ -35,55 +27,67 @@ public class ImageAnnotation : Annotation
             try
             {
                 ImagePath = path;
-                using var fs = File.OpenRead(path);
-                _imageBitmap = new Bitmap(fs);
-                // Default size to image size?
-                // Or user draws rect?
-                // Usually stickers are dropped at native resolution or a default size.
+                _imageBitmap?.Dispose();
+                _imageBitmap = SKBitmap.Decode(path);
             }
             catch { }
         }
     }
 
-    public void SetImage(Bitmap bitmap)
+    public void SetImage(SKBitmap bitmap)
     {
-        _imageBitmap = bitmap; // Take ownership? Clone?
+        _imageBitmap?.Dispose();
+        _imageBitmap = bitmap;
     }
 
-    public override void Render(DrawingContext context)
+    public override void Render(SKCanvas canvas)
     {
         var rect = GetBounds();
         
         if (_imageBitmap != null)
         {
-            context.DrawImage(_imageBitmap, rect);
+            canvas.DrawBitmap(_imageBitmap, rect);
         }
         else
         {
             // Placeholder
-            var pen = new Pen(Brushes.Gray, 2) { DashStyle = DashStyle.Dash };
-            context.DrawRectangle(null, pen, rect);
+            using var dashPaint = new SKPaint
+            {
+                Color = SKColors.Gray,
+                StrokeWidth = 2,
+                Style = SKPaintStyle.Stroke,
+                PathEffect = SKPathEffect.CreateDash(new float[] { 5, 5 }, 0)
+            };
+            canvas.DrawRect(rect, dashPaint);
             
-            var formattedText = new FormattedText(
-                "Image",
-                System.Globalization.CultureInfo.CurrentCulture,
-                FlowDirection.LeftToRight,
-                Typeface.Default,
-                12,
-                Brushes.Gray);
-                
-            context.DrawText(formattedText, rect.Center - new Point(formattedText.Width/2, formattedText.Height/2));
+            // Draw "Image" text placeholder
+            using var textPaint = new SKPaint
+            {
+                Color = SKColors.Gray,
+                TextSize = 12,
+                TextAlign = SKTextAlign.Center,
+                IsAntialias = true
+            };
+            canvas.DrawText("Image", rect.MidX, rect.MidY, textPaint);
         }
 
         if (IsSelected)
         {
-            var selPen = new Pen(Brushes.DodgerBlue, 2);
-            context.DrawRectangle(null, selPen, rect);
+            using var selectPaint = new SKPaint
+            {
+                Color = SKColors.DodgerBlue,
+                StrokeWidth = 2,
+                Style = SKPaintStyle.Stroke,
+                IsAntialias = true
+            };
+            canvas.DrawRect(rect, selectPaint);
         }
     }
 
-    public override bool HitTest(Point point, double tolerance = 5)
+    public override bool HitTest(SKPoint point, float tolerance = 5)
     {
-        return GetBounds().Inflate(tolerance).Contains(point);
+        var bounds = GetBounds();
+        var inflated = SKRect.Inflate(bounds, tolerance, tolerance);
+        return inflated.Contains(point);
     }
 }

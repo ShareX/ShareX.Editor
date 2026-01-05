@@ -1,8 +1,4 @@
-using Avalonia;
-using Avalonia.Media;
-using Avalonia.Media.Imaging;
 using SkiaSharp;
-using System.IO;
 
 namespace ShareX.Editor.Annotations;
 
@@ -11,8 +7,6 @@ namespace ShareX.Editor.Annotations;
 /// </summary>
 public class PixelateAnnotation : BaseEffectAnnotation
 {
-    // EffectBitmap inherited from Base
-
     public PixelateAnnotation()
     {
         ToolType = EditorTool.Pixelate;
@@ -21,23 +15,34 @@ public class PixelateAnnotation : BaseEffectAnnotation
         Amount = 10; // Default pixel size
     }
 
-    public override void Render(DrawingContext context)
+    public override void Render(SKCanvas canvas)
     {
         var rect = GetBounds();
 
         if (EffectBitmap != null)
         {
-            context.DrawImage(EffectBitmap, rect);
+            canvas.DrawBitmap(EffectBitmap, rect.Left, rect.Top);
         }
         else
         {
-            context.DrawRectangle(new SolidColorBrush(Colors.Gray, 0.3), null, rect);
+            using var paint = new SKPaint
+            {
+                Color = new SKColor(128, 128, 128, 77),
+                Style = SKPaintStyle.Fill
+            };
+            canvas.DrawRect(rect, paint);
         }
 
         if (IsSelected)
         {
-            var pen = new Pen(new SolidColorBrush(Colors.DodgerBlue), 2);
-            context.DrawRectangle(null, pen, rect);
+            using var selectPaint = new SKPaint
+            {
+                Color = SKColors.DodgerBlue,
+                StrokeWidth = 2,
+                Style = SKPaintStyle.Stroke,
+                IsAntialias = true
+            };
+            canvas.DrawRect(rect, selectPaint);
         }
     }
 
@@ -46,7 +51,7 @@ public class PixelateAnnotation : BaseEffectAnnotation
         if (source == null) return;
         
         var rect = GetBounds();
-        var skRect = new SKRectI((int)rect.X, (int)rect.Y, (int)rect.Right, (int)rect.Bottom);
+        var skRect = new SKRectI((int)rect.Left, (int)rect.Top, (int)rect.Right, (int)rect.Bottom);
         skRect.Intersect(new SKRectI(0, 0, source.Width, source.Height));
         
         if (skRect.Width <= 0 || skRect.Height <= 0) return;
@@ -60,22 +65,12 @@ public class PixelateAnnotation : BaseEffectAnnotation
         int h = Math.Max(1, crop.Height / pixelSize);
 
         var info = new SKImageInfo(w, h);
-        using var small = crop.Resize(info, SKFilterQuality.None);
+        using var small = crop.Resize(info, SKSamplingOptions.Default);
         
         info = new SKImageInfo(crop.Width, crop.Height);
-        using var result = small.Resize(info, SKFilterQuality.None); // Nearest neighbor upscale
+        using var result = small.Resize(info, new SKSamplingOptions(SKFilterMode.Nearest)); // Nearest neighbor upscale
 
         EffectBitmap?.Dispose();
-        EffectBitmap = ToAvaloniaBitmap(result);
-    }
-
-    private Bitmap ToAvaloniaBitmap(SKBitmap skBitmap)
-    {
-        using var image = SKImage.FromBitmap(skBitmap);
-        using var data = image.Encode(SKEncodedImageFormat.Png, 100);
-        using var memoryStream = new MemoryStream();
-        data.SaveTo(memoryStream);
-        memoryStream.Position = 0;
-        return new Bitmap(memoryStream);
+        EffectBitmap = result.Copy();
     }
 }

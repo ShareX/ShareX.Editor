@@ -23,13 +23,12 @@
 
 #endregion License Information (GPL v3)
 
-using ShareX.Ava.Common;
+using ShareX.Editor.Extensions;
 
-
-using Avalonia.Media;
 using ShareX.Editor.ImageEffects;
 using System.ComponentModel;
 using SkiaSharp;
+
 
 
 namespace ShareX.Editor.ImageEffects.Drawings

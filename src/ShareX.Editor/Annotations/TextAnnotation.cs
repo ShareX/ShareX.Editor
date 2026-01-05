@@ -1,7 +1,7 @@
 #region License Information (GPL v3)
 
 /*
-    ShareX.Ava - The Avalonia UI implementation of ShareX
+    ShareX.Editor - The UI-agnostic Editor library for ShareX
     Copyright (c) 2007-2025 ShareX Team
 
     This program is free software; you can redistribute it and/or
@@ -23,8 +23,7 @@
 
 #endregion License Information (GPL v3)
 
-using Avalonia;
-using Avalonia.Media;
+using SkiaSharp;
 
 namespace ShareX.Editor.Annotations;
 
@@ -41,7 +40,7 @@ public class TextAnnotation : Annotation
     /// <summary>
     /// Font size in pixels
     /// </summary>
-    public double FontSize { get; set; } = 48;
+    public float FontSize { get; set; } = 48;
 
     /// <summary>
     /// Font family
@@ -63,61 +62,45 @@ public class TextAnnotation : Annotation
         ToolType = EditorTool.Text;
     }
 
-    public override void Render(DrawingContext context)
+    public override void Render(SKCanvas canvas)
     {
         if (string.IsNullOrEmpty(Text)) return;
 
-        var typeface = new Typeface(
-            FontFamily,
-            IsItalic ? FontStyle.Italic : FontStyle.Normal,  
-            IsBold ? FontWeight.Bold : FontWeight.Normal);
+        using var paint = new SKPaint
+        {
+            Color = ParseColor(StrokeColor),
+            TextSize = FontSize,
+            IsAntialias = true,
+            Typeface = SKTypeface.FromFamilyName(
+                FontFamily,
+                IsBold ? SKFontStyleWeight.Bold : SKFontStyleWeight.Normal,
+                SKFontStyleWidth.Normal,
+                IsItalic ? SKFontStyleSlant.Italic : SKFontStyleSlant.Upright)
+        };
 
-        var formattedText = new FormattedText(
-            Text,
-            System.Globalization.CultureInfo.CurrentCulture,
-            FlowDirection.LeftToRight,
-            typeface,
-            FontSize,
-            CreateStrokeBrush());
-
-        context.DrawText(formattedText, StartPoint);
+        canvas.DrawText(Text, StartPoint.X, StartPoint.Y + FontSize, paint);
     }
 
-    public override bool HitTest(Point point, double tolerance = 5)
+    public override bool HitTest(SKPoint point, float tolerance = 5)
     {
         if (string.IsNullOrEmpty(Text)) return false;
 
-        var typeface = new Typeface(FontFamily, FontStyle.Normal, FontWeight.Normal);
-        var formattedText = new FormattedText(
-            Text,
-            System.Globalization.CultureInfo.CurrentCulture,
-            FlowDirection.LeftToRight,
-            typeface,
-            FontSize,
-            Brushes.Black);
-
-        var textBounds = new Rect(
-            StartPoint.X,
-            StartPoint.Y,
-            formattedText.Width,
-            formattedText.Height);
-
-        return textBounds.Inflate(tolerance).Contains(point);
+        var textBounds = GetBounds();
+        var inflatedBounds = SKRect.Inflate(textBounds, tolerance, tolerance);
+        return inflatedBounds.Contains(point);
     }
 
-    public override Rect GetBounds()
+    public override SKRect GetBounds()
     {
-        if (string.IsNullOrEmpty(Text)) return new Rect(StartPoint, new Size(10, 10));
+        if (string.IsNullOrEmpty(Text)) return new SKRect(StartPoint.X, StartPoint.Y, StartPoint.X + 10, StartPoint.Y + 10);
 
-        var typeface = new Typeface(FontFamily, FontStyle.Normal, FontWeight.Normal);
-        var formattedText = new FormattedText(
-            Text,
-            System.Globalization.CultureInfo.CurrentCulture,
-            FlowDirection.LeftToRight,
-            typeface,
-            FontSize,
-            Brushes.Black);
+        using var paint = new SKPaint
+        {
+            TextSize = FontSize,
+            Typeface = SKTypeface.FromFamilyName(FontFamily)
+        };
 
-        return new Rect(StartPoint.X, StartPoint.Y, formattedText.Width, formattedText.Height);
+        var textWidth = paint.MeasureText(Text);
+        return new SKRect(StartPoint.X, StartPoint.Y, StartPoint.X + textWidth, StartPoint.Y + FontSize);
     }
 }

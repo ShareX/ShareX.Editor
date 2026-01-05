@@ -1,5 +1,3 @@
-using global::Avalonia;
-using global::Avalonia.Media;
 using SkiaSharp;
 
 namespace ShareX.Editor.Annotations;
@@ -12,7 +10,7 @@ public abstract class BaseEffectAnnotation : Annotation
     /// <summary>
     /// Effect radius / strength
     /// </summary>
-    public double Amount { get; set; } = 10;
+    public float Amount { get; set; } = 10;
 
     /// <summary>
     /// Whether the effect is applied as a region (rectangle) or freehand
@@ -20,22 +18,37 @@ public abstract class BaseEffectAnnotation : Annotation
     public bool IsFreehand { get; set; }
     
     /// <summary>
-    /// The generated bitmap for the effect (optional)
+    /// The generated bitmap for the effect (pre-rendered effect result)
     /// </summary>
-    public global::Avalonia.Media.Imaging.Bitmap? EffectBitmap { get; protected set; }
+    public SKBitmap? EffectBitmap { get; protected set; }
 
-    public override Rect GetBounds()
+    public override SKRect GetBounds()
     {
-        return new Rect(StartPoint, EndPoint);
+        return new SKRect(
+            Math.Min(StartPoint.X, EndPoint.X),
+            Math.Min(StartPoint.Y, EndPoint.Y),
+            Math.Max(StartPoint.X, EndPoint.X),
+            Math.Max(StartPoint.Y, EndPoint.Y));
     }
 
-    public override bool HitTest(Point point, double tolerance = 5)
+    public override bool HitTest(SKPoint point, float tolerance = 5)
     {
-        return GetBounds().Inflate(tolerance).Contains(point);
+        var bounds = GetBounds();
+        var inflatedBounds = SKRect.Inflate(bounds, tolerance, tolerance);
+        return inflatedBounds.Contains(point);
     }
     
     /// <summary>
     /// Updates the effect bitmap based on the source image
     /// </summary>
     public virtual void UpdateEffect(SKBitmap source) { }
+    
+    /// <summary>
+    /// Disposes the effect bitmap
+    /// </summary>
+    public void DisposeEffect()
+    {
+        EffectBitmap?.Dispose();
+        EffectBitmap = null;
+    }
 }

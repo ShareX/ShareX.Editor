@@ -1,7 +1,7 @@
 #region License Information (GPL v3)
 
 /*
-    ShareX.Ava - The Avalonia UI implementation of ShareX
+    ShareX.Editor - The UI-agnostic Editor library for ShareX
     Copyright (c) 2007-2025 ShareX Team
 
     This program is free software; you can redistribute it and/or
@@ -23,8 +23,7 @@
 
 #endregion License Information (GPL v3)
 
-using Avalonia;
-using Avalonia.Media;
+using SkiaSharp;
 using System.Text.Json.Serialization;
 
 namespace ShareX.Editor.Annotations;
@@ -68,17 +67,17 @@ public abstract class Annotation
     /// <summary>
     /// Stroke width in pixels
     /// </summary>
-    public double StrokeWidth { get; set; } = 4;
+    public float StrokeWidth { get; set; } = 4;
 
     /// <summary>
     /// Starting point (top-left for rectangles, start for lines/arrows)
     /// </summary>
-    public Point StartPoint { get; set; }
+    public SKPoint StartPoint { get; set; }
 
     /// <summary>
     /// Ending point (bottom-right for rectangles, end for lines/arrows)
     /// </summary>
-    public Point EndPoint { get; set; }
+    public SKPoint EndPoint { get; set; }
 
     /// <summary>
     /// Whether this annotation is currently selected
@@ -91,10 +90,10 @@ public abstract class Annotation
     public int ZIndex { get; set; }
 
     /// <summary>
-    /// Render this annotation to the drawing context
+    /// Render this annotation to the SkiaSharp canvas
     /// </summary>
-    /// <param name="context">Drawing context to render to</param>
-    public abstract void Render(DrawingContext context);
+    /// <param name="canvas">SKCanvas to render to</param>
+    public abstract void Render(SKCanvas canvas);
 
     /// <summary>
     /// Hit test to determine if a point intersects this annotation
@@ -102,37 +101,54 @@ public abstract class Annotation
     /// <param name="point">Point to test</param>
     /// <param name="tolerance">Hit test tolerance in pixels</param>
     /// <returns>True if the point hits this annotation</returns>
-    public abstract bool HitTest(Point point, double tolerance = 5);
+    public abstract bool HitTest(SKPoint point, float tolerance = 5);
 
     /// <summary>
     /// Get the bounding rectangle for this annotation
     /// </summary>
-    public virtual Rect GetBounds()
+    public virtual SKRect GetBounds()
     {
-        return new Rect(StartPoint, EndPoint);
+        return new SKRect(
+            Math.Min(StartPoint.X, EndPoint.X),
+            Math.Min(StartPoint.Y, EndPoint.Y),
+            Math.Max(StartPoint.X, EndPoint.X),
+            Math.Max(StartPoint.Y, EndPoint.Y));
     }
 
     /// <summary>
-    /// Parse hex color string to Avalonia Color
+    /// Parse hex color string to SKColor
     /// </summary>
-    protected Color ParseColor(string hexColor)
+    protected SKColor ParseColor(string hexColor)
     {
-        return Color.Parse(hexColor);
+        return SKColor.Parse(hexColor);
     }
 
     /// <summary>
-    /// Create a brush from the stroke color
+    /// Create a paint for stroke drawing
     /// </summary>
-    protected IBrush CreateStrokeBrush()
+    protected SKPaint CreateStrokePaint()
     {
-        return new SolidColorBrush(ParseColor(StrokeColor));
+        return new SKPaint
+        {
+            Color = ParseColor(StrokeColor),
+            StrokeWidth = StrokeWidth,
+            Style = SKPaintStyle.Stroke,
+            IsAntialias = true,
+            StrokeCap = SKStrokeCap.Round,
+            StrokeJoin = SKStrokeJoin.Round
+        };
     }
 
     /// <summary>
-    /// Create a pen for drawing outlines
+    /// Create a paint for fill drawing
     /// </summary>
-    protected Pen CreatePen()
+    protected SKPaint CreateFillPaint()
     {
-        return new Pen(CreateStrokeBrush(), StrokeWidth);
+        return new SKPaint
+        {
+            Color = ParseColor(StrokeColor),
+            Style = SKPaintStyle.Fill,
+            IsAntialias = true
+        };
     }
 }

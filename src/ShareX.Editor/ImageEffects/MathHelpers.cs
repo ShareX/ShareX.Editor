@@ -1,7 +1,7 @@
 #region License Information (GPL v3)
 
 /*
-    ShareX.Ava - The Avalonia UI implementation of ShareX
+    ShareX.Editor - The UI-agnostic Editor library for ShareX
     Copyright (c) 2007-2025 ShareX Team
 
     This program is free software; you can redistribute it and/or
@@ -23,23 +23,25 @@
 
 #endregion License Information (GPL v3)
 
-using ShareX.Editor.Extensions;
+namespace ShareX.Editor.ImageEffects;
 
-
-using ShareX.Editor.ImageEffects;
-using System.ComponentModel;
-using SkiaSharp;
-
-namespace ShareX.Editor.ImageEffects
+/// <summary>
+/// Math helper utilities for image effects
+/// </summary>
+public static class MathHelpers
 {
-    [Description("Mean removal")]
-    internal class MeanRemoval : ImageEffect
+    public static int Clamp(int value, int min, int max)
     {
-        public override SKBitmap Apply(SKBitmap bmp)
-        {
-            // TODO
-            return bmp;
-        }
+        return Math.Max(min, Math.Min(max, value));
+    }
+
+    public static float Clamp(float value, float min, float max)
+    {
+        return Math.Max(min, Math.Min(max, value));
+    }
+
+    public static double Clamp(double value, double min, double max)
+    {
+        return Math.Max(min, Math.Min(max, value));
     }
 }
-

@@ -8,13 +8,9 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Avalonia" Version="11.3.10" />
     <PackageReference Include="Newtonsoft.Json" Version="13.0.4" />
     <PackageReference Include="SkiaSharp" Version="3.119.1" />
   </ItemGroup>
 
-  <ItemGroup>
-    <ProjectReference Include="..\..\..\ShareX.Avalonia\src\ShareX.Avalonia.Common\ShareX.Avalonia.Common.csproj" />
-  </ItemGroup>
-
 </Project>
+

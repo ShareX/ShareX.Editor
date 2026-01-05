@@ -1,5 +1,4 @@
-using Avalonia;
-using Avalonia.Media;
+using SkiaSharp;
 
 namespace ShareX.Editor.Annotations;
 

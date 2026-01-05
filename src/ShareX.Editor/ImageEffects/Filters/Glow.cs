@@ -23,14 +23,13 @@
 
 #endregion License Information (GPL v3)
 
-using ShareX.Ava.Common;
+using ShareX.Editor.Extensions;
 
-
-using Avalonia.Media;
 using ShareX.Editor.ImageEffects;
 using System;
 using System.ComponentModel;
 using SkiaSharp;
+
 // using Drawing; // Check if GradientInfo exists
 
 namespace ShareX.Editor.ImageEffects

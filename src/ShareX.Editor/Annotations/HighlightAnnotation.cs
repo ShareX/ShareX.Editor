@@ -1,6 +1,4 @@
-using Avalonia;
-using Avalonia.Media;
-using Avalonia.Media.Immutable;
+using SkiaSharp;
 
 namespace ShareX.Editor.Annotations;
 
@@ -16,12 +14,16 @@ public class HighlightAnnotation : BaseEffectAnnotation
         StrokeWidth = 0; // No border by default
     }
 
-    public override void Render(DrawingContext context)
+    public override void Render(SKCanvas canvas)
     {
         var rect = GetBounds();
-        var brush = new SolidColorBrush(ParseColor(StrokeColor));
+        using var paint = new SKPaint
+        {
+            Color = ParseColor(StrokeColor),
+            Style = SKPaintStyle.Fill,
+            IsAntialias = true
+        };
         
-        // Draw the highlight rectangle
-        context.DrawRectangle(brush, null, rect);
+        canvas.DrawRect(rect, paint);
     }
 }

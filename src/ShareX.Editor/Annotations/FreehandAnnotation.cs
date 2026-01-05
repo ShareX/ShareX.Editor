@@ -1,7 +1,4 @@
-using Avalonia;
-using Avalonia.Media;
-using System.Collections.Generic;
-using System.Linq;
+using SkiaSharp;
 
 namespace ShareX.Editor.Annotations;
 
@@ -10,45 +7,42 @@ namespace ShareX.Editor.Annotations;
 /// </summary>
 public class FreehandAnnotation : Annotation
 {
-    public List<Point> Points { get; set; } = new List<Point>();
+    public List<SKPoint> Points { get; set; } = new List<SKPoint>();
     
     /// <summary>
     /// Simplification tolerance for smoothing
     /// </summary>
-    public double SmoothingTolerance { get; set; } = 2.0;
+    public float SmoothingTolerance { get; set; } = 2.0f;
 
     public FreehandAnnotation()
     {
         ToolType = EditorTool.Pen;
     }
 
-    public override void Render(DrawingContext context)
+    public override void Render(SKCanvas canvas)
     {
         if (Points.Count < 2) return;
 
-        var pen = CreatePen();
-        var geometry = new StreamGeometry();
-
-        using (var ctx = geometry.Open())
+        using var paint = CreateStrokePaint();
+        using var path = new SKPath();
+        
+        path.MoveTo(Points[0]);
+        for (int i = 1; i < Points.Count; i++)
         {
-            ctx.BeginFigure(Points[0], false);
-            for (int i = 1; i < Points.Count; i++)
-            {
-                ctx.LineTo(Points[i]);
-            }
-            ctx.EndFigure(false);
+            path.LineTo(Points[i]);
         }
-
-        context.DrawGeometry(null, pen, geometry);
+        
+        canvas.DrawPath(path, paint);
     }
 
-    public override bool HitTest(Point point, double tolerance = 5)
+    public override bool HitTest(SKPoint point, float tolerance = 5)
     {
         // Simple bounding box check first
-        if (!GetBounds().Inflate(tolerance).Contains(point)) return false;
+        var bounds = GetBounds();
+        var inflatedBounds = SKRect.Inflate(bounds, tolerance, tolerance);
+        if (!inflatedBounds.Contains(point)) return false;
 
-        // Detailed point check
-        // Optimization: Check segments
+        // Detailed segment check
         for (int i = 0; i < Points.Count - 1; i++)
         {
             if (DistanceToSegment(point, Points[i], Points[i + 1]) <= tolerance)
@@ -58,32 +52,32 @@ public class FreehandAnnotation : Annotation
         return false;
     }
 
-    public override Rect GetBounds()
+    public override SKRect GetBounds()
     {
-        if (Points.Count == 0) return new Rect(0, 0, 0, 0);
+        if (Points.Count == 0) return SKRect.Empty;
         
-        double minX = Points.Min(p => p.X);
-        double minY = Points.Min(p => p.Y);
-        double maxX = Points.Max(p => p.X);
-        double maxY = Points.Max(p => p.Y);
+        float minX = Points.Min(p => p.X);
+        float minY = Points.Min(p => p.Y);
+        float maxX = Points.Max(p => p.X);
+        float maxY = Points.Max(p => p.Y);
 
-        return new Rect(new Point(minX, minY), new Point(maxX, maxY));
+        return new SKRect(minX, minY, maxX, maxY);
     }
 
-    private double DistanceToSegment(Point p, Point v, Point w)
+    private float DistanceToSegment(SKPoint p, SKPoint v, SKPoint w)
     {
-        double l2 = (v.X - w.X) * (v.X - w.X) + (v.Y - w.Y) * (v.Y - w.Y);
+        float l2 = (v.X - w.X) * (v.X - w.X) + (v.Y - w.Y) * (v.Y - w.Y);
         if (l2 == 0) return Distance(p, v);
 
-        double t = ((p.X - v.X) * (w.X - v.X) + (p.Y - v.Y) * (w.Y - v.Y)) / l2;
+        float t = ((p.X - v.X) * (w.X - v.X) + (p.Y - v.Y) * (w.Y - v.Y)) / l2;
         t = Math.Max(0, Math.Min(1, t));
 
-        Point projection = new Point(v.X + t * (w.X - v.X), v.Y + t * (w.Y - v.Y));
+        var projection = new SKPoint(v.X + t * (w.X - v.X), v.Y + t * (w.Y - v.Y));
         return Distance(p, projection);
     }
 
-    private double Distance(Point p1, Point p2)
+    private float Distance(SKPoint p1, SKPoint p2)
     {
-        return Math.Sqrt(Math.Pow(p1.X - p2.X, 2) + Math.Pow(p1.Y - p2.Y, 2));
+        return (float)Math.Sqrt(Math.Pow(p1.X - p2.X, 2) + Math.Pow(p1.Y - p2.Y, 2));
     }
 }

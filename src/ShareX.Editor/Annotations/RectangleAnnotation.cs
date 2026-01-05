@@ -1,7 +1,7 @@
 #region License Information (GPL v3)
 
 /*
-    ShareX.Ava - The Avalonia UI implementation of ShareX
+    ShareX.Editor - The UI-agnostic Editor library for ShareX
     Copyright (c) 2007-2025 ShareX Team
 
     This program is free software; you can redistribute it and/or
@@ -23,8 +23,7 @@
 
 #endregion License Information (GPL v3)
 
-using Avalonia;
-using Avalonia.Media;
+using SkiaSharp;
 
 namespace ShareX.Editor.Annotations;
 
@@ -38,21 +37,20 @@ public class RectangleAnnotation : Annotation
         ToolType = EditorTool.Rectangle;
     }
 
-    public override void Render(DrawingContext context)
+    public override void Render(SKCanvas canvas)
     {
-        var rect = new Rect(StartPoint, EndPoint);
-        var pen = CreatePen();
-        
-        context.DrawRectangle(null, pen, rect);
+        var rect = GetBounds();
+        using var paint = CreateStrokePaint();
+        canvas.DrawRect(rect, paint);
     }
 
-    public override bool HitTest(Point point, double tolerance = 5)
+    public override bool HitTest(SKPoint point, float tolerance = 5)
     {
-        var rect = new Rect(StartPoint, EndPoint);
+        var rect = GetBounds();
         
         // Check if point is on the rectangle border (within tolerance)
-        var outerRect = rect.Inflate(tolerance);
-        var innerRect = rect.Deflate(tolerance);
+        var outerRect = SKRect.Inflate(rect, tolerance, tolerance);
+        var innerRect = SKRect.Inflate(rect, -tolerance, -tolerance);
         
         return outerRect.Contains(point) && !innerRect.Contains(point);
     }

@@ -1,7 +1,7 @@
 #region License Information (GPL v3)
 
 /*
-    ShareX.Ava - The Avalonia UI implementation of ShareX
+    ShareX.Editor - The UI-agnostic Editor library for ShareX
     Copyright (c) 2007-2025 ShareX Team
 
     This program is free software; you can redistribute it and/or
@@ -23,8 +23,7 @@
 
 #endregion License Information (GPL v3)
 
-using Avalonia;
-using Avalonia.Media;
+using SkiaSharp;
 
 namespace ShareX.Editor.Annotations;
 
@@ -38,30 +37,27 @@ public class EllipseAnnotation : Annotation
         ToolType = EditorTool.Ellipse;
     }
 
-    public override void Render(DrawingContext context)
+    public override void Render(SKCanvas canvas)
     {
-        var rect = new Rect(StartPoint, EndPoint);
-        var center = rect.Center;
-        var radiusX = rect.Width / 2;
-        var radiusY = rect.Height / 2;
-        
-        var pen = CreatePen();
-        var geometry = new EllipseGeometry(rect);
-        
-        context.DrawGeometry(null, pen, geometry);
+        var rect = GetBounds();
+        using var paint = CreateStrokePaint();
+        canvas.DrawOval(rect, paint);
     }
 
-    public override bool HitTest(Point point, double tolerance = 5)
+    public override bool HitTest(SKPoint point, float tolerance = 5)
     {
-        var rect = new Rect(StartPoint, EndPoint);
-        var center = rect.Center;
+        var rect = GetBounds();
+        var centerX = rect.MidX;
+        var centerY = rect.MidY;
         var radiusX = rect.Width / 2;
         var radiusY = rect.Height / 2;
         
+        if (radiusX <= 0 || radiusY <= 0) return false;
+        
         // Normalize point relative to ellipse center
-        var dx = (point.X - center.X) / radiusX;
-        var dy = (point.Y - center.Y) / radiusY;
-        var distance = Math.Sqrt(dx * dx + dy * dy);
+        var dx = (point.X - centerX) / radiusX;
+        var dy = (point.Y - centerY) / radiusY;
+        var distance = (float)Math.Sqrt(dx * dx + dy * dy);
         
         // Check if point is on the ellipse border (within tolerance)
         var toleranceNormalized = tolerance / Math.Min(radiusX, radiusY);

@@ -1,7 +1,7 @@
 #region License Information (GPL v3)
 
 /*
-    ShareX.Ava - The Avalonia UI implementation of ShareX
+    ShareX.Editor - The UI-agnostic Editor library for ShareX
     Copyright (c) 2007-2025 ShareX Team
 
     This program is free software; you can redistribute it and/or
@@ -23,8 +23,7 @@
 
 #endregion License Information (GPL v3)
 
-using Avalonia;
-using Avalonia.Media;
+using SkiaSharp;
 
 namespace ShareX.Editor.Annotations;
 
@@ -41,59 +40,64 @@ public class NumberAnnotation : Annotation
     /// <summary>
     /// Font size for the number
     /// </summary>
-    public double FontSize { get; set; } = 32;
+    public float FontSize { get; set; } = 32;
 
     /// <summary>
     /// Circle radius
     /// </summary>
-    public double Radius { get; set; } = 25;
+    public float Radius { get; set; } = 25;
 
     public NumberAnnotation()
     {
         ToolType = EditorTool.Number;
     }
 
-    public override void Render(DrawingContext context)
+    public override void Render(SKCanvas canvas)
     {
         var center = StartPoint;
-        var brush = CreateStrokeBrush();
-        var pen = CreatePen();
         
         // Draw filled circle
-        context.DrawEllipse(brush, pen, center, Radius, Radius);
+        using var fillPaint = CreateFillPaint();
+        canvas.DrawCircle(center, Radius, fillPaint);
+        
+        // Draw circle border
+        using var strokePaint = CreateStrokePaint();
+        canvas.DrawCircle(center, Radius, strokePaint);
         
         // Draw number text
-        var typeface = new Typeface("Segoe UI", FontStyle.Normal, FontWeight.Bold);
+        using var textPaint = new SKPaint
+        {
+            Color = SKColors.White,
+            TextSize = FontSize,
+            IsAntialias = true,
+            TextAlign = SKTextAlign.Center,
+            Typeface = SKTypeface.FromFamilyName("Segoe UI", SKFontStyleWeight.Bold, SKFontStyleWidth.Normal, SKFontStyleSlant.Upright)
+        };
+
         var text = Number.ToString();
-        var formattedText = new FormattedText(
-            text,
-            System.Globalization.CultureInfo.CurrentCulture,
-            FlowDirection.LeftToRight,
-            typeface,
-            FontSize,
-            Brushes.White);
-
-        var textPos = new Point(
-            center.X - formattedText.Width / 2,
-            center.Y - formattedText.Height / 2);
-
-        context.DrawText(formattedText, textPos);
+        
+        // Center text vertically
+        var textBounds = new SKRect();
+        textPaint.MeasureText(text, ref textBounds);
+        var textY = center.Y + textBounds.Height / 2 - textBounds.Bottom;
+        
+        canvas.DrawText(text, center.X, textY, textPaint);
     }
 
-    public override bool HitTest(Point point, double tolerance = 5)
+    public override bool HitTest(SKPoint point, float tolerance = 5)
     {
         var dx = point.X - StartPoint.X;
         var dy = point.Y - StartPoint.Y;
-        var distance = Math.Sqrt(dx * dx + dy * dy);
+        var distance = (float)Math.Sqrt(dx * dx + dy * dy);
         return distance <= (Radius + tolerance);
     }
 
-    public override Rect GetBounds()
+    public override SKRect GetBounds()
     {
-        return new Rect(
+        return new SKRect(
             StartPoint.X - Radius,
             StartPoint.Y - Radius,
-            Radius * 2,
-            Radius * 2);
+            StartPoint.X + Radius,
+            StartPoint.Y + Radius);
     }
 }

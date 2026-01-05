@@ -1,7 +1,7 @@
 #region License Information (GPL v3)
 
 /*
-    ShareX.Ava - The Avalonia UI implementation of ShareX
+    ShareX.Editor - The UI-agnostic Editor library for ShareX
     Copyright (c) 2007-2025 ShareX Team
 
     This program is free software; you can redistribute it and/or
@@ -23,8 +23,7 @@
 
 #endregion License Information (GPL v3)
 
-using Avalonia;
-using Avalonia.Media;
+using SkiaSharp;
 
 namespace ShareX.Editor.Annotations;
 
@@ -39,50 +38,66 @@ public class CropAnnotation : Annotation
         ToolType = EditorTool.Crop;
     }
 
-    public override void Render(DrawingContext context)
+    public override void Render(SKCanvas canvas)
     {
-        var rect = new Rect(StartPoint, EndPoint);
-        
-        // Draw crop overlay rectangle with handles
-        var pen = new Pen(new SolidColorBrush(Colors.White), 2);
-        var dashPen = new Pen(new SolidColorBrush(Colors.Black), 2)
-        {
-            DashStyle = new DashStyle(new[] { 4.0, 4.0 }, 0)
-        };
+        var rect = GetBounds();
         
         // Draw dashed border
-        context.DrawRectangle(null, dashPen, rect);
+        using var dashPaint = new SKPaint
+        {
+            Color = SKColors.Black,
+            StrokeWidth = 2,
+            Style = SKPaintStyle.Stroke,
+            PathEffect = SKPathEffect.CreateDash(new float[] { 4, 4 }, 0),
+            IsAntialias = true
+        };
+        canvas.DrawRect(rect, dashPaint);
         
         // Draw resize handles at corners and edges
-        DrawHandle(context, new Point(rect.Left, rect.Top));
-        DrawHandle(context, new Point(rect.Right, rect.Top));
-        DrawHandle(context, new Point(rect.Left, rect.Bottom));
-        DrawHandle(context, new Point(rect.Right, rect.Bottom));
-        DrawHandle(context, new Point(rect.Center.X, rect.Top));
-        DrawHandle(context, new Point(rect.Center.X, rect.Bottom));
-        DrawHandle(context, new Point(rect.Left, rect.Center.Y));
-        DrawHandle(context, new Point(rect.Right, rect.Center.Y));
+        DrawHandle(canvas, new SKPoint(rect.Left, rect.Top));
+        DrawHandle(canvas, new SKPoint(rect.Right, rect.Top));
+        DrawHandle(canvas, new SKPoint(rect.Left, rect.Bottom));
+        DrawHandle(canvas, new SKPoint(rect.Right, rect.Bottom));
+        DrawHandle(canvas, new SKPoint(rect.MidX, rect.Top));
+        DrawHandle(canvas, new SKPoint(rect.MidX, rect.Bottom));
+        DrawHandle(canvas, new SKPoint(rect.Left, rect.MidY));
+        DrawHandle(canvas, new SKPoint(rect.Right, rect.MidY));
     }
 
-    private void DrawHandle(DrawingContext context, Point center)
+    private void DrawHandle(SKCanvas canvas, SKPoint center)
     {
-        const double handleSize = 8;
-        var rect = new Rect(
+        const float handleSize = 8;
+        var rect = new SKRect(
             center.X - handleSize / 2,
             center.Y - handleSize / 2,
-            handleSize,
-            handleSize);
+            center.X + handleSize / 2,
+            center.Y + handleSize / 2);
         
-        context.DrawRectangle(Brushes.White, new Pen(Brushes.Black, 1), rect);
+        using var fillPaint = new SKPaint
+        {
+            Color = SKColors.White,
+            Style = SKPaintStyle.Fill,
+            IsAntialias = true
+        };
+        canvas.DrawRect(rect, fillPaint);
+        
+        using var strokePaint = new SKPaint
+        {
+            Color = SKColors.Black,
+            StrokeWidth = 1,
+            Style = SKPaintStyle.Stroke,
+            IsAntialias = true
+        };
+        canvas.DrawRect(rect, strokePaint);
     }
 
-    public override bool HitTest(Point point, double tolerance = 5)
+    public override bool HitTest(SKPoint point, float tolerance = 5)
     {
-        var rect = new Rect(StartPoint, EndPoint);
+        var rect = GetBounds();
         
         // Check if point is on the crop rectangle border (within tolerance)
-        var outerRect = rect.Inflate(tolerance);
-        var innerRect = rect.Deflate(tolerance);
+        var outerRect = SKRect.Inflate(rect, tolerance, tolerance);
+        var innerRect = SKRect.Inflate(rect, -tolerance, -tolerance);
         
         return outerRect.Contains(point) && !innerRect.Contains(point);
     }
