@@ -76,6 +76,9 @@ namespace ShareX.Editor.Views
         
         // Track if we're in the middle of creating an effect shape
         private bool _isCreatingEffect;
+        
+        // Track cut-out direction (null = not determined yet, true = vertical, false = horizontal)
+        private bool? _cutOutDirection;
 
         private static SKPoint ToSKPoint(Point point) => new((float)point.X, (float)point.Y);
         private static SKSize ToSKSize(Size size) => new((float)size.Width, (float)size.Height);
@@ -1161,6 +1164,9 @@ namespace ShareX.Editor.Views
             // Special handling for CutOut - draw a line to show the cut
             if (vm.ActiveTool == EditorTool.CutOut)
             {
+                // Reset cut direction when starting a new cut
+                _cutOutDirection = null;
+                
                 // Create a line to show where the cut will be made
                 var cutLine = new global::Avalonia.Controls.Shapes.Line
                 {
@@ -1644,7 +1650,57 @@ namespace ShareX.Editor.Views
 
             if (_currentShape is global::Avalonia.Controls.Shapes.Line line)
             {
-                line.EndPoint = currentPoint;
+                // Special handling for CutOut tool - constrain to horizontal or vertical
+                if (line.Name == "CutOutLine")
+                {
+                    var deltaX = Math.Abs(currentPoint.X - _startPoint.X);
+                    var deltaY = Math.Abs(currentPoint.Y - _startPoint.Y);
+                    
+                    // Threshold for determining direction (in pixels)
+                    const double directionThreshold = 15;
+                    
+                    // Reset direction if user moves back close to start point
+                    if (deltaX < directionThreshold && deltaY < directionThreshold)
+                    {
+                        _cutOutDirection = null;
+                        line.EndPoint = _startPoint;
+                        return;
+                    }
+                    
+                    // Determine direction based on current movement
+                    bool currentIsVertical = deltaX > deltaY;
+                    
+                    // Update direction (can change if user changes drag direction)
+                    if (deltaX > directionThreshold || deltaY > directionThreshold)
+                    {
+                        _cutOutDirection = currentIsVertical;
+                    }
+                    
+                    // Constrain the line to the determined direction
+                    if (_cutOutDirection.HasValue)
+                    {
+                        if (_cutOutDirection.Value)
+                        {
+                            // Vertical cut - lock Y coordinate
+                            line.EndPoint = new Point(currentPoint.X, _startPoint.Y);
+                        }
+                        else
+                        {
+                            // Horizontal cut - lock X coordinate
+                            line.EndPoint = new Point(_startPoint.X, currentPoint.Y);
+                        }
+                    }
+                    else
+                    {
+                        // Direction not determined yet, keep line at start point
+                        line.EndPoint = _startPoint;
+                    }
+                }
+                else
+                {
+                    // Regular line - allow any direction
+                    line.EndPoint = currentPoint;
+                }
             }
             else if (_currentShape is Polyline polyline)
             {
