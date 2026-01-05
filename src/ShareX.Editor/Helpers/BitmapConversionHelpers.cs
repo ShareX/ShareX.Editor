@@ -3,7 +3,7 @@ using SkiaSharp;
 using System;
 using System.IO;
 
-namespace ShareX.Ava.UI.Helpers
+namespace ShareX.Editor.Helpers
 {
     /// <summary>
     /// Helper class for converting between Avalonia Bitmap and SKBitmap

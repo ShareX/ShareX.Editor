@@ -2,13 +2,12 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-             xmlns:vm="using:ShareX.Ava.UI.ViewModels"
-             xmlns:views="using:ShareX.Ava.UI.Views"
+             xmlns:vm="using:ShareX.Editor.ViewModels"
+             xmlns:views="using:ShareX.Editor.Views"
              xmlns:models="using:ShareX.Editor.Annotations"
-             xmlns:converters="using:ShareX.Ava.UI.Converters"
+             xmlns:converters="using:ShareX.Editor.Converters"
              mc:Ignorable="d" d:DesignWidth="1200" d:DesignHeight="800"
-             x:Class="ShareX.Ava.UI.Views.EditorView"
-             x:DataType="vm:MainViewModel"
+             x:Class="ShareX.Editor.Views.EditorView"
              Focusable="True"
              KeyDown="OnKeyDown">
 

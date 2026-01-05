@@ -27,10 +27,10 @@ using System.Collections.Generic;
 using System.Globalization;
 using Avalonia.Data.Converters;
 using Avalonia.Media;
-using ShareX.Ava.UI.ViewModels;
 using ShareX.Editor.Annotations;
+using ShareX.Editor.ViewModels;
 
-namespace ShareX.Ava.UI.Converters
+namespace ShareX.Editor.Converters
 {
     /// <summary>
     /// Converts EditorTool comparison to background color for tool button highlighting

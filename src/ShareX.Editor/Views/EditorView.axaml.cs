@@ -35,10 +35,11 @@ using Avalonia.Threading;
 using Avalonia.VisualTree;
 using SkiaSharp;
 using ShareX.Editor.Annotations;
-using ShareX.Ava.UI.ViewModels;
+using ShareX.Editor.Helpers;
+using ShareX.Editor.ViewModels;
 using System.ComponentModel;
 
-namespace ShareX.Ava.UI.Views
+namespace ShareX.Editor.Views
 {
     public partial class EditorView : UserControl
     {
@@ -110,7 +111,7 @@ namespace ShareX.Ava.UI.Views
                 rtb.Render(container);
 
                 // Convert to SKBitmap for pixel access
-                using var skBitmap = Helpers.BitmapConversionHelpers.ToSKBitmap(rtb);
+                using var skBitmap = BitmapConversionHelpers.ToSKBitmap(rtb);
 
                 // Convert canvas point to pixel coordinates
                 int x = (int)Math.Round(canvasPoint.X);
@@ -177,7 +178,7 @@ namespace ShareX.Ava.UI.Views
 
                 if (skBitmap == null)
                 {
-                    skBitmap = Helpers.BitmapConversionHelpers.ToSKBitmap(vm.PreviewImage);
+                    skBitmap = BitmapConversionHelpers.ToSKBitmap(vm.PreviewImage);
                     shouldDispose = true;
                 }
 
@@ -732,7 +733,7 @@ namespace ShareX.Ava.UI.Views
             try
             {
                 // Convert Avalonia Bitmap directly to SKBitmap for platform clipboard
-                using var skBitmap = Helpers.BitmapConversionHelpers.ToSKBitmap(image);
+                using var skBitmap = BitmapConversionHelpers.ToSKBitmap(image);
                 ShareX.Ava.Platform.Abstractions.PlatformServices.Clipboard.SetImage(skBitmap);
             }
             catch (Exception ex)
@@ -1282,7 +1283,7 @@ namespace ShareX.Ava.UI.Views
                     // Set canvas size for the darkening overlay
                     spotlightAnnotation.CanvasSize = new Size(canvas.Bounds.Width, canvas.Bounds.Height);
                     
-                    var spotlightControl = new ShareX.Ava.UI.Controls.SpotlightControl
+                    var spotlightControl = new ShareX.Editor.Controls.SpotlightControl
                     {
                         Annotation = spotlightAnnotation,
                         IsHitTestVisible = true
@@ -1656,7 +1657,7 @@ namespace ShareX.Ava.UI.Views
                     Canvas.SetLeft(ellipse, x);
                     Canvas.SetTop(ellipse, y);
                 }
-                else if (_currentShape is ShareX.Ava.UI.Controls.SpotlightControl spotlightControl && spotlightControl.Annotation is SpotlightAnnotation spotlight)
+                else if (_currentShape is ShareX.Editor.Controls.SpotlightControl spotlightControl && spotlightControl.Annotation is SpotlightAnnotation spotlight)
                 {
                     // Update spotlight annotation bounds
                     spotlight.StartPoint = _startPoint;
@@ -1718,7 +1719,7 @@ namespace ShareX.Ava.UI.Views
                 // Cache SKBitmap conversion to avoid repeated conversions
                 if (_cachedSkBitmap == null)
                 {
-                    _cachedSkBitmap = Helpers.BitmapConversionHelpers.ToSKBitmap(vm.PreviewImage);
+                    _cachedSkBitmap = BitmapConversionHelpers.ToSKBitmap(vm.PreviewImage);
                 }
 
                 annotation.UpdateEffect(_cachedSkBitmap);

@@ -28,7 +28,7 @@ using Avalonia.Controls;
 using Avalonia.Media;
 using ShareX.Editor.Annotations;
 
-namespace ShareX.Ava.UI.Controls;
+namespace ShareX.Editor.Controls;
 
 /// <summary>
 /// Custom control for rendering spotlight annotations with proper darkening effect
