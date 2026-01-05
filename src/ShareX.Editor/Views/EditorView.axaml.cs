@@ -1,206 +1,475 @@
+#region License Information (GPL v3)
+
+/*
+    ShareX.Ava - The Avalonia UI implementation of ShareX
+    Copyright (c) 2007-2025 ShareX Team
+
+    This program is free software; you can redistribute it and/or
+    modify it under the terms of the GNU General Public License
+    as published by the Free Software Foundation; either version 2
+    of the License, or (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this program; if not, write to the Free Software
+    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+
+    Optionally you can also view the license at <http://www.gnu.org/licenses/>.
+*/
+
+#endregion License Information (GPL v3)
+
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Shapes;
+using Path = Avalonia.Controls.Shapes.Path;
 using Avalonia.Input;
 using Avalonia.Interactivity;
-using Avalonia.Layout;
 using Avalonia.Media;
 using Avalonia.Platform.Storage;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
+using SkiaSharp;
 using ShareX.Editor.Annotations;
-using ShareX.Editor.Controls;
-using ShareX.Editor.Helpers;
-using ShareX.Editor.ViewModels;
-using System;
-using System.Collections.Generic;
-using System.Linq;
+using ShareX.Ava.UI.ViewModels;
+using System.ComponentModel;
 
-namespace ShareX.Editor.Views
+namespace ShareX.Ava.UI.Views
 {
     public partial class EditorView : UserControl
     {
         private Point _startPoint;
-        private Point _lastDragPoint;
-        private bool _isDrawing;
-        private bool _isDraggingShape;
-        private bool _isDraggingHandle;
         private Control? _currentShape;
+        private bool _isDrawing;
+        private bool _isPointerZooming;
+        private double _lastZoom = 1.0;
+
+        private const double MinZoom = 0.25;
+        private const double MaxZoom = 4.0;
+        private const double ZoomStep = 0.1;
+
+        private bool _isPanning;
+        private Point _panStart;
+        private Vector _panOrigin;
+
+        // Selection state
         private Control? _selectedShape;
+        private Point _lastDragPoint;
+        private bool _isDraggingShape;
+
+        // Handles
+        private List<Control> _selectionHandles = new();
+        private bool _isDraggingHandle;
         private Control? _draggedHandle;
+
+        // Store arrow/line endpoints for editing
+        private Dictionary<Control, (Point Start, Point End)> _shapeEndpoints = new();
         
-        // Custom undo buffer since Canvas doesn't support it natively
-        private readonly Stack<Control> _undoStack = new();
-        private readonly Stack<Control> _redoStack = new();
-
-        // Selection handles
-        private readonly List<Control> _selectionHandles = new();
-
-        // For arrow editing (finding endpoints)
-        private readonly Dictionary<Control, (Point Start, Point End)> _shapeEndpoints = new();
-
-        // Cached bitmap for effects to avoid continuous conversion
+        // Cached SKBitmap for effect updates (avoid repeated conversions)
         private SkiaSharp.SKBitmap? _cachedSkBitmap;
+        
+        // Track if we're in the middle of creating an effect shape
+        private bool _isCreatingEffect;
 
-        public EditorView()
+        private void ClearSelection()
         {
-            InitializeComponent();
-            DataContextChanged += OnDataContextChanged;
+            _selectedShape = null;
+            _isDraggingHandle = false;
+            _draggedHandle = null;
+            _isDraggingShape = false;
+            UpdateSelectionHandles();
         }
 
-        private void OnDataContextChanged(object? sender, EventArgs e)
+        private Point GetCanvasPosition(PointerEventArgs e, Canvas canvas)
         {
-            if (DataContext is EditorViewModel vm)
+            return e.GetPosition(canvas);
+        }
+
+        /// <summary>
+        /// Sample pixel color from the rendered canvas (including annotations) at the specified canvas coordinates
+        /// </summary>
+        private async System.Threading.Tasks.Task<string?> GetPixelColorFromRenderedCanvas(Point canvasPoint)
+        {
+            if (DataContext is not MainViewModel vm || vm.PreviewImage == null) return null;
+
+            try
             {
-                vm.UndoRequested += (s, args) => PerformUndo();
-                vm.RedoRequested += (s, args) => PerformRedo();
-                vm.DeleteRequested += (s, args) => PerformDelete();
-                vm.ClearAnnotationsRequested += (s, args) => ClearAllAnnotations();
-                vm.CopyRequested += (s, args) => CopyImageToClipboard();
-                // vm.QuickSaveRequested += ... 
-                // vm.SaveAsRequested += ...
-                // vm.ApplyEffectRequested += ... handled in OnEffectsPanelApplyRequested but good to hook if invoked from VM
+                // We need to sample from the RENDERED canvas including all annotations
+                var container = this.FindControl<Grid>("CanvasContainer");
+                if (container == null || container.Width <= 0 || container.Height <= 0) return null;
+
+                // Render the container (image + annotations) to a bitmap
+                var rtb = new global::Avalonia.Media.Imaging.RenderTargetBitmap(
+                    new PixelSize((int)container.Width, (int)container.Height), 
+                    new Vector(96, 96));
                 
-                // When preview image changes, clear annotations? Or just resize?
-                // For now, assume a new image means a reset.
-                vm.PropertyChanged += (s, args) =>
+                rtb.Render(container);
+
+                // Convert to SKBitmap for pixel access
+                using var skBitmap = Helpers.BitmapConversionHelpers.ToSKBitmap(rtb);
+
+                // Convert canvas point to pixel coordinates
+                int x = (int)Math.Round(canvasPoint.X);
+                int y = (int)Math.Round(canvasPoint.Y);
+
+                System.Diagnostics.Debug.WriteLine($"GetPixelColorFromRenderedCanvas: Canvas point ({canvasPoint.X:F2}, {canvasPoint.Y:F2}) -> Pixel ({x}, {y})");
+                System.Diagnostics.Debug.WriteLine($"GetPixelColorFromRenderedCanvas: Rendered size ({skBitmap.Width}, {skBitmap.Height}), Zoom: {vm.Zoom}");
+
+                // Valid ate bounds
+                if (x < 0 || y < 0 || x >= skBitmap.Width || y >= skBitmap.Height)
                 {
-                    if (args.PropertyName == nameof(EditorViewModel.PreviewImage))
-                    {
-                        ClearAllAnnotations();
-                        _cachedSkBitmap = null;
-                    }
-                };
+                    System.Diagnostics.Debug.WriteLine($"GetPixelColorFromRenderedCanvas: Out of bounds!");
+                    return null;
+                }
+
+                // Get pixel color from rendered output
+                var skColor = skBitmap.GetPixel(x, y);
+                
+                // Convert to hex string
+                var colorHex = $"#{skColor.Red:X2}{skColor.Green:X2}{skColor.Blue:X2}";
+                System.Diagnostics.Debug.WriteLine($"GetPixelColorFromRenderedCanvas: Sampled color {colorHex} at ({x}, {y})");
+                
+                return colorHex;
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"GetPixelColorFromRenderedCanvas failed: {ex.Message}");
+                return null;
             }
         }
 
-        private async void CopyImageToClipboard()
+        /// <summary>
+        /// Sample pixel color from the preview image at the specified canvas coordinates
+        /// </summary>
+        private string? GetPixelColor(Point canvasPoint)
         {
-            // TODO: Implement clipboard copy logic compatible with ShareX.Editor
-            // Needed: Render the Canvas + Image to a bitmap
-            // Since this logic might be complex and platform specific, 
-            // maybe we should expose an event for the host to handle if possible, 
-            // OR implement a renderer here.
-            
-            // For now, simpler to expose event or leave as placeholder if not critical for UI structure move.
-            // But user requested "functional".
-            
-            // Implementation: Render Current UI to Bitmap
-            // Requires access to TopLevel or visual tree.
-             try
-            {
-                var canvasContainer = this.FindControl<Grid>("CanvasContainer");
-                if (canvasContainer == null) return;
-                
-                // Create a RenderTargetBitmap
-                // Note: Dimensions should match the image size
-                if (DataContext is EditorViewModel vm && vm.HasPreviewImage)
-                {
-                    var pixelSize = new PixelSize((int)vm.ImageWidth, (int)vm.ImageHeight);
-                    var bitmap = new Avalonia.Media.Imaging.RenderTargetBitmap(pixelSize, new Vector(96, 96));
-                    bitmap.Render(canvasContainer);
+            if (DataContext is not MainViewModel vm || vm.PreviewImage == null) return null;
 
-                    var topLevel = TopLevel.GetTopLevel(this);
-                    if (topLevel?.Clipboard != null)
+            try
+            {
+                // Canvas point is already in image coordinates (no zoom adjustment needed here
+                // because GetCanvasPosition gets position relative to the canvas which is already scaled)
+                int x = (int)Math.Round(canvasPoint.X);
+                int y = (int)Math.Round(canvasPoint.Y);
+
+                System.Diagnostics.Debug.WriteLine($"GetPixelColor: Canvas point ({canvasPoint.X:F2}, {canvasPoint.Y:F2}) -> Pixel ({x}, {y})");
+                System.Diagnostics.Debug.WriteLine($"GetPixelColor: Image size ({vm.PreviewImage.Size.Width}, {vm.PreviewImage.Size.Height}), Zoom: {vm.Zoom}");
+
+                // Validate bounds
+                if (x < 0 || y < 0 || x >= vm.PreviewImage.Size.Width || y >= vm.PreviewImage.Size.Height)
+                {
+                    System.Diagnostics.Debug.WriteLine($"GetPixelColor: Out of bounds!");
+                    return null;
+                }
+
+                // IMPORTANT: We sample from the BASE image (vm.PreviewImage), not from the rendered canvas
+                // This means we get the original pixel color, ignoring any annotations drawn on top.
+                // This is the correct behavior for Smart Eraser - it should match the background,
+                // not other annotations.
+
+                // Use cached SKBitmap if available, otherwise create one
+                SkiaSharp.SKBitmap? skBitmap = _cachedSkBitmap;
+                bool shouldDispose = false;
+
+                if (skBitmap == null)
+                {
+                    skBitmap = Helpers.BitmapConversionHelpers.ToSKBitmap(vm.PreviewImage);
+                    shouldDispose = true;
+                }
+
+                try
+                {
+                    // Get pixel color
+                    var skColor = skBitmap.GetPixel(x, y);
+                    
+                    // Convert to hex string
+                    var colorHex = $"#{skColor.Red:X2}{skColor.Green:X2}{skColor.Blue:X2}";
+                    System.Diagnostics.Debug.WriteLine($"GetPixelColor: Sampled color {colorHex} at ({x}, {y})");
+                    
+                    return colorHex;
+                }
+                finally
+                {
+                    if (shouldDispose)
                     {
-                         var data = new DataObject();
-                         // data.Set(DataFormats.Bitmap, bitmap); // Avalonia direct bitmap?
-                         // Avalonia clipboard might handle it, or we need to convert to System.Drawing/compat type?
-                         // Avalonia current Clipboard implementation accepts IDataObject.
-                         // But standard SetBitmap might be tricky across platforms without more helpers.
-                         // For Windows, this usually works.
-                         
-                         // Note: Avalonia 11+ clipboard API:
-                         // await topLevel.Clipboard.SetTextAsync("Copied image"); 
-                         // Setting bitmap is specific.
-                         // Let's defer full implementation or use a simple stub if complex.
-                         // Or try standard approach:
-                         /*
-                         var dataObject = new DataObject();
-                         dataObject.Set(DataFormats.Bitmap, bitmap);
-                         await topLevel.Clipboard.SetDataObjectAsync(dataObject);
-                         */
+                        skBitmap?.Dispose();
                     }
                 }
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"Copy failed: {ex.Message}");
+                System.Diagnostics.Debug.WriteLine($"GetPixelColor failed: {ex.Message}");
+                return null;
             }
         }
 
-        private void OnKeyDown(object? sender, KeyEventArgs e)
+        private void OnPreviewPointerWheelChanged(object? sender, PointerWheelEventArgs e)
         {
-            if (DataContext is not EditorViewModel vm) return;
+            if (DataContext is not MainViewModel vm) return;
+            if (!e.KeyModifiers.HasFlag(KeyModifiers.Control)) return;
 
-            // Shortcuts
-            if (e.Key == Key.Delete)
+            var oldZoom = vm.Zoom;
+            var direction = e.Delta.Y > 0 ? 1 : -1;
+            var newZoom = Math.Clamp(Math.Round((oldZoom + direction * ZoomStep) * 100) / 100, MinZoom, MaxZoom);
+            if (Math.Abs(newZoom - oldZoom) < 0.0001) return;
+
+            var scrollViewer = this.FindControl<ScrollViewer>("CanvasScrollViewer");
+            if (scrollViewer != null)
             {
-                PerformDelete();
-                e.Handled = true;
+                var pointerPosition = e.GetPosition(scrollViewer);
+                var offsetBefore = scrollViewer.Offset;
+                if (scrollViewer.Extent.Width <= scrollViewer.Viewport.Width)
+                    offsetBefore = offsetBefore.WithX(0);
+                if (scrollViewer.Extent.Height <= scrollViewer.Viewport.Height)
+                    offsetBefore = offsetBefore.WithY(0);
+                 var logicalPoint = new Vector(
+                    (offsetBefore.X + pointerPosition.X) / oldZoom,
+                    (offsetBefore.Y + pointerPosition.Y) / oldZoom);
+
+                _isPointerZooming = true;
+                _lastZoom = oldZoom;
+                vm.Zoom = newZoom;
+
+                Dispatcher.UIThread.Post(() =>
+                {
+                    var targetOffset = new Vector(
+                        logicalPoint.X * newZoom - pointerPosition.X,
+                        logicalPoint.Y * newZoom - pointerPosition.Y);
+
+                    // Clamp to available extent to avoid jumpy scrolling near edges
+                    var maxX = Math.Max(0, scrollViewer.Extent.Width - scrollViewer.Viewport.Width);
+                    var maxY = Math.Max(0, scrollViewer.Extent.Height - scrollViewer.Viewport.Height);
+
+                    // If content is smaller than the viewport, keep it centered by zeroing offsets
+                    if (scrollViewer.Extent.Width <= scrollViewer.Viewport.Width)
+                        targetOffset = targetOffset.WithX(0);
+                    if (scrollViewer.Extent.Height <= scrollViewer.Viewport.Height)
+                        targetOffset = targetOffset.WithY(0);
+
+                    scrollViewer.Offset = new Vector(
+                        Math.Clamp(targetOffset.X, 0, maxX),
+                        Math.Clamp(targetOffset.Y, 0, maxY));
+                }, DispatcherPriority.Render);
             }
-            else if (e.KeyModifiers.HasFlag(KeyModifiers.Control))
+            else
             {
-                if (e.Key == Key.Z)
-                {
-                    if (e.KeyModifiers.HasFlag(KeyModifiers.Shift))
-                        PerformRedo();
-                    else
-                        PerformUndo();
-                    e.Handled = true;
-                }
-                else if (e.Key == Key.C)
-                {
-                    vm.CopyCommand.Execute(null);
-                    e.Handled = true;
-                }
-                else if (e.Key == Key.S)
-                {
-                    vm.SaveAsCommand.Execute(null);
-                    e.Handled = true;
-                }
+                _lastZoom = oldZoom;
+                vm.Zoom = newZoom;
             }
-            
-            // Tool shortcuts
-            if (!e.KeyModifiers.HasFlag(KeyModifiers.Control) && !e.KeyModifiers.HasFlag(KeyModifiers.Alt))
+
+            _isPointerZooming = false;
+            _lastZoom = vm.Zoom;
+            e.Handled = true;
+        }
+
+        private void AdjustZoomToAnchor(double oldZoom, double newZoom, Point anchor)
+        {
+            var scrollViewer = this.FindControl<ScrollViewer>("CanvasScrollViewer");
+            if (scrollViewer == null || oldZoom <= 0) return;
+
+            var offsetBefore = scrollViewer.Offset;
+            if (scrollViewer.Extent.Width <= scrollViewer.Viewport.Width)
+                offsetBefore = offsetBefore.WithX(0);
+            if (scrollViewer.Extent.Height <= scrollViewer.Viewport.Height)
+                offsetBefore = offsetBefore.WithY(0);
+             var logicalPoint = new Vector(
+                 (offsetBefore.X + anchor.X) / oldZoom,
+                 (offsetBefore.Y + anchor.Y) / oldZoom);
+
+            Dispatcher.UIThread.Post(() =>
             {
-                switch (e.Key)
-                {
-                    case Key.R: vm.ActiveTool = EditorTool.Rectangle; e.Handled = true; break;
-                    case Key.E: vm.ActiveTool = EditorTool.Ellipse; e.Handled = true; break;
-                    case Key.L: vm.ActiveTool = EditorTool.Line; e.Handled = true; break;
-                    case Key.A: vm.ActiveTool = EditorTool.Arrow; e.Handled = true; break;
-                    case Key.T: vm.ActiveTool = EditorTool.Text; e.Handled = true; break;
-                    case Key.P: vm.ActiveTool = EditorTool.Pen; e.Handled = true; break;
-                    case Key.H: vm.ActiveTool = EditorTool.Highlighter; e.Handled = true; break;
-                    case Key.B: vm.ActiveTool = EditorTool.SpeechBalloon; e.Handled = true; break;
-                    case Key.N: vm.ActiveTool = EditorTool.Number; e.Handled = true; break;
-                    case Key.M: vm.ActiveTool = EditorTool.Magnify; e.Handled = true; break;
-                    case Key.S: vm.ActiveTool = EditorTool.Spotlight; e.Handled = true; break;
-                    case Key.C: vm.ActiveTool = EditorTool.Crop; e.Handled = true; break;
-                    case Key.V: vm.ActiveTool = EditorTool.Select; e.Handled = true; break;
-                    case Key.F: vm.ToggleEffectsPanelCommand.Execute(null); e.Handled = true; break;
-                }
-            }
+                var targetOffset = new Vector(
+                    logicalPoint.X * newZoom - anchor.X,
+                    logicalPoint.Y * newZoom - anchor.Y);
+
+                var maxX = Math.Max(0, scrollViewer.Extent.Width - scrollViewer.Viewport.Width);
+                var maxY = Math.Max(0, scrollViewer.Extent.Height - scrollViewer.Viewport.Height);
+
+                if (scrollViewer.Extent.Width <= scrollViewer.Viewport.Width)
+                    targetOffset = targetOffset.WithX(0);
+                if (scrollViewer.Extent.Height <= scrollViewer.Viewport.Height)
+                    targetOffset = targetOffset.WithY(0);
+
+                scrollViewer.Offset = new Vector(
+                    Math.Clamp(targetOffset.X, 0, maxX),
+                    Math.Clamp(targetOffset.Y, 0, maxY));
+            }, DispatcherPriority.Render);
+        }
+
+        private void CenterCanvasOnZoomChange()
+        {
+            var scrollViewer = this.FindControl<ScrollViewer>("CanvasScrollViewer");
+            if (scrollViewer == null) return;
+
+            Dispatcher.UIThread.Post(() =>
+            {
+                var extent = scrollViewer.Extent;
+                var viewport = scrollViewer.Viewport;
+                var targetOffset = new Vector(
+                    Math.Max(0, (extent.Width - viewport.Width) / 2),
+                    Math.Max(0, (extent.Height - viewport.Height) / 2));
+
+                scrollViewer.Offset = targetOffset;
+            }, DispatcherPriority.Render);
         }
 
         private void OnScrollViewerPointerPressed(object? sender, PointerPressedEventArgs e)
         {
-             // Deselect if clicking outside canvas
-             if (e.Source is ScrollViewer || e.Source is LayoutTransformControl || e.Source is Border)
-             {
-                 _selectedShape = null;
-                 UpdateSelectionHandles();
-             }
-        }
-        
-        // Zoom handling
-        private void OnScrollViewerPointerMoved(object? sender, PointerEventArgs e) { }
-        private void OnScrollViewerPointerReleased(object? sender, PointerReleasedEventArgs e) { }
+            if (sender is not ScrollViewer scrollViewer) return;
 
-        private Point GetCanvasPosition(PointerEventArgs e, Visual canvas)
+            var properties = e.GetCurrentPoint(scrollViewer).Properties;
+            if (!properties.IsMiddleButtonPressed) return;
+
+            _isPanning = true;
+            _panStart = e.GetPosition(scrollViewer);
+            _panOrigin = scrollViewer.Offset;
+            scrollViewer.Cursor = new Cursor(StandardCursorType.SizeAll);
+            e.Pointer.Capture(scrollViewer);
+            e.Handled = true;
+        }
+
+        private void OnScrollViewerPointerMoved(object? sender, PointerEventArgs e)
         {
-            return e.GetPosition(canvas);
+            if (!_isPanning || sender is not ScrollViewer scrollViewer) return;
+
+            var current = e.GetPosition(scrollViewer);
+            var delta = current - _panStart;
+
+            var target = new Vector(
+                _panOrigin.X - delta.X,
+                _panOrigin.Y - delta.Y);
+
+            var maxX = Math.Max(0, scrollViewer.Extent.Width - scrollViewer.Viewport.Width);
+            var maxY = Math.Max(0, scrollViewer.Extent.Height - scrollViewer.Viewport.Height);
+
+            scrollViewer.Offset = new Vector(
+                Math.Clamp(target.X, 0, maxX),
+                Math.Clamp(target.Y, 0, maxY));
+
+            e.Handled = true;
+        }
+
+        private void OnScrollViewerPointerReleased(object? sender, PointerReleasedEventArgs e)
+        {
+            if (sender is not ScrollViewer scrollViewer) return;
+
+            if (_isPanning)
+            {
+                _isPanning = false;
+                scrollViewer.Cursor = null;
+                e.Pointer.Capture(null);
+                e.Handled = true;
+            }
+        }
+
+        private void OnKeyDown(object sender, KeyEventArgs e)
+        {
+            // When a text annotation TextBox has focus, let it handle all typing
+            // so that tool hotkeys (R, E, T, etc.) do not switch tools while editing.
+            if (e.Source is TextBox)
+            {
+                return;
+            }
+
+            if (DataContext is MainViewModel vm)
+            {
+                if (e.Key == Key.Delete)
+                {
+                    vm.DeleteSelectedCommand.Execute(null);
+                    e.Handled = true;
+                    return;
+                }
+                else if (e.KeyModifiers.HasFlag(KeyModifiers.Control))
+                {
+                    if (e.Key == Key.Z)
+                    {
+                        vm.UndoCommand.Execute(null);
+                        e.Handled = true;
+                        return;
+                    }
+                    else if (e.Key == Key.Y) // Standard Redo
+                    {
+                        vm.RedoCommand.Execute(null);
+                        e.Handled = true;
+                        return;
+                    }
+                }
+                // Ctrl+Shift+Z is also common for Redo, check modifiers
+                else if (e.KeyModifiers.HasFlag(KeyModifiers.Control | KeyModifiers.Shift) && e.Key == Key.Z)
+                {
+                    vm.RedoCommand.Execute(null);
+                    e.Handled = true;
+                    return;
+                }
+
+                // Tool shortcuts (no modifiers)
+                if (e.KeyModifiers == KeyModifiers.None)
+                {
+                    switch (e.Key)
+                    {
+                        case Key.V:
+                            vm.SelectToolCommand.Execute(EditorTool.Select);
+                            e.Handled = true;
+                            break;
+                        case Key.R:
+                            vm.SelectToolCommand.Execute(EditorTool.Rectangle);
+                            e.Handled = true;
+                            break;
+                        case Key.E:
+                            vm.SelectToolCommand.Execute(EditorTool.Ellipse);
+                            e.Handled = true;
+                            break;
+                        case Key.A:
+                            vm.SelectToolCommand.Execute(EditorTool.Arrow);
+                            e.Handled = true;
+                            break;
+                        case Key.L:
+                            vm.SelectToolCommand.Execute(EditorTool.Line);
+                            e.Handled = true;
+                            break;
+                        case Key.P:
+                            vm.SelectToolCommand.Execute(EditorTool.Pen);
+                            e.Handled = true;
+                            break;
+                        case Key.H:
+                            vm.SelectToolCommand.Execute(EditorTool.Highlighter);
+                            e.Handled = true;
+                            break;
+                        case Key.T:
+                            vm.SelectToolCommand.Execute(EditorTool.Text);
+                            e.Handled = true;
+                            break;
+                        case Key.B:
+                            vm.SelectToolCommand.Execute(EditorTool.SpeechBalloon);
+                            e.Handled = true;
+                            break;
+                        case Key.N:
+                            vm.SelectToolCommand.Execute(EditorTool.Number);
+                            e.Handled = true;
+                            break;
+                        case Key.C:
+                            vm.SelectToolCommand.Execute(EditorTool.Crop);
+                            e.Handled = true;
+                            break;
+                        case Key.M:
+                            vm.SelectToolCommand.Execute(EditorTool.Magnify);
+                            e.Handled = true;
+                            break;
+                        case Key.S:
+                            vm.SelectToolCommand.Execute(EditorTool.Spotlight);
+                            e.Handled = true;
+                            break;
+                        case Key.F:
+                            vm.ToggleEffectsPanelCommand.Execute(null);
+                            e.Handled = true;
+                            break;
+                    }
+                }
+            }
         }
 
         private void UpdateSelectionHandles()
@@ -208,7 +477,7 @@ namespace ShareX.Editor.Views
             var overlay = this.FindControl<Canvas>("OverlayCanvas");
             if (overlay == null) return;
 
-            // Clear old handles
+            // Clear existing handles
             foreach (var handle in _selectionHandles)
             {
                 overlay.Children.Remove(handle);
@@ -216,74 +485,312 @@ namespace ShareX.Editor.Views
             _selectionHandles.Clear();
 
             if (_selectedShape == null) return;
-            
-            // Don't show handles for freehand drawing (Polyline) as it's complex to resize
-            if (_selectedShape is Polyline) return;
 
-            // Color for handles
-            var handleFill = new SolidColorBrush(Colors.White);
-            var handleStroke = new SolidColorBrush(Colors.Blue);
-
-            // Special logic for Line: 2 handles (Start/End)
-            if (_selectedShape is Line line)
+            // Special handling for Lines and Arrows - create endpoint handles
+            if (_selectedShape is global::Avalonia.Controls.Shapes.Line line)
             {
-                AddHandle(overlay, line.StartPoint, "LineStart");
-                AddHandle(overlay, line.EndPoint, "LineEnd");
+                CreateHandle(line.StartPoint.X, line.StartPoint.Y, "LineStart");
+                CreateHandle(line.EndPoint.X, line.EndPoint.Y, "LineEnd");
                 return;
             }
 
-            // Special logic for Arrow: 2 handles (Start/End)
-            if (_selectedShape is global::Avalonia.Controls.Shapes.Path arrowPath && _shapeEndpoints.ContainsKey(arrowPath))
+            // Special handling for Arrow (Path with geometry)
+            if (_selectedShape is global::Avalonia.Controls.Shapes.Path arrowPath)
             {
-                var points = _shapeEndpoints[arrowPath];
-                AddHandle(overlay, points.Start, "ArrowStart");
-                AddHandle(overlay, points.End, "ArrowEnd");
+                // Get stored start/end points from dictionary
+                if (_shapeEndpoints.TryGetValue(arrowPath, out var endpoints))
+                {
+                    CreateHandle(endpoints.Start.X, endpoints.Start.Y, "ArrowStart");
+                    CreateHandle(endpoints.End.X, endpoints.End.Y, "ArrowEnd");
+                }
                 return;
             }
 
-            // Standard Box handles (8 points) for Rect/Ellipse/Image/etc
-            var left = Canvas.GetLeft(_selectedShape);
-            var top = Canvas.GetTop(_selectedShape);
-            var w = _selectedShape.Bounds.Width;
-            var h = _selectedShape.Bounds.Height;
-            
-            // If Bounds not yet updated, use Width/Height properties
-            if (double.IsNaN(w) || w == 0) w = _selectedShape.Width;
-            if (double.IsNaN(h) || h == 0) h = _selectedShape.Height;
-            
-            // Corners
-            AddHandle(overlay, new Point(left, top), "TopLeft");
-            AddHandle(overlay, new Point(left + w, top), "TopRight");
-            AddHandle(overlay, new Point(left, top + h), "BottomLeft");
-            AddHandle(overlay, new Point(left + w, top + h), "BottomRight");
+            // Skip handles for Grid controls (Number/Step tool) - they have fixed size and don't need resizing
+            if (_selectedShape is Grid)
+            {
+                return;
+            }
 
-            // Sides
-            AddHandle(overlay, new Point(left + w / 2, top), "Top");
-            AddHandle(overlay, new Point(left + w / 2, top + h), "Bottom");
-            AddHandle(overlay, new Point(left, top + h / 2), "Left");
-            AddHandle(overlay, new Point(left + w, top + h / 2), "Right");
+            // Skip handles for shapes without measurable bounds (e.g., other lines)
+            if (_selectedShape.Bounds.Width <= 0 || _selectedShape.Bounds.Height <= 0) return;
+
+            // Calculate bounds for regular shapes
+            var shapeLeft = Canvas.GetLeft(_selectedShape);
+            var shapeTop = Canvas.GetTop(_selectedShape);
+            var width = _selectedShape.Bounds.Width;
+            var height = _selectedShape.Bounds.Height;
+
+            // Allow handles even if Width/Height are NaN (e.g. Line)? 
+            // For now assume shapes have explicit size setting in OnPointerMoved
+            if (double.IsNaN(width)) width = _selectedShape.Width;
+            if (double.IsNaN(height)) height = _selectedShape.Height;
+
+            // Create 8 handles for regular shapes
+            CreateHandle(shapeLeft, shapeTop, "TopLeft");
+            CreateHandle(shapeLeft + width / 2, shapeTop, "TopCenter");
+            CreateHandle(shapeLeft + width, shapeTop, "TopRight");
+            CreateHandle(shapeLeft + width, shapeTop + height / 2, "RightCenter");
+            CreateHandle(shapeLeft + width, shapeTop + height, "BottomRight");
+            CreateHandle(shapeLeft + width / 2, shapeTop + height, "BottomCenter");
+            CreateHandle(shapeLeft, shapeTop + height, "BottomLeft");
+            CreateHandle(shapeLeft, shapeTop + height / 2, "LeftCenter");
         }
 
-        private void AddHandle(Canvas overlay, Point p, string tag)
+        private void CreateHandle(double x, double y, string tag)
         {
-            var size = 10;
-            var handle = new Ellipse
+            var overlay = this.FindControl<Canvas>("OverlayCanvas");
+
+            // Determine cursor based on position tag
+            Cursor cursor = Cursor.Parse("Hand");
+            if (tag.Contains("TopLeft") || tag.Contains("BottomRight")) cursor = new Cursor(StandardCursorType.TopLeftCorner);
+            else if (tag.Contains("TopRight") || tag.Contains("BottomLeft")) cursor = new Cursor(StandardCursorType.TopRightCorner);
+            else if (tag.Contains("Top") || tag.Contains("Bottom")) cursor = new Cursor(StandardCursorType.SizeNorthSouth);
+            else if (tag.Contains("Left") || tag.Contains("Right")) cursor = new Cursor(StandardCursorType.SizeWestEast);
+
+            // Create modern handle with shadow using a border wrapper
+            var handleBorder = new Border
             {
-                Width = size,
-                Height = size,
-                Fill = Brushes.White,
-                Stroke = Brushes.Blue,
-                StrokeThickness = 1,
+                Width = 15,
+                Height = 15,
+                CornerRadius = new CornerRadius(10), // Perfect circle
+                Background = Brushes.White,
                 Tag = tag,
-                Cursor = Cursor.Parse("Hand")
+                Cursor = cursor,
+                BoxShadow = new BoxShadows(new BoxShadow
+                {
+                    OffsetX = 0,
+                    OffsetY = 0,
+                    Blur = 8,
+                    Spread = 0,
+                    Color = Color.FromArgb(100, 0, 0, 0)
+                })
             };
 
-            Canvas.SetLeft(handle, p.X - size / 2);
-            Canvas.SetTop(handle, p.Y - size / 2);
+            // Center the handle
+            Canvas.SetLeft(handleBorder, x - handleBorder.Width / 2);
+            Canvas.SetTop(handleBorder, y - handleBorder.Height / 2);
 
-            overlay.Children.Add(handle);
-            _selectionHandles.Add(handle);
+            overlay.Children.Add(handleBorder);
+            _selectionHandles.Add(handleBorder);
         }
+
+        private Stack<Control> _undoStack = new();
+        private Stack<Control> _redoStack = new();
+
+        public EditorView()
+        {
+            InitializeComponent();
+
+            // Capture wheel events in tunneling phase so ScrollViewer doesn't scroll when using Ctrl+wheel zoom.
+            AddHandler(PointerWheelChangedEvent, OnPreviewPointerWheelChanged, RoutingStrategies.Tunnel | RoutingStrategies.Bubble, true);
+        }
+
+        protected override void OnLoaded(RoutedEventArgs e)
+        {
+            base.OnLoaded(e);
+
+            if (DataContext is MainViewModel vm)
+            {
+                vm.UndoRequested += (s, args) => PerformUndo();
+                vm.RedoRequested += (s, args) => PerformRedo();
+                vm.DeleteRequested += (s, args) => PerformDelete();
+                vm.ClearAnnotationsRequested += (s, args) => ClearAllAnnotations();
+                vm.SnapshotRequested += GetSnapshot;
+                vm.SaveAsRequested += ShowSaveAsDialog;
+                vm.CopyRequested += CopyToClipboard;
+                vm.ShowErrorDialog += ShowErrorDialog;
+                vm.PropertyChanged -= OnViewModelPropertyChanged;
+                vm.PropertyChanged += OnViewModelPropertyChanged;
+                _lastZoom = vm.Zoom;
+            }
+        }
+
+        protected override void OnDetachedFromVisualTree(VisualTreeAttachmentEventArgs e)
+        {
+            if (DataContext is MainViewModel vm)
+            {
+                vm.PropertyChanged -= OnViewModelPropertyChanged;
+            }
+
+            base.OnDetachedFromVisualTree(e);
+        }
+
+        private void OnViewModelPropertyChanged(object? sender, PropertyChangedEventArgs e)
+        {
+            if (DataContext is not MainViewModel vm) return;
+
+            if (e.PropertyName == nameof(MainViewModel.SelectedColor))
+            {
+                ApplySelectedColor(vm.SelectedColor);
+            }
+            else if (e.PropertyName == nameof(MainViewModel.StrokeWidth))
+            {
+                ApplySelectedStrokeWidth(vm.StrokeWidth);
+            }
+            else if (e.PropertyName == nameof(MainViewModel.PreviewImage))
+            {
+                // Invalidate cached bitmap when preview image changes
+                _cachedSkBitmap?.Dispose();
+                _cachedSkBitmap = null;
+                ClearAllAnnotations();
+                ResetScrollViewerOffset();
+                _lastZoom = vm.Zoom;
+            }
+            else if (e.PropertyName == nameof(MainViewModel.ActiveTool))
+            {
+                ClearSelection();
+            }
+            else if (e.PropertyName == nameof(MainViewModel.Zoom) && !_isPointerZooming)
+            {
+                var scrollViewer = this.FindControl<ScrollViewer>("CanvasScrollViewer");
+                if (scrollViewer != null)
+                {
+                    var anchor = new Point(scrollViewer.Viewport.Width / 2, scrollViewer.Viewport.Height / 2);
+                    AdjustZoomToAnchor(_lastZoom, vm.Zoom, anchor);
+                }
+                _lastZoom = vm.Zoom;
+            }
+            else if (e.PropertyName == nameof(MainViewModel.Zoom))
+            {
+                _lastZoom = vm.Zoom;
+            }
+        }
+
+        public async System.Threading.Tasks.Task<global::Avalonia.Media.Imaging.Bitmap?> GetSnapshot()
+        {
+            var preview = this.FindControl<Border>("PreviewFrame");
+            var container = this.FindControl<Grid>("CanvasContainer");
+            var overlay = this.FindControl<Canvas>("OverlayCanvas");
+
+            // Prefer the full preview frame (background + padding + shadow); fall back to the image container.
+            var target = (Control?)preview ?? container;
+            if (target == null) return null;
+
+            var bounds = target.Bounds;
+            if (bounds.Width <= 0 || bounds.Height <= 0) return null;
+
+            var scaling = (VisualRoot as TopLevel)?.RenderScaling ?? 1.0;
+            var pixelWidth = (int)Math.Max(1, Math.Round(bounds.Width * scaling));
+            var pixelHeight = (int)Math.Max(1, Math.Round(bounds.Height * scaling));
+
+            // Hide overlay (selection handles, crop outline) so it does not appear in the exported image.
+            var overlayWasVisible = overlay?.IsVisible ?? false;
+            if (overlay != null) overlay.IsVisible = false;
+
+            try
+            {
+                var rtb = new global::Avalonia.Media.Imaging.RenderTargetBitmap(
+                    new PixelSize(pixelWidth, pixelHeight),
+                    new Vector(96 * scaling, 96 * scaling));
+
+                rtb.Render(target);
+                return rtb;
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine("Snapshot failed: " + ex.Message);
+                return null;
+            }
+            finally
+            {
+                if (overlay != null) overlay.IsVisible = overlayWasVisible;
+            }
+        }
+
+        public async System.Threading.Tasks.Task<string?> ShowSaveAsDialog()
+        {
+            var topLevel = TopLevel.GetTopLevel(this);
+            if (topLevel?.StorageProvider == null) return null;
+
+            try
+            {
+                var file = await topLevel.StorageProvider.SaveFilePickerAsync(new FilePickerSaveOptions
+                {
+                    Title = "Save Image",
+                    DefaultExtension = "png",
+                    FileTypeChoices = new[]
+                    {
+                        new FilePickerFileType("PNG Image") { Patterns = new[] { "*.png" } },
+                        new FilePickerFileType("JPEG Image") { Patterns = new[] { "*.jpg", "*.jpeg" } },
+                        new FilePickerFileType("Bitmap Image") { Patterns = new[] { "*.bmp" } }
+                    },
+                    SuggestedFileName = $"ShareX_{DateTime.Now:yyyy-MM-dd_HH-mm-ss}.png"
+                });
+
+                return file?.Path.LocalPath;
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine("SaveAs dialog failed: " + ex.Message);
+                return null;
+            }
+        }
+
+        public async System.Threading.Tasks.Task CopyToClipboard(global::Avalonia.Media.Imaging.Bitmap image)
+        {
+            try
+            {
+                // Convert Avalonia Bitmap directly to SKBitmap for platform clipboard
+                using var skBitmap = Helpers.BitmapConversionHelpers.ToSKBitmap(image);
+                ShareX.Ava.Platform.Abstractions.PlatformServices.Clipboard.SetImage(skBitmap);
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Clipboard copy failed: {ex.Message}");
+                throw;
+            }
+
+            await System.Threading.Tasks.Task.CompletedTask;
+        }
+
+        public async System.Threading.Tasks.Task ShowErrorDialog(string title, string message)
+        {
+            var messageBox = new Window
+            {
+                Title = title,
+                Width = 500,
+                Height = 200,
+                WindowStartupLocation = WindowStartupLocation.CenterOwner,
+                CanResize = false
+            };
+
+            var panel = new StackPanel
+            {
+                Margin = new Thickness(20),
+                Spacing = 15
+            };
+
+            var messageText = new TextBlock
+            {
+                Text = message,
+                TextWrapping = TextWrapping.Wrap,
+                MaxWidth = 460
+            };
+
+            var buttonPanel = new StackPanel
+            {
+                HorizontalAlignment = global::Avalonia.Layout.HorizontalAlignment.Center,
+                Margin = new Thickness(0, 10, 0, 0)
+            };
+
+            var okButton = new Button
+            {
+                Content = "OK",
+                Padding = new Thickness(30, 8)
+            };
+
+            okButton.Click += (s, e) => messageBox.Close();
+
+            buttonPanel.Children.Add(okButton);
+            panel.Children.Add(messageText);
+            panel.Children.Add(buttonPanel);
+            messageBox.Content = panel;
+
+            await messageBox.ShowDialog(TopLevel.GetTopLevel(this) as Window);
+        }
+
+        // --- LOGIC MIGRATED FROM MAINWINDOW.AXAML.CS ---
 
         private void PerformUndo()
         {
@@ -323,15 +830,8 @@ namespace ShareX.Editor.Views
                 if (canvas != null && canvas.Children.Contains(_selectedShape))
                 {
                     canvas.Children.Remove(_selectedShape);
-                    
-                    // Cleanup shapeEndpoints
-                    if (_shapeEndpoints.ContainsKey(_selectedShape))
-                    {
-                        _shapeEndpoints.Remove(_selectedShape);
-                    }
-
+                    // Simple deletion, no undo support for delete yet
                     _selectedShape = null;
-                    UpdateSelectionHandles();
                 }
             }
         }
@@ -353,9 +853,8 @@ namespace ShareX.Editor.Views
                 }
             }
             _selectionHandles.Clear();
-            _shapeEndpoints.Clear();
 
-            var cropOverlay = this.FindControl<Rectangle>("CropOverlay");
+            var cropOverlay = this.FindControl<global::Avalonia.Controls.Shapes.Rectangle>("CropOverlay");
             if (cropOverlay != null)
             {
                 cropOverlay.IsVisible = false;
@@ -458,7 +957,7 @@ namespace ShareX.Editor.Views
 
         private async void OnCanvasPointerPressed(object sender, PointerPressedEventArgs e)
         {
-            if (DataContext is not EditorViewModel vm) return;
+            if (DataContext is not MainViewModel vm) return;
             // Always draw on the main annotation canvas even if the overlay receives the event.
             var canvas = this.FindControl<Canvas>("AnnotationCanvas") ?? sender as Canvas;
             if (canvas == null) return;
@@ -473,7 +972,7 @@ namespace ShareX.Editor.Views
             if (props.IsRightButtonPressed)
             {
                 // Hit test to find the shape under cursor
-                var hitSource = e.Source as Visual;
+                var hitSource = e.Source as global::Avalonia.Visual;
                 Control? hitTarget = null;
 
                 while (hitSource != null && hitSource != canvas)
@@ -486,29 +985,30 @@ namespace ShareX.Editor.Views
                     hitSource = hitSource.GetVisualParent();
                 }
 
+                // Delete the shape if found (don't delete crop overlay)
                 if (hitTarget != null && hitTarget.Name != "CropOverlay")
                 {
                     canvas.Children.Remove(hitTarget);
                     
-                    if (_shapeEndpoints.ContainsKey(hitTarget))
-                    {
-                        _shapeEndpoints.Remove(hitTarget);
-                    }
-
                     // Remove from undo stack if present
                     if (_undoStack.Contains(hitTarget))
                     {
-                        // Helper to remove from stack specific item? 
-                        // Simplified: just rebuild stack (inefficient but works)
                         var tempStack = new Stack<Control>();
                         while (_undoStack.Count > 0)
                         {
                             var item = _undoStack.Pop();
-                            if (item != hitTarget) tempStack.Push(item);
+                            if (item != hitTarget)
+                            {
+                                tempStack.Push(item);
+                            }
                         }
-                        while (tempStack.Count > 0) _undoStack.Push(tempStack.Pop());
+                        while (tempStack.Count > 0)
+                        {
+                            _undoStack.Push(tempStack.Pop());
+                        }
                     }
 
+                    // Clear selection if this was the selected shape
                     if (_selectedShape == hitTarget)
                     {
                         _selectedShape = null;
@@ -521,7 +1021,7 @@ namespace ShareX.Editor.Views
                 return;
             }
 
-            // Check if clicking a handle
+            // Check if clicking a handle (always allow when a shape is selected, regardless of active tool)
             if (_selectedShape != null || vm.ActiveTool == EditorTool.Crop)
             {
                 var overlay = this.FindControl<Canvas>("OverlayCanvas");
@@ -532,11 +1032,12 @@ namespace ShareX.Editor.Views
                     {
                         _isDraggingHandle = true;
                         _draggedHandle = handle;
-                        _startPoint = GetCanvasPosition(e, overlay); 
+                        _startPoint = GetCanvasPosition(e, overlay); // Use overlay coords for handles
 
+                        // If we are cropping, ensure we are selecting the crop overlay
                         if (vm.ActiveTool == EditorTool.Crop)
                         {
-                            var cropOverlay = this.FindControl<Rectangle>("CropOverlay");
+                            var cropOverlay = this.FindControl<global::Avalonia.Controls.Shapes.Rectangle>("CropOverlay");
                             _selectedShape = cropOverlay;
                         }
                         return;
@@ -544,10 +1045,12 @@ namespace ShareX.Editor.Views
                 }
             }
 
-            // Allow dragging selected shapes
+            // Allow dragging selected shapes even when not in Select tool mode
+            // This enables immediate repositioning after creating an annotation
             if (_selectedShape != null && vm.ActiveTool != EditorTool.Select)
             {
-                var hitSource = e.Source as Visual;
+                // Hit test to see if we clicked on the selected shape
+                var hitSource = e.Source as global::Avalonia.Visual;
                 Control? hitTarget = null;
 
                 while (hitSource != null && hitSource != canvas)
@@ -560,6 +1063,7 @@ namespace ShareX.Editor.Views
                     hitSource = hitSource.GetVisualParent();
                 }
 
+                // If we clicked on the currently selected shape, start dragging it
                 if (hitTarget == _selectedShape)
                 {
                     _lastDragPoint = point;
@@ -569,6 +1073,7 @@ namespace ShareX.Editor.Views
                 }
                 else
                 {
+                    // Clicked elsewhere, deselect and continue with new shape creation
                     _selectedShape = null;
                     UpdateSelectionHandles();
                 }
@@ -576,7 +1081,8 @@ namespace ShareX.Editor.Views
 
             if (vm.ActiveTool == EditorTool.Select)
             {
-                var hitSource = e.Source as Visual;
+                // Hit test - find the direct child of the canvas
+                var hitSource = e.Source as global::Avalonia.Visual;
                 Control? hitTarget = null;
 
                 while (hitSource != null && hitSource != canvas)
@@ -604,7 +1110,7 @@ namespace ShareX.Editor.Views
                 return;
             }
 
-            // New Drawing
+            // Clear Redo stack on new action
             _redoStack.Clear();
 
             _startPoint = point;
@@ -613,9 +1119,10 @@ namespace ShareX.Editor.Views
 
             var brush = new SolidColorBrush(Color.Parse(vm.SelectedColor));
 
+            // Special handling for Crop
             if (vm.ActiveTool == EditorTool.Crop)
             {
-                var cropOverlay = this.FindControl<Rectangle>("CropOverlay");
+                var cropOverlay = this.FindControl<global::Avalonia.Controls.Shapes.Rectangle>("CropOverlay");
                 if (cropOverlay != null)
                 {
                     cropOverlay.IsVisible = true;
@@ -631,6 +1138,7 @@ namespace ShareX.Editor.Views
             if (vm.ActiveTool == EditorTool.Image)
             {
                 _isDrawing = false;
+                // File Picker logic
                 var topLevel = TopLevel.GetTopLevel(this);
                 if (topLevel?.StorageProvider != null)
                 {
@@ -646,7 +1154,7 @@ namespace ShareX.Editor.Views
                         try
                         {
                             using var stream = await files[0].OpenReadAsync();
-                            var bitmap = new Avalonia.Media.Imaging.Bitmap(stream);
+                            var bitmap = new global::Avalonia.Media.Imaging.Bitmap(stream);
 
                             var imageControl = new Image
                             {
@@ -656,9 +1164,10 @@ namespace ShareX.Editor.Views
                             };
 
                             var annotation = new ImageAnnotation();
-                            annotation.SetImage(BitmapConversionHelpers.ToSKBitmap(bitmap));
+                            annotation.SetImage(bitmap);
                             imageControl.Tag = annotation;
 
+                            // Center on click point
                             Canvas.SetLeft(imageControl, _startPoint.X - bitmap.Size.Width / 2);
                             Canvas.SetTop(imageControl, _startPoint.Y - bitmap.Size.Height / 2);
 
@@ -681,7 +1190,7 @@ namespace ShareX.Editor.Views
             switch (vm.ActiveTool)
             {
                 case EditorTool.Rectangle:
-                    _currentShape = new Rectangle
+                    _currentShape = new global::Avalonia.Controls.Shapes.Rectangle
                     {
                         Stroke = brush,
                         StrokeThickness = vm.StrokeWidth,
@@ -689,7 +1198,7 @@ namespace ShareX.Editor.Views
                     };
                     break;
                 case EditorTool.Ellipse:
-                    _currentShape = new Ellipse
+                    _currentShape = new global::Avalonia.Controls.Shapes.Ellipse
                     {
                         Stroke = brush,
                         StrokeThickness = vm.StrokeWidth,
@@ -697,7 +1206,7 @@ namespace ShareX.Editor.Views
                     };
                     break;
                 case EditorTool.Line:
-                    _currentShape = new Line
+                    _currentShape = new global::Avalonia.Controls.Shapes.Line
                     {
                         Stroke = brush,
                         StrokeThickness = vm.StrokeWidth,
@@ -710,27 +1219,32 @@ namespace ShareX.Editor.Views
                     {
                         Stroke = brush,
                         StrokeThickness = vm.StrokeWidth,
-                        Fill = brush,
+                        Fill = brush, // Fill arrowhead
                         Data = new PathGeometry()
                     };
+                    // Store initial endpoint for later editing
                     _shapeEndpoints[_currentShape] = (_startPoint, _startPoint);
                     break;
                 case EditorTool.Text:
+                    // For text, we create a TextBox directly
                     var textBox = new TextBox
                     {
                         Foreground = brush,
                         Background = Brushes.Transparent,
-                        BorderThickness = new Thickness(1),
+                        BorderThickness = new Thickness(1), // Visible border while editing
                         BorderBrush = Brushes.White,
                         FontSize = Math.Max(12, vm.StrokeWidth * 4),
                         Text = string.Empty,
                         Padding = new Thickness(4),
                         MinWidth = 50,
-                        AcceptsReturn = false
+                        AcceptsReturn = false // Single-line text annotation
                     };
+
+                    // Position it
                     Canvas.SetLeft(textBox, _startPoint.X);
                     Canvas.SetTop(textBox, _startPoint.Y);
-                    
+
+                    // Add logic to remove border when lost focus?
                     textBox.LostFocus += (s, args) =>
                     {
                         if (s is TextBox tb)
@@ -738,54 +1252,87 @@ namespace ShareX.Editor.Views
                             tb.BorderThickness = new Thickness(0);
                             if (string.IsNullOrWhiteSpace(tb.Text))
                             {
+                                // Remove empty text boxes
                                 var parentKey = tb.Parent as Panel;
                                 parentKey?.Children.Remove(tb);
                             }
                         }
                     };
+
+                    // Pressing Enter should finalize the text annotation instead of inserting a newline.
                     textBox.KeyDown += (s, args) =>
                     {
                         if (args.Key == Key.Enter)
                         {
                             args.Handled = true;
+                            // Move focus away so LostFocus handler finalizes/removes the editing chrome.
                             this.Focus();
                         }
                     };
+
                     canvas.Children.Add(textBox);
                     textBox.Focus();
                     _isDrawing = false;
                     return;
 
                 case EditorTool.Spotlight:
+                    // Create a spotlight control that will render the darkening effect
                     var spotlightAnnotation = new SpotlightAnnotation();
-                    spotlightAnnotation.CanvasSize = new SkiaSharp.SKSize((float)canvas.Bounds.Width, (float)canvas.Bounds.Height);
                     
-                    var spotlightControl = new SpotlightControl
+                    // Set canvas size for the darkening overlay
+                    spotlightAnnotation.CanvasSize = new Size(canvas.Bounds.Width, canvas.Bounds.Height);
+                    
+                    var spotlightControl = new ShareX.Ava.UI.Controls.SpotlightControl
                     {
                         Annotation = spotlightAnnotation,
                         IsHitTestVisible = true
                     };
+                    
                     _currentShape = spotlightControl;
                     break;
+
+                // --- NEW TOOLS ---
 
                 case EditorTool.Blur:
                 case EditorTool.Pixelate:
                 case EditorTool.Magnify:
                 case EditorTool.Highlighter:
-                    var effectRect = new Rectangle
+                    // For these region-based effects, we primarily draw a rectangle as a visual container
+                    // The "Actual" rendering would ideally be done by a custom control or custom drawing visual.
+                    // For MVP, since we implemented BaseEffectAnnotation as logical models, 
+                    // we can't directly add them to a Canvas unless they are Avalonia Controls or we wrap them.
+
+                    // QUICK FIX STRATEGY: 
+                    // Use a standardized Avalonia Border/Rectangle for the UI representation 
+                    // and attaching the logic via attached properties or Tag or ViewModel synchronization.
+
+                    // Better approach for Avalonia: 
+                    // Create an 'AnnotationControl' wrapper that takes the 'Annotation' model and renders it.
+                    // But we don't have that yet.
+
+                    // Fallback to simple shapes representing the logical annotation:
+
+                    var effectRect = new global::Avalonia.Controls.Shapes.Rectangle
                     {
                         Stroke = (vm.ActiveTool == EditorTool.Magnify) ? brush : Brushes.Transparent,
                         StrokeThickness = vm.StrokeWidth,
                         Fill = (vm.ActiveTool == EditorTool.Highlighter) ? new SolidColorBrush(ApplyHighlightAlpha(Color.Parse(vm.SelectedColor))) : Brushes.Transparent,
-                        Tag = CreateEffectAnnotation(vm.ActiveTool)
+                        Tag = CreateEffectAnnotation(vm.ActiveTool) // Create and attach logic model
                     };
-                    if (vm.ActiveTool == EditorTool.Blur) effectRect.Fill = new SolidColorBrush(Color.Parse("#200000FF"));
-                    else if (vm.ActiveTool == EditorTool.Pixelate) effectRect.Fill = new SolidColorBrush(Color.Parse("#2000FF00"));
+
+                    // For Blur/Pixelate, we might want a translucent overlay to show where it is
+                    if (vm.ActiveTool == EditorTool.Blur)
+                        effectRect.Fill = new SolidColorBrush(Color.Parse("#200000FF")); // Faint blue
+                    else if (vm.ActiveTool == EditorTool.Pixelate)
+                        effectRect.Fill = new SolidColorBrush(Color.Parse("#2000FF00")); // Faint green
+
                     _currentShape = effectRect;
                     break;
 
                 case EditorTool.SpeechBalloon:
-                    _currentShape = new Rectangle
+                    // Placeholder: Draw a generic path or just a rect for now
+                    // A real speech balloon needs a custom shape control
+                    _currentShape = new global::Avalonia.Controls.Shapes.Rectangle
                     {
                         Stroke = brush,
                         StrokeThickness = vm.StrokeWidth,
@@ -797,6 +1344,7 @@ namespace ShareX.Editor.Views
 
                 case EditorTool.Pen:
                 case EditorTool.SmartEraser:
+                    // Freehand drawing requires a Polyline
                     var polyline = new Polyline
                     {
                         Stroke = (vm.ActiveTool == EditorTool.SmartEraser) ? new SolidColorBrush(Color.Parse("#80FF0000")) : brush,
@@ -804,53 +1352,88 @@ namespace ShareX.Editor.Views
                         Points = new Points { _startPoint }
                     };
                     polyline.SetValue(Panel.ZIndexProperty, 1);
-                    
-                    // Smart Eraser / Pen Tag Logic would go here
-                    // For now basic implementation
-                    polyline.Tag = vm.ActiveTool == EditorTool.SmartEraser ? new SmartEraserAnnotation() : new FreehandAnnotation();
+
+                    FreehandAnnotation freehand;
+                    if (vm.ActiveTool == EditorTool.SmartEraser)
+                    {
+                        // Sample pixel color from rendered canvas (including annotations)
+                        var sampledColor = await GetPixelColorFromRenderedCanvas(_startPoint);
+                        
+                        freehand = new SmartEraserAnnotation();
+                        
+                        // If we got a valid color, use it as solid color; otherwise fall back to semi-transparent red
+                        if (!string.IsNullOrEmpty(sampledColor))
+                        {
+                            freehand.StrokeColor = sampledColor;
+                            // Update polyline to use solid sampled color
+                            polyline.Stroke = new SolidColorBrush(Color.Parse(sampledColor));
+                        }
+                    }
+                    else
+                    {
+                        freehand = new FreehandAnnotation();
+                    }
+
+                    freehand.Points.Add(_startPoint);
+                    polyline.Tag = freehand;
 
                     _currentShape = polyline;
                     break;
 
                 case EditorTool.Number:
+                    // Create number annotation
                     var numberGrid = new Grid
                     {
                         Width = 30,
                         Height = 30
                     };
-                    var bg = new Ellipse
+
+                    var bg = new global::Avalonia.Controls.Shapes.Ellipse
                     {
                         Fill = brush,
                         Stroke = Brushes.White,
                         StrokeThickness = 2
                     };
+
                     var numText = new TextBlock
                     {
                         Text = vm.NumberCounter.ToString(),
                         Foreground = Brushes.White,
-                        HorizontalAlignment = HorizontalAlignment.Center,
-                        VerticalAlignment = VerticalAlignment.Center,
+                        HorizontalAlignment = global::Avalonia.Layout.HorizontalAlignment.Center,
+                        VerticalAlignment = global::Avalonia.Layout.VerticalAlignment.Center,
                         FontWeight = FontWeight.Bold
                     };
+
                     numberGrid.Children.Add(bg);
                     numberGrid.Children.Add(numText);
+
                     Canvas.SetLeft(numberGrid, _startPoint.X - 15);
                     Canvas.SetTop(numberGrid, _startPoint.Y - 15);
+
                     _currentShape = numberGrid;
                     vm.NumberCounter++;
+
                     canvas.Children.Add(numberGrid);
+                    // Number is positioned and added to canvas, so don't add it again
+                    // Keep _isDrawing true so it goes through OnCanvasPointerReleased for auto-selection
                     break;
             }
 
             if (_currentShape != null)
             {
-                if (vm.ActiveTool != EditorTool.Number && vm.ActiveTool != EditorTool.Line && vm.ActiveTool != EditorTool.Arrow && vm.ActiveTool != EditorTool.Pen && vm.ActiveTool != EditorTool.SmartEraser && vm.ActiveTool != EditorTool.Spotlight)
+                // Number tool already adds itself to canvas, so don't add it again
+                if (vm.ActiveTool == EditorTool.Number)
+                {
+                    // Number is already added to canvas, nothing more to do here
+                    // Keep _isDrawing true so it goes through OnCanvasPointerReleased properly
+                }
+                else if (vm.ActiveTool != EditorTool.Line && vm.ActiveTool != EditorTool.Arrow && vm.ActiveTool != EditorTool.Pen && vm.ActiveTool != EditorTool.SmartEraser && vm.ActiveTool != EditorTool.Spotlight)
                 {
                     Canvas.SetLeft(_currentShape, _startPoint.X);
                     Canvas.SetTop(_currentShape, _startPoint.Y);
                     canvas.Children.Add(_currentShape);
                 }
-                else if (vm.ActiveTool != EditorTool.Number)
+                else
                 {
                     canvas.Children.Add(_currentShape);
                 }
@@ -859,6 +1442,7 @@ namespace ShareX.Editor.Views
 
         private void OnCanvasPointerMoved(object sender, PointerEventArgs e)
         {
+            // Keep all drawing relative to the annotation canvas so overlay hit tests don't misplace strokes.
             var canvas = this.FindControl<Canvas>("AnnotationCanvas") ?? sender as Canvas;
             if (canvas == null) return;
             var currentPoint = GetCanvasPosition(e, canvas);
@@ -869,33 +1453,55 @@ namespace ShareX.Editor.Views
                 var deltaX = currentPoint.X - _startPoint.X;
                 var deltaY = currentPoint.Y - _startPoint.Y;
 
-                if (_selectedShape is Line targetLine)
+                // Special handling for Line endpoints
+                if (_selectedShape is global::Avalonia.Controls.Shapes.Line targetLine)
                 {
-                    if (handleTag == "LineStart") targetLine.StartPoint = currentPoint;
-                    else if (handleTag == "LineEnd") targetLine.EndPoint = currentPoint;
+                    if (handleTag == "LineStart")
+                    {
+                        targetLine.StartPoint = currentPoint;
+                    }
+                    else if (handleTag == "LineEnd")
+                    {
+                        targetLine.EndPoint = currentPoint;
+                    }
+
                     _startPoint = currentPoint;
                     UpdateSelectionHandles();
                     return;
                 }
 
-                if (_selectedShape is global::Avalonia.Controls.Shapes.Path arrowPath && DataContext is EditorViewModel vm)
+                // Special handling for Arrow endpoints
+                if (_selectedShape is global::Avalonia.Controls.Shapes.Path arrowPath && DataContext is MainViewModel vm)
                 {
+                    // Get stored endpoints
                     if (_shapeEndpoints.TryGetValue(arrowPath, out var endpoints))
                     {
                         Point arrowStart = endpoints.Start;
                         Point arrowEnd = endpoints.End;
 
-                        if (handleTag == "ArrowStart") arrowStart = currentPoint;
-                        else if (handleTag == "ArrowEnd") arrowEnd = currentPoint;
+                        // Update the appropriate endpoint
+                        if (handleTag == "ArrowStart")
+                        {
+                            arrowStart = currentPoint;
+                        }
+                        else if (handleTag == "ArrowEnd")
+                        {
+                            arrowEnd = currentPoint;
+                        }
 
+                        // Store updated endpoints
                         _shapeEndpoints[arrowPath] = (arrowStart, arrowEnd);
+
+                        // Recreate arrow geometry with new points
                         arrowPath.Data = CreateArrowGeometry(arrowStart, arrowEnd, vm.StrokeWidth * 3);
                     }
+
                     _startPoint = currentPoint;
                     UpdateSelectionHandles();
                     return;
                 }
 
+                // Get current bounds for regular shapes
                 var left = Canvas.GetLeft(_selectedShape);
                 var top = Canvas.GetTop(_selectedShape);
                 var width = _selectedShape.Bounds.Width;
@@ -903,17 +1509,37 @@ namespace ShareX.Editor.Views
                 if (double.IsNaN(width)) width = _selectedShape.Width;
                 if (double.IsNaN(height)) height = _selectedShape.Height;
 
-                if (_selectedShape is Rectangle || _selectedShape is Ellipse || _selectedShape is Grid)
+                // Helper to update properties
+                // Rectangle/Ellipse use Width/Height
+
+                if (_selectedShape is global::Avalonia.Controls.Shapes.Rectangle || _selectedShape is global::Avalonia.Controls.Shapes.Ellipse || _selectedShape is Grid)
                 {
                     double newLeft = left;
                     double newTop = top;
                     double newWidth = width;
                     double newHeight = height;
 
-                    if (handleTag.Contains("Right")) newWidth = Math.Max(1, width + deltaX);
-                    else if (handleTag.Contains("Left")) { var change = Math.Min(width - 1, deltaX); newLeft += change; newWidth -= change; }
-                    if (handleTag.Contains("Bottom")) newHeight = Math.Max(1, height + deltaY);
-                    else if (handleTag.Contains("Top")) { var change = Math.Min(height - 1, deltaY); newTop += change; newHeight -= change; }
+                    if (handleTag.Contains("Right"))
+                    {
+                        newWidth = Math.Max(1, width + deltaX);
+                    }
+                    else if (handleTag.Contains("Left"))
+                    {
+                        var change = Math.Min(width - 1, deltaX);
+                        newLeft += change;
+                        newWidth -= change;
+                    }
+
+                    if (handleTag.Contains("Bottom"))
+                    {
+                        newHeight = Math.Max(1, height + deltaY);
+                    }
+                    else if (handleTag.Contains("Top"))
+                    {
+                        var change = Math.Min(height - 1, deltaY);
+                        newTop += change;
+                        newHeight -= change;
+                    }
 
                     Canvas.SetLeft(_selectedShape, newLeft);
                     Canvas.SetTop(_selectedShape, newTop);
@@ -921,65 +1547,85 @@ namespace ShareX.Editor.Views
                     _selectedShape.Height = newHeight;
                 }
 
-                _startPoint = currentPoint;
+                _startPoint = currentPoint; // Update for next delta
                 UpdateSelectionHandles();
                 return;
             }
+
 
             if (_isDraggingShape && _selectedShape != null)
             {
                 var deltaX = currentPoint.X - _lastDragPoint.X;
                 var deltaY = currentPoint.Y - _lastDragPoint.Y;
 
-                if (_selectedShape is Line targetLine)
+                // Special handling for moving Lines - update start and end points
+                if (_selectedShape is global::Avalonia.Controls.Shapes.Line targetLine)
                 {
                     targetLine.StartPoint = new Point(targetLine.StartPoint.X + deltaX, targetLine.StartPoint.Y + deltaY);
                     targetLine.EndPoint = new Point(targetLine.EndPoint.X + deltaX, targetLine.EndPoint.Y + deltaY);
+
                     _lastDragPoint = currentPoint;
                     UpdateSelectionHandles();
                     return;
                 }
 
-                if (_selectedShape is global::Avalonia.Controls.Shapes.Path arrowPath && DataContext is EditorViewModel vm)
+                // Special handling for moving arrows - update stored endpoints
+                if (_selectedShape is global::Avalonia.Controls.Shapes.Path arrowPath && DataContext is MainViewModel vm)
                 {
                     if (_shapeEndpoints.TryGetValue(arrowPath, out var endpoints))
                     {
                         var newStart = new Point(endpoints.Start.X + deltaX, endpoints.Start.Y + deltaY);
                         var newEnd = new Point(endpoints.End.X + deltaX, endpoints.End.Y + deltaY);
+
                         _shapeEndpoints[arrowPath] = (newStart, newEnd);
                         arrowPath.Data = CreateArrowGeometry(newStart, newEnd, vm.StrokeWidth * 3);
                     }
+
                     _lastDragPoint = currentPoint;
                     UpdateSelectionHandles();
                     return;
                 }
 
+                // Regular shape moving
                 var left = Canvas.GetLeft(_selectedShape);
                 var top = Canvas.GetTop(_selectedShape);
+
                 Canvas.SetLeft(_selectedShape, left + deltaX);
                 Canvas.SetTop(_selectedShape, top + deltaY);
 
                 _lastDragPoint = currentPoint;
-                UpdateSelectionHandles();
+                UpdateSelectionHandles(); // Move handles with shape
                 return;
             }
 
             if (!_isDrawing || _currentShape == null) return;
 
-            if (_currentShape is Line line)
+            if (_currentShape is global::Avalonia.Controls.Shapes.Line line)
             {
                 line.EndPoint = currentPoint;
             }
             else if (_currentShape is Polyline polyline)
             {
-                var updated = new Points(polyline.Points);
+                // Freehand drawing: create a new Points collection to force property change and redraw.
+                var updated = new Points();
+                foreach (var p in polyline.Points)
+                {
+                    updated.Add(p);
+                }
                 updated.Add(currentPoint);
                 polyline.Points = updated;
-                // polyline.Tag specific logic..
+                polyline.InvalidateVisual();
+
+                if (polyline.Tag is FreehandAnnotation freehand)
+                {
+                    freehand.Points.Add(currentPoint);
+                }
             }
-            else if (_currentShape is global::Avalonia.Controls.Shapes.Path arrowPath && DataContext is EditorViewModel vm)
+            else if (_currentShape is global::Avalonia.Controls.Shapes.Path arrowPath && DataContext is MainViewModel vm)
             {
+                // Update Arrow Geometry
                 arrowPath.Data = CreateArrowGeometry(_startPoint, currentPoint, vm.StrokeWidth * 3);
+                // Store endpoints for later editing
                 _shapeEndpoints[arrowPath] = (_startPoint, currentPoint);
             }
             else
@@ -989,33 +1635,160 @@ namespace ShareX.Editor.Views
                 var width = Math.Abs(_startPoint.X - currentPoint.X);
                 var height = Math.Abs(_startPoint.Y - currentPoint.Y);
 
-                if (_currentShape is Rectangle rect)
+                if (_currentShape is global::Avalonia.Controls.Shapes.Rectangle rect)
                 {
+                    // Existing logic
                     rect.Width = width;
                     rect.Height = height;
                     Canvas.SetLeft(rect, x);
                     Canvas.SetTop(rect, y);
-                    if (rect.Tag is BaseEffectAnnotation) UpdateEffectVisual(rect);
+
+                    // Trigger update for effects
+                    if (rect.Tag is BaseEffectAnnotation)
+                    {
+                        UpdateEffectVisual(rect);
+                    }
                 }
-                else if (_currentShape is Ellipse ellipse)
+                else if (_currentShape is global::Avalonia.Controls.Shapes.Ellipse ellipse)
                 {
                     ellipse.Width = width;
                     ellipse.Height = height;
                     Canvas.SetLeft(ellipse, x);
                     Canvas.SetTop(ellipse, y);
                 }
-                else if (_currentShape is SpotlightControl spotlightControl && spotlightControl.Annotation is SpotlightAnnotation spotlight)
+                else if (_currentShape is ShareX.Ava.UI.Controls.SpotlightControl spotlightControl && spotlightControl.Annotation is SpotlightAnnotation spotlight)
                 {
-                     spotlight.StartPoint = new SkiaSharp.SKPoint((float)_startPoint.X, (float)_startPoint.Y);
-                     spotlight.EndPoint = new SkiaSharp.SKPoint((float)currentPoint.X, (float)currentPoint.Y);
-                     var parentCanvas = this.FindControl<Canvas>("AnnotationCanvas");
-                     if (parentCanvas != null)
-                     {
-                         spotlight.CanvasSize = new SkiaSharp.SKSize((float)parentCanvas.Bounds.Width, (float)parentCanvas.Bounds.Height);
-                     }
-                     spotlightControl.InvalidateVisual();
+                    // Update spotlight annotation bounds
+                    spotlight.StartPoint = _startPoint;
+                    spotlight.EndPoint = currentPoint;
+                    
+                    // Update canvas size for the entire image (needed for darkening overlay)
+                    var parentCanvas = this.FindControl<Canvas>("AnnotationCanvas");
+                    if (parentCanvas != null)
+                    {
+                        spotlight.CanvasSize = new Size(parentCanvas.Bounds.Width, parentCanvas.Bounds.Height);
+                    }
+                    
+                    spotlightControl.InvalidateVisual();
                 }
             }
+        }
+
+        private BaseEffectAnnotation? CreateEffectAnnotation(EditorTool tool)
+        {
+            return tool switch
+            {
+                EditorTool.Blur => new BlurAnnotation(),
+                EditorTool.Pixelate => new PixelateAnnotation(),
+                EditorTool.Magnify => new MagnifyAnnotation(),
+                EditorTool.Highlighter => new HighlightAnnotation(),
+                _ => null
+            };
+        }
+
+        private void UpdateEffectVisual(Control shape)
+        {
+            // OPTIMIZATION: Skip expensive effect processing during drag
+            // Only show a simple preview rectangle while dragging
+            // Full effect is applied on mouse release
+            
+            if (shape.Tag is not BaseEffectAnnotation annotation) return;
+            
+            // During dragging, just show the preview fill color (no expensive processing)
+            if (_isDrawing)
+            {
+                // Shape already has preview fill set, no need to update
+                return;
+            }
+            
+            if (DataContext is not MainViewModel vm || vm.PreviewImage == null) return;
+
+            try
+            {
+                double left = Canvas.GetLeft(shape);
+                double top = Canvas.GetTop(shape);
+                double width = shape.Bounds.Width;
+                double height = shape.Bounds.Height;
+
+                if (width <= 0 || height <= 0) return;
+
+                annotation.StartPoint = new Point(left, top);
+                annotation.EndPoint = new Point(left + width, top + height);
+
+                // Cache SKBitmap conversion to avoid repeated conversions
+                if (_cachedSkBitmap == null)
+                {
+                    _cachedSkBitmap = Helpers.BitmapConversionHelpers.ToSKBitmap(vm.PreviewImage);
+                }
+
+                annotation.UpdateEffect(_cachedSkBitmap);
+
+                if (annotation.EffectBitmap != null && shape is Shape shapeControl)
+                {
+                    shapeControl.Fill = new ImageBrush(annotation.EffectBitmap)
+                    {
+                        Stretch = Stretch.None,
+                        SourceRect = new RelativeRect(0, 0, width, height, RelativeUnit.Absolute)
+                    };
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Effect update failed: {ex.Message}");
+            }
+        }
+
+        private Geometry CreateArrowGeometry(Point start, Point end, double headSize)
+        {
+            var geometry = new StreamGeometry();
+            using (var ctx = geometry.Open())
+            {
+                // Calculate arrow head
+                var d = end - start;
+                var length = Math.Sqrt(d.X * d.X + d.Y * d.Y);
+
+                if (length > 0)
+                {
+                    var ux = d.X / length;
+                    var uy = d.Y / length;
+
+                    // Modern arrow: narrower angle (20 degrees instead of 30)
+                    var arrowAngle = Math.PI / 9; // 20 degrees for sleeker look
+
+                    // Calculate arrowhead base point (where arrow meets the line)
+                    var arrowBase = new Point(
+                        end.X - headSize * ux,
+                        end.Y - headSize * uy);
+
+                    // Arrow head wing points
+                    var p1 = new Point(
+                        end.X - headSize * Math.Cos(Math.Atan2(uy, ux) - arrowAngle),
+                        end.Y - headSize * Math.Sin(Math.Atan2(uy, ux) - arrowAngle));
+
+                    var p2 = new Point(
+                        end.X - headSize * Math.Cos(Math.Atan2(uy, ux) + arrowAngle),
+                        end.Y - headSize * Math.Sin(Math.Atan2(uy, ux) + arrowAngle));
+
+                    // Draw line from start to arrow base (not to endpoint)
+                    ctx.BeginFigure(start, false);
+                    ctx.LineTo(arrowBase);
+                    ctx.EndFigure(false);
+
+                    // Draw filled arrowhead triangle
+                    ctx.BeginFigure(end, true);
+                    ctx.LineTo(p1);
+                    ctx.LineTo(p2);
+                    ctx.EndFigure(true);
+                }
+                else
+                {
+                    // Fallback for zero-length arrow
+                    ctx.BeginFigure(start, false);
+                    ctx.LineTo(end);
+                    ctx.EndFigure(false);
+                }
+            }
+            return geometry;
         }
 
         private void OnCanvasPointerReleased(object sender, PointerReleasedEventArgs e)
@@ -1042,9 +1815,13 @@ namespace ShareX.Editor.Views
                 {
                     var createdShape = _currentShape;
                     
-                    if (DataContext is EditorViewModel vm && vm.ActiveTool == EditorTool.Crop && createdShape.Name == "CropOverlay")
+                    // Special handling for crop tool - execute crop immediately on mouse release
+                    if (DataContext is MainViewModel vm && vm.ActiveTool == EditorTool.Crop && createdShape.Name == "CropOverlay")
                     {
+                        // Execute the crop operation
                         PerformCrop();
+                        
+                        // Clear the current shape and don't add to undo stack
                         _currentShape = null;
                         e.Pointer.Capture(null);
                         return;
@@ -1052,8 +1829,12 @@ namespace ShareX.Editor.Views
                     
                     _undoStack.Push(createdShape);
 
+                    // Auto-select newly created shape so resize handles appear immediately,
+                    // but skip selection for freehand pen/eraser strokes (Polyline) which
+                    // are not resizable with our current handle logic.
                     if (createdShape is not Polyline)
                     {
+                        // Apply final effect for effect tools
                         if (createdShape.Tag is BaseEffectAnnotation)
                         {
                             UpdateEffectVisual(createdShape);
@@ -1062,104 +1843,22 @@ namespace ShareX.Editor.Views
                         _selectedShape = createdShape;
                         UpdateSelectionHandles();
                     }
+
+                    // _currentShape is now managed by the canvas/undo stack
                     _currentShape = null;
                 }
                 e.Pointer.Capture(null);
             }
         }
 
-        private BaseEffectAnnotation? CreateEffectAnnotation(EditorTool tool)
-        {
-            return tool switch
-            {
-                EditorTool.Blur => new BlurAnnotation(),
-                EditorTool.Pixelate => new PixelateAnnotation(),
-                EditorTool.Magnify => new MagnifyAnnotation(),
-                EditorTool.Highlighter => new HighlightAnnotation(),
-                _ => null
-            };
-        }
-
-        private void UpdateEffectVisual(Control shape)
-        {
-            if (shape.Tag is not BaseEffectAnnotation annotation) return;
-            if (_isDrawing) return;
-            if (DataContext is not EditorViewModel vm || vm.PreviewImage == null) return;
-
-            try
-            {
-                double left = Canvas.GetLeft(shape);
-                double top = Canvas.GetTop(shape);
-                double width = shape.Bounds.Width;
-                double height = shape.Bounds.Height;
-
-                if (width <= 0 || height <= 0) return;
-
-                annotation.StartPoint = new SkiaSharp.SKPoint((float)left, (float)top);
-                annotation.EndPoint = new SkiaSharp.SKPoint((float)(left + width), (float)(top + height));
-
-                if (_cachedSkBitmap == null)
-                {
-                    _cachedSkBitmap = BitmapConversionHelpers.ToSKBitmap(vm.PreviewImage);
-                }
-
-                annotation.UpdateEffect(_cachedSkBitmap);
-
-                if (annotation.EffectBitmap != null && shape is Shape shapeControl)
-                {
-                    var avaloniaBitmap = BitmapConversionHelpers.ToAvaloniaBitmap(annotation.EffectBitmap);
-                    shapeControl.Fill = new ImageBrush(avaloniaBitmap)
-                    {
-                        Stretch = Stretch.None,
-                        SourceRect = new RelativeRect(0, 0, width, height, RelativeUnit.Absolute)
-                    };
-                }
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"Effect update failed: {ex.Message}");
-            }
-        }
-
-        private Geometry CreateArrowGeometry(Point start, Point end, double headSize)
-        {
-             var geometry = new StreamGeometry();
-             using (var ctx = geometry.Open())
-             {
-                 var d = end - start;
-                 var length = Math.Sqrt(d.X * d.X + d.Y * d.Y);
-                 if (length > 0)
-                 {
-                     var ux = d.X / length;
-                     var uy = d.Y / length;
-                     var arrowAngle = Math.PI / 9;
-                     var arrowBase = new Point(end.X - headSize * ux, end.Y - headSize * uy);
-                     var p1 = new Point(end.X - headSize * Math.Cos(Math.Atan2(uy, ux) - arrowAngle), end.Y - headSize * Math.Sin(Math.Atan2(uy, ux) - arrowAngle));
-                     var p2 = new Point(end.X - headSize * Math.Cos(Math.Atan2(uy, ux) + arrowAngle), end.Y - headSize * Math.Sin(Math.Atan2(uy, ux) + arrowAngle));
-
-                     ctx.BeginFigure(start, false);
-                     ctx.LineTo(arrowBase);
-                     ctx.EndFigure(false);
-
-                     ctx.BeginFigure(end, true);
-                     ctx.LineTo(p1);
-                     ctx.LineTo(p2);
-                     ctx.EndFigure(true);
-                 }
-                 else
-                 {
-                     ctx.BeginFigure(start, false);
-                     ctx.LineTo(end);
-                     ctx.EndFigure(false);
-                 }
-             }
-             return geometry;
-        }
-
+        // Public method to be called from MainWindow if key is pressed, 
+        // OR better: we handle keys in EditorView separately? 
+        // UserControls can handle keys if focused, but Window handles global keys better.
+        // We will expose this method or command.
         public void PerformCrop()
         {
-            var cropOverlay = this.FindControl<Rectangle>("CropOverlay");
-            if (cropOverlay == null || !cropOverlay.IsVisible || DataContext is not EditorViewModel vm) return;
+            var cropOverlay = this.FindControl<global::Avalonia.Controls.Shapes.Rectangle>("CropOverlay");
+            if (cropOverlay == null || !cropOverlay.IsVisible || DataContext is not MainViewModel vm) return;
 
             var x = Canvas.GetLeft(cropOverlay);
             var y = Canvas.GetTop(cropOverlay);
@@ -1175,15 +1874,15 @@ namespace ShareX.Editor.Views
             var physH = (int)(h * scaling);
 
             vm.CropImage(physX, physY, physW, physH);
+
             cropOverlay.IsVisible = false;
             vm.StatusText = "Image cropped";
         }
-
         private void OnEffectsPanelApplyRequested(object? sender, RoutedEventArgs e)
         {
-            if (DataContext is EditorViewModel vm)
+            if (DataContext is MainViewModel vm)
             {
-               vm.ApplyEffectCommand.Execute(null);
+                vm.ApplyEffectCommand.Execute(null);
             }
         }
     }

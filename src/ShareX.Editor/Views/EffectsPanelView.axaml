@@ -2,17 +2,14 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-             xmlns:vm="using:ShareX.Editor.ViewModels"
+             xmlns:vm="using:ShareX.Ava.UI.ViewModels"
              mc:Ignorable="d" d:DesignWidth="400" d:DesignHeight="600"
-             x:Class="ShareX.Editor.Views.EffectsPanelView"
+             x:Class="ShareX.Ava.UI.Views.EffectsPanelView"
              x:DataType="vm:EffectsPanelViewModel">
 
     <UserControl.Resources>
         <ResourceDictionary>
             <ResourceDictionary.MergedDictionaries>
-                <!-- Assuming this resource dictionary is also moved or accessible, otherwise this might need adjustment -->
-                <!-- For now, keeping as is, but assuming it resides in ShareX.Avalonia.UI.Resources might be an issue if not moved. -->
-                <!-- Checking if generic resources need to be moved too... -->
                 <ResourceInclude Source="/Resources/EffectParameterTemplates.axaml"/>
             </ResourceDictionary.MergedDictionaries>
         </ResourceDictionary>

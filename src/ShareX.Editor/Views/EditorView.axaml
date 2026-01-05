@@ -2,23 +2,18 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-             xmlns:vm="using:ShareX.Editor.ViewModels"
-             xmlns:views="using:ShareX.Editor.Views"
+             xmlns:vm="using:ShareX.Ava.UI.ViewModels"
+             xmlns:views="using:ShareX.Ava.UI.Views"
              xmlns:models="using:ShareX.Editor.Annotations"
-             xmlns:converters="using:ShareX.Editor.Converters"
+             xmlns:converters="using:ShareX.Ava.UI.Converters"
              mc:Ignorable="d" d:DesignWidth="1200" d:DesignHeight="800"
-             x:Class="ShareX.Editor.Views.EditorView"
-             x:DataType="vm:EditorViewModel"
+             x:Class="ShareX.Ava.UI.Views.EditorView"
+             x:DataType="vm:MainViewModel"
              Focusable="True"
              KeyDown="OnKeyDown">
 
     <UserControl.Resources>
         <converters:DoubleToCornerRadiusConverter x:Key="DoubleToCornerRadius" />
-        <converters:ActiveToolToBackgroundConverter x:Key="ActiveToolToBackground" />
-        <converters:BoolToActiveBackgroundConverter x:Key="BoolToActiveBackgroundConverter" />
-        <converters:SelectedColorToBorderConverter x:Key="SelectedColorToBorder" />
-        <converters:SelectedWidthToBackgroundConverter x:Key="SelectedWidthToBackground" />
-        <converters:EqualsConverter x:Key="EqualsConverter" />
     </UserControl.Resources>
 
     <Grid RowDefinitions="Auto,*,Auto">
@@ -120,7 +115,7 @@
                     <Border BorderThickness="0,0,1,0" BorderBrush="#3B3B52" Padding="0,0,12,0">
                         <StackPanel Orientation="Horizontal" Spacing="8">
                             <TextBlock Text="Color" FontSize="11" Foreground="#94A3B8" VerticalAlignment="Center"/>
-                            <ItemsControl ItemsSource="{x:Static vm:EditorViewModel.ColorPalette}">
+                            <ItemsControl ItemsSource="{x:Static vm:MainViewModel.ColorPalette}">
                                 <ItemsControl.ItemsPanel>
                                     <ItemsPanelTemplate>
                                         <StackPanel Orientation="Horizontal" Spacing="4"/>
@@ -155,7 +150,7 @@
                     <Border BorderThickness="0,0,1,0" BorderBrush="#3B3B52" Padding="0,0,12,0">
                         <StackPanel Orientation="Horizontal" Spacing="8">
                             <TextBlock Text="Width" FontSize="11" Foreground="#94A3B8" VerticalAlignment="Center"/>
-                            <ItemsControl ItemsSource="{x:Static vm:EditorViewModel.StrokeWidths}">
+                            <ItemsControl ItemsSource="{x:Static vm:MainViewModel.StrokeWidths}">
                                 <ItemsControl.ItemsPanel>
                                     <ItemsPanelTemplate>
                                         <StackPanel Orientation="Horizontal" Spacing="4"/>

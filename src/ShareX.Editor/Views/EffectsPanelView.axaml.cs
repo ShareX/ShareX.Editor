@@ -1,9 +1,8 @@
-using System;
 using Avalonia.Controls;
 using Avalonia.Interactivity;
-using ShareX.Editor.ViewModels;
+using ShareX.Ava.UI.ViewModels;
 
-namespace ShareX.Editor.Views
+namespace ShareX.Ava.UI.Views
 {
     public partial class EffectsPanelView : UserControl
     {
