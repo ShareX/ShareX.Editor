@@ -76,6 +76,11 @@ public enum EditorTool
     Crop,
 
     /// <summary>
+    /// Cut out a section and join remaining parts
+    /// </summary>
+    CutOut,
+
+    /// <summary>
     /// Freehand pen drawing
     /// </summary>
     Pen,

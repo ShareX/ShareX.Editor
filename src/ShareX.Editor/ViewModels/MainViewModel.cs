@@ -884,6 +884,30 @@ namespace ShareX.Editor.ViewModels
             var cropped = ImageHelpers.Crop(_currentSourceImage, rect.Left, rect.Top, rect.Width, rect.Height);
             UpdatePreview(cropped);
         }
+
+        public void CutOutImage(int startPos, int endPos, bool isVertical)
+        {
+            if (_currentSourceImage == null) return;
+            
+            // Ensure valid range
+            if (isVertical)
+            {
+                if (startPos < 0 || endPos > _currentSourceImage.Width || startPos >= endPos)
+                    return;
+            }
+            else
+            {
+                if (startPos < 0 || endPos > _currentSourceImage.Height || startPos >= endPos)
+                    return;
+            }
+
+            var result = ImageHelpers.CutOut(_currentSourceImage, startPos, endPos, isVertical);
+            UpdatePreview(result);
+            
+            StatusText = isVertical 
+                ? $"Cut out vertical section ({endPos - startPos}px wide)"
+                : $"Cut out horizontal section ({endPos - startPos}px tall)";
+        }
     }
 }
 

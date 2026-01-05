@@ -98,6 +98,11 @@
                                     Background="{Binding ActiveTool, Converter={StaticResource ActiveToolToBackground}, ConverterParameter=Crop}" 
                                     Foreground="White" CornerRadius="8" ToolTip.Tip="Crop (C)"/>
                             
+                            <Button Content="✄" Width="40" Height="40" 
+                                    Command="{Binding SelectToolCommand}" CommandParameter="{x:Static models:EditorTool.CutOut}"
+                                    Background="{Binding ActiveTool, Converter={StaticResource ActiveToolToBackground}, ConverterParameter=CutOut}" 
+                                    Foreground="White" CornerRadius="8" ToolTip.Tip="Cut Out (U)"/>
+                            
                             <!-- Panel Toggle -->
                                 <Button Content="FX" Width="40" Height="40" 
                                     Command="{Binding ToggleEffectsPanelCommand}"

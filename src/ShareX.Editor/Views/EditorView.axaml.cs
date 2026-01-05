@@ -460,6 +460,10 @@ namespace ShareX.Editor.Views
                             vm.SelectToolCommand.Execute(EditorTool.Crop);
                             e.Handled = true;
                             break;
+                        case Key.U:
+                            vm.SelectToolCommand.Execute(EditorTool.CutOut);
+                            e.Handled = true;
+                            break;
                         case Key.M:
                             vm.SelectToolCommand.Execute(EditorTool.Magnify);
                             e.Handled = true;
@@ -1151,6 +1155,25 @@ namespace ShareX.Editor.Views
                     cropOverlay.Height = 0;
                     _currentShape = cropOverlay;
                 }
+                return;
+            }
+
+            // Special handling for CutOut - draw a line to show the cut
+            if (vm.ActiveTool == EditorTool.CutOut)
+            {
+                // Create a line to show where the cut will be made
+                var cutLine = new global::Avalonia.Controls.Shapes.Line
+                {
+                    Stroke = Brushes.Red,
+                    StrokeThickness = 3,
+                    StrokeDashArray = new global::Avalonia.Collections.AvaloniaList<double> { 5, 3 }, // Dashed line
+                    StartPoint = _startPoint,
+                    EndPoint = _startPoint,
+                    Name = "CutOutLine"
+                };
+                
+                canvas.Children.Add(cutLine);
+                _currentShape = cutLine;
                 return;
             }
 
@@ -1847,6 +1870,20 @@ namespace ShareX.Editor.Views
                         return;
                     }
                     
+                    // Special handling for cut-out tool - execute cutout immediately on mouse release
+                    if (DataContext is MainViewModel vm2 && vm2.ActiveTool == EditorTool.CutOut && createdShape is global::Avalonia.Controls.Shapes.Line cutLine && cutLine.Name == "CutOutLine")
+                    {
+                        // Execute the cut-out operation
+                        PerformCutOut(cutLine);
+                        
+                        // Remove the visual line and don't add to undo stack
+                        var canvas = this.FindControl<Canvas>("AnnotationCanvas");
+                        canvas?.Children.Remove(cutLine);
+                        _currentShape = null;
+                        e.Pointer.Capture(null);
+                        return;
+                    }
+                    
                     _undoStack.Push(createdShape);
 
                     // Auto-select newly created shape so resize handles appear immediately,
@@ -1898,6 +1935,42 @@ namespace ShareX.Editor.Views
             cropOverlay.IsVisible = false;
             vm.StatusText = "Image cropped";
         }
+
+        public void PerformCutOut(global::Avalonia.Controls.Shapes.Line cutLine)
+        {
+            if (cutLine == null || DataContext is not MainViewModel vm) return;
+
+            var scaling = 1.0;
+            if (VisualRoot is TopLevel tl) scaling = tl.RenderScaling;
+
+            // Convert line coordinates to physical pixels
+            var startX = (int)(cutLine.StartPoint.X * scaling);
+            var startY = (int)(cutLine.StartPoint.Y * scaling);
+            var endX = (int)(cutLine.EndPoint.X * scaling);
+            var endY = (int)(cutLine.EndPoint.Y * scaling);
+
+            // Determine if this is a vertical or horizontal cut
+            var deltaX = Math.Abs(endX - startX);
+            var deltaY = Math.Abs(endY - startY);
+
+            bool isVertical = deltaX > deltaY;
+            
+            if (isVertical)
+            {
+                // Vertical cut - use X coordinates
+                int start = Math.Min(startX, endX);
+                int end = Math.Max(startX, endX);
+                vm.CutOutImage(start, end, true);
+            }
+            else
+            {
+                // Horizontal cut - use Y coordinates
+                int start = Math.Min(startY, endY);
+                int end = Math.Max(startY, endY);
+                vm.CutOutImage(start, end, false);
+            }
+        }
+
         private void OnEffectsPanelApplyRequested(object? sender, RoutedEventArgs e)
         {
             if (DataContext is MainViewModel vm)
