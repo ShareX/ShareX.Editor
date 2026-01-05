@@ -107,6 +107,12 @@ public class EditorCore
     private SKPoint _startPoint;
     private SKPoint _lastDragPoint;
     private bool _isDragging;
+    private bool _isResizing;
+    private HandleType _activeHandle;
+    private SKRect _initialBounds;
+
+    private const float HandleSize = 10f;
+    private enum HandleType { None, TopLeft, TopMiddle, TopRight, MiddleRight, BottomRight, BottomMiddle, BottomLeft, MiddleLeft, Start, End }
 
     /// <summary>
     /// All annotations in the editor
@@ -190,6 +196,25 @@ public class EditorCore
         _startPoint = point;
         _redoStack.Clear();
 
+        // Interact with currently selected annotation first so users can resize/move immediately after drawing
+        if (_selectedAnnotation != null)
+        {
+            var handle = GetHitHandle(point);
+            if (handle != HandleType.None)
+            {
+                BeginResize(handle, point);
+                return;
+            }
+
+            // Allow dragging a selected annotation even if the current tool is not Select
+            if (_selectedAnnotation.HitTest(point))
+            {
+                _isDragging = true;
+                _lastDragPoint = point;
+                return;
+            }
+        }
+
         // Select mode - hit test existing annotations
         if (ActiveTool == EditorTool.Select)
         {
@@ -242,16 +267,46 @@ public class EditorCore
     /// </summary>
     public void OnPointerMoved(SKPoint point)
     {
+        if (_isResizing && _selectedAnnotation != null)
+        {
+            if (_activeHandle == HandleType.Start)
+            {
+                _selectedAnnotation.StartPoint = point;
+                UpdateAnnotationState(_selectedAnnotation);
+                InvalidateRequested?.Invoke();
+                return;
+            }
+            if (_activeHandle == HandleType.End)
+            {
+                _selectedAnnotation.EndPoint = point;
+                UpdateAnnotationState(_selectedAnnotation);
+                InvalidateRequested?.Invoke();
+                return;
+            }
+
+            ApplyResize(point);
+
+            _lastDragPoint = point;
+            InvalidateRequested?.Invoke();
+            return;
+        }
+
         if (_isDragging && _selectedAnnotation != null)
         {
-            // Move the selected annotation
             var delta = new SKPoint(point.X - _lastDragPoint.X, point.Y - _lastDragPoint.Y);
-            _selectedAnnotation.StartPoint = new SKPoint(
-                _selectedAnnotation.StartPoint.X + delta.X,
-                _selectedAnnotation.StartPoint.Y + delta.Y);
-            _selectedAnnotation.EndPoint = new SKPoint(
-                _selectedAnnotation.EndPoint.X + delta.X,
-                _selectedAnnotation.EndPoint.Y + delta.Y);
+            
+            if (_selectedAnnotation is FreehandAnnotation freehand)
+            {
+                 for(int i=0; i<freehand.Points.Count; i++)
+                {
+                     freehand.Points[i] = new SKPoint(freehand.Points[i].X + delta.X, freehand.Points[i].Y + delta.Y);
+                 }
+            }
+            
+            _selectedAnnotation.StartPoint = new SKPoint(_selectedAnnotation.StartPoint.X + delta.X, _selectedAnnotation.StartPoint.Y + delta.Y);
+            _selectedAnnotation.EndPoint = new SKPoint(_selectedAnnotation.EndPoint.X + delta.X, _selectedAnnotation.EndPoint.Y + delta.Y);
+
+            UpdateAnnotationState(_selectedAnnotation);
             
             _lastDragPoint = point;
             InvalidateRequested?.Invoke();
@@ -260,27 +315,21 @@ public class EditorCore
 
         if (!_isDrawing || _currentAnnotation == null) return;
 
-        // Update annotation based on type
-        if (_currentAnnotation is FreehandAnnotation freehand)
+        if (_currentAnnotation is FreehandAnnotation freehandDraw)
         {
-            freehand.Points.Add(point);
+            freehandDraw.Points.Add(point);
         }
         else
         {
             _currentAnnotation.EndPoint = point;
         }
 
-        // Update spotlight canvas size
         if (_currentAnnotation is SpotlightAnnotation spotlight)
         {
             spotlight.CanvasSize = CanvasSize;
         }
 
-        // Update effect annotations
-        if (_currentAnnotation is BaseEffectAnnotation effect && SourceImage != null)
-        {
-            effect.UpdateEffect(SourceImage);
-        }
+        UpdateAnnotationState(_currentAnnotation);
 
         InvalidateRequested?.Invoke();
     }
@@ -290,6 +339,13 @@ public class EditorCore
     /// </summary>
     public void OnPointerReleased(SKPoint point)
     {
+        if (_isResizing)
+        {
+            _isResizing = false;
+            _activeHandle = HandleType.None;
+            return;
+        }
+
         if (_isDragging)
         {
             _isDragging = false;
@@ -306,8 +362,11 @@ public class EditorCore
         // Add to undo stack
         _undoStack.Push(_currentAnnotation);
 
-        // Auto-select the created annotation
-        _selectedAnnotation = _currentAnnotation;
+        // Auto-select the created annotation (skip freehand/eraser which are not resizable)
+        if (_currentAnnotation is not FreehandAnnotation && _currentAnnotation is not SmartEraserAnnotation)
+        {
+            _selectedAnnotation = _currentAnnotation;
+        }
         _currentAnnotation = null;
 
         // Update effect with final bounds
@@ -318,6 +377,127 @@ public class EditorCore
 
         StatusTextChanged?.Invoke($"{ActiveTool} created");
         InvalidateRequested?.Invoke();
+    }
+
+    private HandleType GetHitHandle(SKPoint point)
+    {
+        if (_selectedAnnotation == null) return HandleType.None;
+
+        var handles = GetAnnotationHandles(_selectedAnnotation);
+        float halfSize = HandleSize / 2;
+
+        foreach (var handle in handles)
+        {
+            var r = new SKRect(
+                handle.Position.X - halfSize,
+                handle.Position.Y - halfSize,
+                handle.Position.X + halfSize,
+                handle.Position.Y + halfSize);
+                
+            if (r.Contains(point)) return handle.Type;
+        }
+
+        return HandleType.None;
+    }
+
+    private void BeginResize(HandleType handle, SKPoint point)
+    {
+        _isResizing = true;
+        _activeHandle = handle;
+        _initialBounds = _selectedAnnotation!.GetBounds();
+        _lastDragPoint = point;
+
+        if (_selectedAnnotation is FreehandAnnotation freehand)
+        {
+        }
+        else
+        {
+        }
+
+        InvalidateRequested?.Invoke();
+    }
+
+    private void ApplyResize(SKPoint point)
+    {
+        if (_selectedAnnotation == null) return;
+
+        // Lines/arrows resize via start/end handles only
+        if (_selectedAnnotation is LineAnnotation || _selectedAnnotation is ArrowAnnotation)
+        {
+            return;
+        }
+
+        // Freehand/SmartEraser are not resizable in the Avalonia editor
+        if (_selectedAnnotation is FreehandAnnotation || _selectedAnnotation is SmartEraserAnnotation)
+        {
+            return;
+        }
+
+        var newBounds = CalculateResizeBounds(point);
+
+        _selectedAnnotation.StartPoint = new SKPoint(newBounds.Left, newBounds.Top);
+        _selectedAnnotation.EndPoint = new SKPoint(newBounds.Right, newBounds.Bottom);
+
+        UpdateAnnotationState(_selectedAnnotation);
+    }
+
+    private SKRect CalculateResizeBounds(SKPoint point)
+    {
+        float left = _initialBounds.Left;
+        float right = _initialBounds.Right;
+        float top = _initialBounds.Top;
+        float bottom = _initialBounds.Bottom;
+
+        switch (_activeHandle)
+        {
+            case HandleType.TopLeft:
+                left = point.X;
+                top = point.Y;
+                break;
+            case HandleType.TopMiddle:
+                top = point.Y;
+                break;
+            case HandleType.TopRight:
+                right = point.X;
+                top = point.Y;
+                break;
+            case HandleType.MiddleRight:
+                right = point.X;
+                break;
+            case HandleType.BottomRight:
+                right = point.X;
+                bottom = point.Y;
+                break;
+            case HandleType.BottomMiddle:
+                bottom = point.Y;
+                break;
+            case HandleType.BottomLeft:
+                left = point.X;
+                bottom = point.Y;
+                break;
+            case HandleType.MiddleLeft:
+                left = point.X;
+                break;
+        }
+
+        return new SKRect(
+            Math.Min(left, right),
+            Math.Min(top, bottom),
+            Math.Max(left, right),
+            Math.Max(top, bottom));
+    }
+
+    private void UpdateAnnotationState(Annotation annotation)
+    {
+        if (annotation is SpotlightAnnotation spotlight)
+        {
+            spotlight.CanvasSize = CanvasSize;
+        }
+
+        if (annotation is BaseEffectAnnotation effect && SourceImage != null)
+        {
+            effect.UpdateEffect(SourceImage);
+        }
     }
 
     #endregion
@@ -451,6 +631,11 @@ public class EditorCore
 
     private void DrawSelectionHandles(SKCanvas canvas, Annotation annotation)
     {
+        if (annotation is FreehandAnnotation || annotation is SmartEraserAnnotation)
+        {
+            return;
+        }
+
         var bounds = annotation.GetBounds();
 
         using var strokePaint = new SKPaint
@@ -468,32 +653,46 @@ public class EditorCore
             IsAntialias = true
         };
 
-        // Draw selection rectangle
-        canvas.DrawRect(bounds, strokePaint);
-
-        // Draw corner handles
-        float handleSize = 8;
-        var handlePositions = new[]
+        // Draw selection rectangle only for box-based annotations
+        if (!(annotation is LineAnnotation || annotation is ArrowAnnotation))
         {
-            new SKPoint(bounds.Left, bounds.Top),
-            new SKPoint(bounds.Right, bounds.Top),
-            new SKPoint(bounds.Left, bounds.Bottom),
-            new SKPoint(bounds.Right, bounds.Bottom),
-            new SKPoint(bounds.MidX, bounds.Top),
-            new SKPoint(bounds.MidX, bounds.Bottom),
-            new SKPoint(bounds.Left, bounds.MidY),
-            new SKPoint(bounds.Right, bounds.MidY)
-        };
+            canvas.DrawRect(bounds, strokePaint);
+        }
 
-        foreach (var pos in handlePositions)
+        // Draw handles
+        var handles = GetAnnotationHandles(annotation);
+        float handleSize = HandleSize;
+
+        foreach (var handle in handles)
         {
-            var handleRect = new SKRect(
-                pos.X - handleSize / 2,
-                pos.Y - handleSize / 2,
-                pos.X + handleSize / 2,
-                pos.Y + handleSize / 2);
-            canvas.DrawRect(handleRect, fillPaint);
-            canvas.DrawRect(handleRect, strokePaint);
+            float radius = handleSize / 2;
+            canvas.DrawCircle(handle.Position, radius, fillPaint);
+            canvas.DrawCircle(handle.Position, radius, strokePaint);
+        }
+    }
+
+    private IEnumerable<(HandleType Type, SKPoint Position)> GetAnnotationHandles(Annotation annotation)
+    {
+        if (annotation is FreehandAnnotation || annotation is SmartEraserAnnotation)
+        {
+            yield break;
+        }
+        else if (annotation is LineAnnotation || annotation is ArrowAnnotation)
+        {
+            yield return (HandleType.Start, annotation.StartPoint);
+            yield return (HandleType.End, annotation.EndPoint);
+        }
+        else
+        {
+            var bounds = annotation.GetBounds();
+            yield return (HandleType.TopLeft, new SKPoint(bounds.Left, bounds.Top));
+            yield return (HandleType.TopMiddle, new SKPoint(bounds.MidX, bounds.Top));
+            yield return (HandleType.TopRight, new SKPoint(bounds.Right, bounds.Top));
+            yield return (HandleType.MiddleRight, new SKPoint(bounds.Right, bounds.MidY));
+            yield return (HandleType.BottomRight, new SKPoint(bounds.Right, bounds.Bottom));
+            yield return (HandleType.BottomMiddle, new SKPoint(bounds.MidX, bounds.Bottom));
+            yield return (HandleType.BottomLeft, new SKPoint(bounds.Left, bounds.Bottom));
+            yield return (HandleType.MiddleLeft, new SKPoint(bounds.Left, bounds.MidY));
         }
     }
 

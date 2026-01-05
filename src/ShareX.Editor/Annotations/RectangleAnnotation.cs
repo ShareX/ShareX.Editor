@@ -47,11 +47,7 @@ public class RectangleAnnotation : Annotation
     public override bool HitTest(SKPoint point, float tolerance = 5)
     {
         var rect = GetBounds();
-        
-        // Check if point is on the rectangle border (within tolerance)
-        var outerRect = SKRect.Inflate(rect, tolerance, tolerance);
-        var innerRect = SKRect.Inflate(rect, -tolerance, -tolerance);
-        
-        return outerRect.Contains(point) && !innerRect.Contains(point);
+        var expanded = SKRect.Inflate(rect, tolerance, tolerance);
+        return expanded.Contains(point);
     }
 }

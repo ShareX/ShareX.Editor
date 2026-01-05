@@ -47,20 +47,22 @@ public class EllipseAnnotation : Annotation
     public override bool HitTest(SKPoint point, float tolerance = 5)
     {
         var rect = GetBounds();
+        var expanded = SKRect.Inflate(rect, tolerance, tolerance);
+        
+        if (!expanded.Contains(point)) return false;
+
         var centerX = rect.MidX;
         var centerY = rect.MidY;
-        var radiusX = rect.Width / 2;
-        var radiusY = rect.Height / 2;
+        var radiusX = expanded.Width / 2;
+        var radiusY = expanded.Height / 2;
         
         if (radiusX <= 0 || radiusY <= 0) return false;
         
-        // Normalize point relative to ellipse center
+        // Normalize point relative to expanded ellipse center
         var dx = (point.X - centerX) / radiusX;
         var dy = (point.Y - centerY) / radiusY;
-        var distance = (float)Math.Sqrt(dx * dx + dy * dy);
         
-        // Check if point is on the ellipse border (within tolerance)
-        var toleranceNormalized = tolerance / Math.Min(radiusX, radiusY);
-        return Math.Abs(distance - 1.0) <= toleranceNormalized;
+        // Check if point is inside unit circle
+        return (dx * dx + dy * dy) <= 1.0f;
     }
 }
