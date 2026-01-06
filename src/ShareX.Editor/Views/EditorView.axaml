@@ -481,16 +481,7 @@
                             <TextBlock Text="{StaticResource IconCopy}" FontSize="14" FontFamily="{StaticResource FontAwesome}" FontWeight="Black"/>
                             <TextBlock Text="Copy" FontSize="12"/>
                         </StackPanel>
-                        <Button.Styles>
-                            <Style Selector="Button">
-                                <Setter Property="Background" Value="Transparent"/>
-                                <Setter Property="BorderBrush" Value="#3B3B52"/>
-                                <Setter Property="BorderThickness" Value="1"/>
-                                <Setter Property="Foreground" Value="White"/>
-                                <Setter Property="Padding" Value="12,6"/>
-                                <Setter Property="CornerRadius" Value="8"/>
-                            </Style>
-                        </Button.Styles>
+
                     </Button>
                     
                     <Button Command="{Binding QuickSaveCommand}">
@@ -498,16 +489,7 @@
                             <TextBlock Text="{StaticResource IconDownload}" FontSize="14" FontFamily="{StaticResource FontAwesome}" FontWeight="Black"/>
                             <TextBlock Text="Save" FontSize="12"/>
                         </StackPanel>
-                        <Button.Styles>
-                            <Style Selector="Button">
-                                <Setter Property="Background" Value="#14B8A680"/>
-                                <Setter Property="BorderBrush" Value="#14B8A64D"/>
-                                <Setter Property="BorderThickness" Value="1"/>
-                                <Setter Property="Foreground" Value="#5EEAD4"/>
-                                <Setter Property="Padding" Value="12,6"/>
-                                <Setter Property="CornerRadius" Value="8"/>
-                            </Style>
-                        </Button.Styles>
+
                     </Button>
                     
                     <Button Command="{Binding SaveAsCommand}">
@@ -515,15 +497,7 @@
                             <TextBlock Text="{StaticResource IconSave}" FontSize="14" FontFamily="{StaticResource FontAwesome}" FontWeight="Black"/>
                             <TextBlock Text="Save As..." FontSize="12"/>
                         </StackPanel>
-                        <Button.Styles>
-                            <Style Selector="Button">
-                                <Setter Property="Background" Value="#8B5CF6"/>
-                                <Setter Property="Foreground" Value="White"/>
-                                <Setter Property="Padding" Value="16,6"/>
-                                <Setter Property="CornerRadius" Value="8"/>
-                                <Setter Property="FontWeight" Value="SemiBold"/>
-                            </Style>
-                        </Button.Styles>
+
                     </Button>
                 </StackPanel>
                 
