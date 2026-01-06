@@ -36,6 +36,7 @@ using ShareX.Editor.Annotations;
 using ShareX.Editor.Helpers;
 using ShareX.Editor.Services;
 using ShareX.Editor.ViewModels;
+using ShareX.Editor.Controls;
 using SkiaSharp;
 using System.ComponentModel;
 
@@ -69,6 +70,9 @@ namespace ShareX.Editor.Views
 
         // Store arrow/line endpoints for editing
         private Dictionary<Control, (Point Start, Point End)> _shapeEndpoints = new();
+        
+        // Store speech balloon tail points for editing
+        private Dictionary<Control, Point> _speechBalloonTailPoints = new();
 
         // Cached SKBitmap for effect updates (avoid repeated conversions)
         private SkiaSharp.SKBitmap? _cachedSkBitmap;
@@ -166,7 +170,7 @@ namespace ShareX.Editor.Views
                 System.Diagnostics.Debug.WriteLine($"GetPixelColor: Canvas point ({canvasPoint.X:F2}, {canvasPoint.Y:F2}) -> Pixel ({x}, {y})");
                 System.Diagnostics.Debug.WriteLine($"GetPixelColor: Image size ({vm.PreviewImage.Size.Width}, {vm.PreviewImage.Size.Height}), Zoom: {vm.Zoom}");
 
-                // Validate bounds
+                // Valid ate bounds
                 if (x < 0 || y < 0 || x >= vm.PreviewImage.Size.Width || y >= vm.PreviewImage.Size.Height)
                 {
                     System.Diagnostics.Debug.WriteLine($"GetPixelColor: Out of bounds!");
@@ -514,6 +518,33 @@ namespace ShareX.Editor.Views
                     CreateHandle(endpoints.Start.X, endpoints.Start.Y, "ArrowStart");
                     CreateHandle(endpoints.End.X, endpoints.End.Y, "ArrowEnd");
                 }
+                return;
+            }
+
+            // Special handling for SpeechBalloonControl - create 8 resize handles + 1 tail handle
+            if (_selectedShape is SpeechBalloonControl balloonControl && balloonControl.Annotation is SpeechBalloonAnnotation balloon)
+            {
+                var balloonLeft = Canvas.GetLeft(_selectedShape);
+                var balloonTop = Canvas.GetTop(_selectedShape);
+                var balloonWidth = _selectedShape.Bounds.Width;
+                var balloonHeight = _selectedShape.Bounds.Height;
+                if (double.IsNaN(balloonWidth)) balloonWidth = _selectedShape.Width;
+                if (double.IsNaN(balloonHeight)) balloonHeight = _selectedShape.Height;
+
+                // Create 8 standard resize handles
+                CreateHandle(balloonLeft, balloonTop, "TopLeft");
+                CreateHandle(balloonLeft + balloonWidth / 2, balloonTop, "TopCenter");
+                CreateHandle(balloonLeft + balloonWidth, balloonTop, "TopRight");
+                CreateHandle(balloonLeft + balloonWidth, balloonTop + balloonHeight / 2, "RightCenter");
+                CreateHandle(balloonLeft + balloonWidth, balloonTop + balloonHeight, "BottomRight");
+                CreateHandle(balloonLeft + balloonWidth / 2, balloonTop + balloonHeight, "BottomCenter");
+                CreateHandle(balloonLeft, balloonTop + balloonHeight, "BottomLeft");
+                CreateHandle(balloonLeft, balloonTop + balloonHeight / 2, "LeftCenter");
+
+                // Create tail handle - convert SKPoint to Avalonia Point
+                var tailX = (double)balloon.TailPoint.X;
+                var tailY = (double)balloon.TailPoint.Y;
+                CreateHandle(tailX, tailY, "BalloonTail");
                 return;
             }
 
@@ -1382,16 +1413,28 @@ namespace ShareX.Editor.Views
                     break;
 
                 case EditorTool.SpeechBalloon:
-                    // Placeholder: Draw a generic path or just a rect for now
-                    // A real speech balloon needs a custom shape control
-                    _currentShape = new global::Avalonia.Controls.Shapes.Rectangle
+                    // Create proper speech balloon control with tail
+                    var balloonAnnotation = new SpeechBalloonAnnotation
                     {
-                        Stroke = brush,
-                        StrokeThickness = vm.StrokeWidth,
-                        Fill = Brushes.White,
-                        RadiusX = 10,
-                        RadiusY = 10
+                        StrokeColor = vm.SelectedColor,
+                        StrokeWidth = vm.StrokeWidth,
+                        FillColor = "#FFFFFFFF", // White background
+                        StartPoint = ToSKPoint(_startPoint),
+                        EndPoint = ToSKPoint(_startPoint)
                     };
+                    
+                    var balloonControl = new SpeechBalloonControl
+                    {
+                        Annotation = balloonAnnotation,
+                        IsHitTestVisible = true,
+                        Width = 0,  // Initial size - will be updated in OnPointerMoved
+                        Height = 0
+                    };
+                    
+                    Canvas.SetLeft(balloonControl, _startPoint.X);
+                    Canvas.SetTop(balloonControl, _startPoint.Y);
+                    
+                    _currentShape = balloonControl;
                     break;
 
                 case EditorTool.Pen:
@@ -1479,7 +1522,7 @@ namespace ShareX.Editor.Views
                     // Number is already added to canvas, nothing more to do here
                     // Keep _isDrawing true so it goes through OnCanvasPointerReleased properly
                 }
-                else if (vm.ActiveTool != EditorTool.Line && vm.ActiveTool != EditorTool.Arrow && vm.ActiveTool != EditorTool.Pen && vm.ActiveTool != EditorTool.SmartEraser && vm.ActiveTool != EditorTool.Spotlight)
+                else if (vm.ActiveTool != EditorTool.Line && vm.ActiveTool != EditorTool.Arrow && vm.ActiveTool != EditorTool.Pen && vm.ActiveTool != EditorTool.SmartEraser && vm.ActiveTool != EditorTool.Spotlight && vm.ActiveTool != EditorTool.SpeechBalloon)
                 {
                     Canvas.SetLeft(_currentShape, _startPoint.X);
                     Canvas.SetTop(_currentShape, _startPoint.Y);
@@ -1553,6 +1596,18 @@ namespace ShareX.Editor.Views
                     return;
                 }
 
+                // Special handling for SpeechBalloonControl tail dragging
+                if (_selectedShape is SpeechBalloonControl balloonControl && balloonControl.Annotation is SpeechBalloonAnnotation balloon && handleTag == "BalloonTail")
+                {
+                    // Update tail position
+                    balloon.TailPoint = new SKPoint((float)currentPoint.X, (float)currentPoint.Y);
+                    balloonControl.InvalidateVisual();
+                    
+                    _startPoint = currentPoint;
+                    UpdateSelectionHandles();
+                    return;
+                }
+
                 // Get current bounds for regular shapes
                 var left = Canvas.GetLeft(_selectedShape);
                 var top = Canvas.GetTop(_selectedShape);
@@ -1563,6 +1618,52 @@ namespace ShareX.Editor.Views
 
                 // Helper to update properties
                 // Rectangle/Ellipse use Width/Height
+
+                // Special handling for SpeechBalloonControl resizing
+                if (_selectedShape is SpeechBalloonControl resizeBalloonControl && resizeBalloonControl.Annotation is SpeechBalloonAnnotation resizeBalloon)
+                {
+                    double newLeft = left;
+                    double newTop = top;
+                    double newWidth = width;
+                    double newHeight = height;
+
+                    if (handleTag.Contains("Right"))
+                    {
+                        newWidth = Math.Max(20, width + deltaX);
+                    }
+                    else if (handleTag.Contains("Left"))
+                    {
+                        var change = Math.Min(width - 20, deltaX);
+                        newLeft += change;
+                        newWidth -= change;
+                    }
+
+                    if (handleTag.Contains("Bottom"))
+                    {
+                        newHeight = Math.Max(20, height + deltaY);
+                    }
+                    else if (handleTag.Contains("Top"))
+                    {
+                        var change = Math.Min(height - 20, deltaY);
+                        newTop += change;
+                        newHeight -= change;
+                    }
+
+                    // Update balloon annotation bounds
+                    resizeBalloon.StartPoint = ToSKPoint(new Point(newLeft, newTop));
+                    resizeBalloon.EndPoint = ToSKPoint(new Point(newLeft + newWidth, newTop + newHeight));
+
+                    // Update control position and size
+                    Canvas.SetLeft(resizeBalloonControl, newLeft);
+                    Canvas.SetTop(resizeBalloonControl, newTop);
+                    resizeBalloonControl.Width = newWidth;
+                    resizeBalloonControl.Height = newHeight;
+                    resizeBalloonControl.InvalidateVisual();
+
+                    _startPoint = currentPoint;
+                    UpdateSelectionHandles();
+                    return;
+                }
 
                 if (_selectedShape is global::Avalonia.Controls.Shapes.Rectangle || _selectedShape is global::Avalonia.Controls.Shapes.Ellipse || _selectedShape is Grid)
                 {
@@ -1632,6 +1733,35 @@ namespace ShareX.Editor.Views
                         _shapeEndpoints[arrowPath] = (newStart, newEnd);
                         arrowPath.Data = CreateArrowGeometry(newStart, newEnd, vm.StrokeWidth * 3);
                     }
+
+                    _lastDragPoint = currentPoint;
+                    UpdateSelectionHandles();
+                    return;
+                }
+
+                // Special handling for Speech Balloon - update balloon position
+                if (_selectedShape is SpeechBalloonControl balloonControl && balloonControl.Annotation is SpeechBalloonAnnotation balloon)
+                {
+                    // Update balloon position by adjusting both start and end points
+                    var currentStart = balloon.StartPoint;
+                    var currentEnd = balloon.EndPoint;
+                    
+                    var newStartPoint = new SKPoint(currentStart.X + (float)deltaX, currentStart.Y + (float)deltaY);
+                    var newEndPoint = new SKPoint(currentEnd.X + (float)deltaX, currentEnd.Y + (float)deltaY);
+                    
+                    balloon.StartPoint = newStartPoint;
+                    balloon.EndPoint = newEndPoint;
+                    
+                    // Also move the tail point
+                    balloon.TailPoint = new SKPoint(balloon.TailPoint.X + (float)deltaX, balloon.TailPoint.Y + (float)deltaY);
+                    
+                    // Update control position
+                    var newLeft = Canvas.GetLeft(balloonControl) + deltaX;
+                    var newTop = Canvas.GetTop(balloonControl) + deltaY;
+                    Canvas.SetLeft(balloonControl, newLeft);
+                    Canvas.SetTop(balloonControl, newTop);
+                    
+                    balloonControl.InvalidateVisual();
 
                     _lastDragPoint = currentPoint;
                     UpdateSelectionHandles();
@@ -1783,6 +1913,25 @@ namespace ShareX.Editor.Views
 
                     spotlightControl.InvalidateVisual();
                 }
+                else if (_currentShape is SpeechBalloonControl createBalloonControl && createBalloonControl.Annotation is SpeechBalloonAnnotation createBalloon)
+                {
+                    // Update speech balloon during creation
+                    var balloonX = Math.Min(_startPoint.X, currentPoint.X);
+                    var balloonY = Math.Min(_startPoint.Y, currentPoint.Y);
+                    var balloonW = Math.Max(20, Math.Abs(_startPoint.X - currentPoint.X));
+                    var balloonH = Math.Max(20, Math.Abs(_startPoint.Y - currentPoint.Y));
+
+                    // Update annotation bounds
+                    createBalloon.StartPoint = ToSKPoint(new Point(balloonX, balloonY));
+                    createBalloon.EndPoint = ToSKPoint(new Point(balloonX + balloonW, balloonY + balloonH));
+
+                    // Update control position and size
+                    Canvas.SetLeft(createBalloonControl, balloonX);
+                    Canvas.SetTop(createBalloonControl, balloonY);
+                    createBalloonControl.Width = balloonW;
+                    createBalloonControl.Height = balloonH;
+                    createBalloonControl.InvalidateVisual();
+                }
             }
         }
 
@@ -1863,7 +2012,6 @@ namespace ShareX.Editor.Views
         // Public method to be called from MainWindow if key is pressed, 
         // OR better: we handle keys in EditorView separately? 
         // UserControls can handle keys if focused, but Window handles global keys better.
-        // We will expose this method or command.
         public void PerformCrop()
         {
             var cropOverlay = this.FindControl<global::Avalonia.Controls.Shapes.Rectangle>("CropOverlay");
