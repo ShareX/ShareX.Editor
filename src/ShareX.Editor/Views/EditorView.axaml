@@ -396,14 +396,14 @@
                 <ScrollViewer Padding="0,0,40,0"
                               HorizontalScrollBarVisibility="Disabled"
                               VerticalScrollBarVisibility="Auto">
-                     <StackPanel Spacing="25">
+                     <StackPanel Spacing="12">
                         <TextBlock Text="Settings" 
                                    FontSize="18" 
                                    FontWeight="Bold" 
                                    Foreground="White"/>
 
                         <!-- Margin Slider -->
-                        <StackPanel Spacing="8">
+                        <StackPanel Spacing="2">
                             <Grid ColumnDefinitions="*,Auto">
                                 <TextBlock Grid.Column="0" Text="Margin" Foreground="#9CA3AF"/>
                                 <TextBlock Grid.Column="1" Text="{Binding PreviewPadding, StringFormat='{}{0:F0}px'}" Foreground="White"/>
@@ -415,7 +415,7 @@
                         </StackPanel>
 
                         <!-- Padding Slider -->
-                        <StackPanel Spacing="8">
+                        <StackPanel Spacing="2">
                             <Grid ColumnDefinitions="*,Auto">
                                 <TextBlock Grid.Column="0" Text="Padding" Foreground="#9CA3AF"/>
                                 <TextBlock Grid.Column="1" Text="{Binding SmartPadding, StringFormat='{}{0:F0}px'}" Foreground="White"/>
@@ -427,11 +427,12 @@
                             <!-- Smart Padding Checkbox -->
                             <CheckBox IsChecked="{Binding UseSmartPadding}"
                                       Foreground="#9CA3AF"
-                                      Content="Smart Padding"/>
+                                      Content="Smart Padding"
+                                      Margin="0,2,0,0"/>
                         </StackPanel>
 
                         <!-- Rounded Corner Slider -->
-                        <StackPanel Spacing="8">
+                        <StackPanel Spacing="2">
                             <Grid ColumnDefinitions="*,Auto">
                                 <TextBlock Grid.Column="0" Text="Rounded Corner" Foreground="#9CA3AF"/>
                                 <TextBlock Grid.Column="1" Text="{Binding PreviewCornerRadius, StringFormat='{}{0:F0}px'}" Foreground="White"/>
@@ -443,7 +444,7 @@
                         </StackPanel>
 
                         <!-- Shadow Slider -->
-                        <StackPanel Spacing="8">
+                        <StackPanel Spacing="2">
                             <Grid ColumnDefinitions="*,Auto">
                                 <TextBlock Grid.Column="0" Text="Shadow" Foreground="#9CA3AF"/>
                                 <TextBlock Grid.Column="1" Text="{Binding ShadowBlur, StringFormat='{}{0:F0}px'}" Foreground="White"/>
@@ -455,7 +456,7 @@
                         </StackPanel>
 
                         <!-- Output Ratio -->
-                        <StackPanel Spacing="8">
+                        <StackPanel Spacing="2">
                             <TextBlock Text="Output Ratio" Foreground="#9CA3AF"/>
                             <Grid RowDefinitions="Auto,Auto,Auto" ColumnDefinitions="*,*,*">
                                 <Grid.Styles>
@@ -519,7 +520,7 @@
                         </StackPanel>
 
                         <!-- Background -->
-                        <StackPanel Spacing="8">
+                        <StackPanel Spacing="2">
                             <TextBlock Text="Background" Foreground="#9CA3AF"/>
                             <ItemsControl ItemsSource="{Binding GradientPresets}">
                                 <ItemsControl.ItemsPanel>
