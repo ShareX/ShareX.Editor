@@ -514,7 +514,7 @@
             <Grid ColumnDefinitions="Auto,*,Auto">
                 <!-- Left: Export Actions -->
                 <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="8">
-                    <Button Command="{Binding CopyCommand}" Height="36" Padding="16,0">
+                    <Button Classes="ratio-button" Command="{Binding CopyCommand}" Height="36" Padding="16,0">
                         <StackPanel Orientation="Horizontal" Spacing="8">
                             <TextBlock Text="{StaticResource IconCopy}" FontSize="16" FontFamily="{StaticResource FontAwesome}" FontWeight="Black"/>
                             <TextBlock Text="Copy" FontSize="14"/>
@@ -522,7 +522,7 @@
 
                     </Button>
                     
-                    <Button Command="{Binding QuickSaveCommand}" Height="36" Padding="16,0">
+                    <Button Classes="ratio-button" Command="{Binding QuickSaveCommand}" Height="36" Padding="16,0">
                         <StackPanel Orientation="Horizontal" Spacing="8">
                             <TextBlock Text="{StaticResource IconDownload}" FontSize="16" FontFamily="{StaticResource FontAwesome}" FontWeight="Black"/>
                             <TextBlock Text="Save" FontSize="14"/>
@@ -530,7 +530,7 @@
 
                     </Button>
                     
-                    <Button Command="{Binding SaveAsCommand}" Height="36" Padding="16,0">
+                    <Button Classes="ratio-button" Command="{Binding SaveAsCommand}" Height="36" Padding="16,0">
                         <StackPanel Orientation="Horizontal" Spacing="8">
                             <TextBlock Text="{StaticResource IconSave}" FontSize="16" FontFamily="{StaticResource FontAwesome}" FontWeight="Black"/>
                             <TextBlock Text="Save As..." FontSize="14"/>
@@ -538,7 +538,7 @@
 
                     </Button>
                     
-                    <Button Command="{Binding UploadCommand}" Height="36" Padding="16,0">
+                    <Button Classes="ratio-button" Command="{Binding UploadCommand}" Height="36" Padding="16,0">
                         <StackPanel Orientation="Horizontal" Spacing="8">
                             <TextBlock Text="&#xf093;" FontSize="16" FontFamily="{StaticResource FontAwesome}" FontWeight="Black"/>
                             <TextBlock Text="Upload" FontSize="14"/>
@@ -551,7 +551,8 @@
                 
                 <!-- Right: Zoom Controls -->
                 <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
-                    <Button Width="28" Height="28"
+                    <Button Classes="ratio-button" Height="36"
+                            Padding="12,0"
                             Command="{Binding ZoomOutCommand}" ToolTip.Tip="Zoom out (Ctrl + Wheel)"
                             FontFamily="{StaticResource FontAwesome}" FontWeight="Black" FontSize="14" Content="{StaticResource IconZoomOut}"/>
                     <Slider Width="140"
@@ -559,10 +560,12 @@
                             SmallChange="0.1" LargeChange="0.25"
                             Value="{Binding Zoom}"
                             VerticalAlignment="Center"/>
-                    <Button Width="28" Height="28"
+                    <Button Classes="ratio-button" Height="36"
+                            Padding="12,0"
                             Command="{Binding ZoomInCommand}" ToolTip.Tip="Zoom in (Ctrl + Wheel)"
                             FontFamily="{StaticResource FontAwesome}" FontWeight="Black" FontSize="14" Content="{StaticResource IconZoomIn}"/>
-                    <Button Width="52" Height="28"
+                    <Button Classes="ratio-button" Height="36"
+                            Padding="12,0"
                             Command="{Binding ResetZoomCommand}" ToolTip.Tip="Reset zoom">
                         <TextBlock Text="100%" FontSize="12" FontWeight="SemiBold" HorizontalAlignment="Center" VerticalAlignment="Center"/>
                     </Button>
