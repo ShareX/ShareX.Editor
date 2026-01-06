@@ -33,10 +33,10 @@ using Avalonia.Platform.Storage;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
 using ShareX.Editor.Annotations;
+using ShareX.Editor.Controls;
 using ShareX.Editor.Helpers;
 using ShareX.Editor.Services;
 using ShareX.Editor.ViewModels;
-using ShareX.Editor.Controls;
 using SkiaSharp;
 using System.ComponentModel;
 
@@ -70,7 +70,7 @@ namespace ShareX.Editor.Views
 
         // Store arrow/line endpoints for editing
         private Dictionary<Control, (Point Start, Point End)> _shapeEndpoints = new();
-        
+
         // Store speech balloon tail points for editing
         private Dictionary<Control, Point> _speechBalloonTailPoints = new();
 
@@ -541,7 +541,19 @@ namespace ShareX.Editor.Views
                 CreateHandle(balloonLeft, balloonTop + balloonHeight, "BottomLeft");
                 CreateHandle(balloonLeft, balloonTop + balloonHeight / 2, "LeftCenter");
 
-                // Create tail handle - convert SKPoint to Avalonia Point
+                // Create tail handle
+                // If TailPoint is default (0,0), initialize it to a default position below the balloon
+                if (balloon.TailPoint.X == 0 && balloon.TailPoint.Y == 0)
+                {
+                    balloon.TailPoint = new SKPoint(
+                        balloon.StartPoint.X + (balloon.EndPoint.X - balloon.StartPoint.X) / 2,
+                        balloon.EndPoint.Y + 30
+                    );
+                    // Force the control to redraw with the new tail position
+                    balloonControl.InvalidateVisual();
+                }
+
+                // Tail point is in absolute canvas coordinates
                 var tailX = (double)balloon.TailPoint.X;
                 var tailY = (double)balloon.TailPoint.Y;
                 CreateHandle(tailX, tailY, "BalloonTail");
@@ -1422,7 +1434,7 @@ namespace ShareX.Editor.Views
                         StartPoint = ToSKPoint(_startPoint),
                         EndPoint = ToSKPoint(_startPoint)
                     };
-                    
+
                     var balloonControl = new SpeechBalloonControl
                     {
                         Annotation = balloonAnnotation,
@@ -1430,10 +1442,10 @@ namespace ShareX.Editor.Views
                         Width = 0,  // Initial size - will be updated in OnPointerMoved
                         Height = 0
                     };
-                    
+
                     Canvas.SetLeft(balloonControl, _startPoint.X);
                     Canvas.SetTop(balloonControl, _startPoint.Y);
-                    
+
                     _currentShape = balloonControl;
                     break;
 
@@ -1602,7 +1614,7 @@ namespace ShareX.Editor.Views
                     // Update tail position
                     balloon.TailPoint = new SKPoint((float)currentPoint.X, (float)currentPoint.Y);
                     balloonControl.InvalidateVisual();
-                    
+
                     _startPoint = currentPoint;
                     UpdateSelectionHandles();
                     return;
@@ -1745,22 +1757,22 @@ namespace ShareX.Editor.Views
                     // Update balloon position by adjusting both start and end points
                     var currentStart = balloon.StartPoint;
                     var currentEnd = balloon.EndPoint;
-                    
+
                     var newStartPoint = new SKPoint(currentStart.X + (float)deltaX, currentStart.Y + (float)deltaY);
                     var newEndPoint = new SKPoint(currentEnd.X + (float)deltaX, currentEnd.Y + (float)deltaY);
-                    
+
                     balloon.StartPoint = newStartPoint;
                     balloon.EndPoint = newEndPoint;
-                    
+
                     // Also move the tail point
                     balloon.TailPoint = new SKPoint(balloon.TailPoint.X + (float)deltaX, balloon.TailPoint.Y + (float)deltaY);
-                    
+
                     // Update control position
                     var newLeft = Canvas.GetLeft(balloonControl) + deltaX;
                     var newTop = Canvas.GetTop(balloonControl) + deltaY;
                     Canvas.SetLeft(balloonControl, newLeft);
                     Canvas.SetTop(balloonControl, newTop);
-                    
+
                     balloonControl.InvalidateVisual();
 
                     _lastDragPoint = currentPoint;
