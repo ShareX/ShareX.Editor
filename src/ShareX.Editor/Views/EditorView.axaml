@@ -499,6 +499,13 @@
                         </StackPanel>
 
                     </Button>
+                    
+                    <Button Command="{Binding UploadCommand}">
+                        <StackPanel Orientation="Horizontal" Spacing="6">
+                            <TextBlock Text="&#xf093;" FontSize="14" FontFamily="{StaticResource FontAwesome}" FontWeight="Black"/>
+                            <TextBlock Text="Upload" FontSize="12"/>
+                        </StackPanel>
+                    </Button>
                 </StackPanel>
                 
                 <!-- Center: Empty spacer -->

@@ -843,6 +843,51 @@ namespace ShareX.Editor.ViewModels
             }
         }
 
+        [RelayCommand]
+        private async Task Upload()
+        {
+            // Get flattened image with annotations
+            Bitmap? snapshot = null;
+            if (SnapshotRequested != null)
+            {
+                snapshot = await SnapshotRequested.Invoke();
+            }
+
+            var imageToUpload = snapshot ?? PreviewImage;
+            if (imageToUpload == null)
+            {
+                StatusText = "No image to upload";
+                return;
+            }
+
+            try
+            {
+                StatusText = "Uploading...";
+                ExportState = "Uploading";
+                
+                // TODO: Implement actual upload logic
+                // This will be integrated with the upload system later
+                // For now, just provide a placeholder that saves to temp and shows a message
+                
+                var tempPath = System.IO.Path.Combine(System.IO.Path.GetTempPath(), $"ShareX_Upload_{DateTime.Now:yyyy-MM-dd_HH-mm-ss}.png");
+                imageToUpload.Save(tempPath);
+                
+                StatusText = "Upload complete (placeholder - integration needed)";
+                ExportState = "Uploaded";
+                DebugHelper.WriteLine($"Upload placeholder: Image saved to {tempPath}");
+                
+                // TODO: Replace with actual upload call:
+                // var uploadResult = await UploadManager.UploadImageAsync(tempPath);
+                // if (uploadResult.IsSuccess) StatusText = $"Uploaded: {uploadResult.URL}";
+            }
+            catch (Exception ex)
+            {
+                StatusText = $"Upload failed: {ex.Message}";
+                ExportState = "";
+                DebugHelper.WriteLine($"Upload failed: {ex.Message}");
+            }
+        }
+
         private SkiaSharp.SKBitmap? _currentSourceImage;
         private SkiaSharp.SKBitmap? _originalSourceImage; // Backup for smart padding restore
 
