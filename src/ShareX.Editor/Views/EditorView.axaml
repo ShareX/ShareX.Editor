@@ -331,10 +331,10 @@
                 <ScrollViewer Padding="0,0,40,0"
                               HorizontalScrollBarVisibility="Disabled"
                               VerticalScrollBarVisibility="Auto">
-                    <StackPanel Spacing="12">
+                    <StackPanel Spacing="0">
 
                         <!-- Margin Slider -->
-                        <StackPanel Spacing="2">
+                        <StackPanel Spacing="0">
                             <Grid ColumnDefinitions="*,Auto">
                                 <TextBlock Grid.Column="0" Text="Margin" Foreground="#9CA3AF"/>
                                 <TextBlock Grid.Column="1" Text="{Binding PreviewPadding, StringFormat='{}{0:F0}px'}" Foreground="White"/>
@@ -346,7 +346,7 @@
                         </StackPanel>
 
                         <!-- Padding Slider -->
-                        <StackPanel Spacing="2">
+                        <StackPanel Spacing="0">
                             <Grid ColumnDefinitions="*,Auto">
                                 <TextBlock Grid.Column="0" Text="Padding" Foreground="#9CA3AF"/>
                                 <TextBlock Grid.Column="1" Text="{Binding SmartPadding, StringFormat='{}{0:F0}px'}" Foreground="White"/>
@@ -359,11 +359,11 @@
                             <CheckBox IsChecked="{Binding UseSmartPadding}"
                                       Foreground="#9CA3AF"
                                       Content="Smart Padding"
-                                      Margin="0,2,0,0"/>
+                                      Margin="0,0,0,8"/>
                         </StackPanel>
 
                         <!-- Rounded Corner Slider -->
-                        <StackPanel Spacing="2">
+                        <StackPanel Spacing="0">
                             <Grid ColumnDefinitions="*,Auto">
                                 <TextBlock Grid.Column="0" Text="Rounded Corner" Foreground="#9CA3AF"/>
                                 <TextBlock Grid.Column="1" Text="{Binding PreviewCornerRadius, StringFormat='{}{0:F0}px'}" Foreground="White"/>
@@ -375,7 +375,7 @@
                         </StackPanel>
 
                         <!-- Shadow Slider -->
-                        <StackPanel Spacing="2">
+                        <StackPanel Spacing="0">
                             <Grid ColumnDefinitions="*,Auto">
                                 <TextBlock Grid.Column="0" Text="Shadow" Foreground="#9CA3AF"/>
                                 <TextBlock Grid.Column="1" Text="{Binding ShadowBlur, StringFormat='{}{0:F0}px'}" Foreground="White"/>
@@ -386,9 +386,9 @@
                                     Background="#374151"/>
                         </StackPanel>
 
-                        <!-- Output Ratio -->
-                        <StackPanel Spacing="2">
-                            <TextBlock Text="Output Ratio" Foreground="#9CA3AF"/>
+                        <!-- Ratio -->
+                        <StackPanel Spacing="0">
+                            <TextBlock Text="Ratio" Foreground="#9CA3AF" Margin="0,0,0,8"/>
                             <Grid RowDefinitions="Auto,Auto,Auto" ColumnDefinitions="*,*,*">
                                 <Grid.Styles>
                                     <Style Selector="Button">
@@ -451,8 +451,8 @@
                         </StackPanel>
 
                         <!-- Background -->
-                        <StackPanel Spacing="2">
-                            <TextBlock Text="Background" Foreground="#9CA3AF"/>
+                        <StackPanel Spacing="0">
+                            <TextBlock Text="Background" Foreground="#9CA3AF" Margin="0,8"/>
                             <ItemsControl ItemsSource="{Binding GradientPresets}">
                                 <ItemsControl.ItemsPanel>
                                     <ItemsPanelTemplate>
@@ -464,7 +464,7 @@
                                         <Button Padding="0" BorderThickness="0" Background="Transparent" Margin="2"
                                                 Command="{Binding DataContext.ApplyGradientPresetCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                                 CommandParameter="{Binding}">
-                                            <Border Width="50" Height="50" CornerRadius="10" Background="{Binding Brush}" ToolTip.Tip="{Binding Name}"/>
+                                            <Border Width="50" Height="50" CornerRadius="5" Background="{Binding Brush}" ToolTip.Tip="{Binding Name}"/>
                                         </Button>
                                     </DataTemplate>
                                 </ItemsControl.ItemTemplate>
