@@ -650,9 +650,40 @@ namespace ShareX.Editor.Views
             AddHandler(PointerWheelChangedEvent, OnPreviewPointerWheelChanged, RoutingStrategies.Tunnel | RoutingStrategies.Bubble, true);
         }
 
+        private void UpdateToolbarScrollPadding()
+        {
+            var toolbarScrollViewer = this.FindControl<ScrollViewer>("ToolbarScrollViewer");
+            if (toolbarScrollViewer == null) return;
+
+            var hasHorizontalOverflow = toolbarScrollViewer.Extent.Width - toolbarScrollViewer.Viewport.Width > 0.5;
+            toolbarScrollViewer.Padding = hasHorizontalOverflow ? new Thickness(0, 0, 0, 8) : new Thickness(0);
+        }
+
+        private void UpdateSidebarScrollPadding()
+        {
+            var sidebarScrollViewer = this.FindControl<ScrollViewer>("SidebarScrollViewer");
+            if (sidebarScrollViewer == null) return;
+
+            var hasVerticalOverflow = sidebarScrollViewer.Extent.Height - sidebarScrollViewer.Viewport.Height > 0.5;
+            sidebarScrollViewer.Padding = hasVerticalOverflow ? new Thickness(0, 0, 8, 0) : new Thickness(0);
+        }
+
+        private void OnToolbarScrollChanged(object? sender, ScrollChangedEventArgs e)
+        {
+            UpdateToolbarScrollPadding();
+        }
+
+        private void OnSidebarScrollChanged(object? sender, ScrollChangedEventArgs e)
+        {
+            UpdateSidebarScrollPadding();
+        }
+
         protected override void OnLoaded(RoutedEventArgs e)
         {
             base.OnLoaded(e);
+
+            UpdateToolbarScrollPadding();
+            UpdateSidebarScrollPadding();
 
             // Initialize ColorPickerDropdown palette
             var colorPicker = this.FindControl<ColorPickerDropdown>("ColorPickerDropdown");
