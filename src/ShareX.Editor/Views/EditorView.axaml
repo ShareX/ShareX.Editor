@@ -69,6 +69,14 @@
             <Setter Property="Foreground" Value="White"/>
             <Setter Property="BorderBrush" Value="Transparent"/>
         </Style>
+        <Style Selector="Border.popup-border">
+            <Setter Property="Background" Value="#2E2E2E"/>
+            <Setter Property="BorderBrush" Value="#1F1F1F"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="CornerRadius" Value="4"/>
+            <Setter Property="Padding" Value="8"/>
+            <Setter Property="BoxShadow" Value="0 4 16 #40000000"/>
+        </Style>
     </UserControl.Styles>
 
     <Grid RowDefinitions="Auto,*,Auto">
@@ -185,45 +193,45 @@
                             Command="{Binding ToggleEffectsPanelCommand}"
                             ToolTip.Tip="Image Effects Panel (F)"
                             FontFamily="{StaticResource FontAwesome}" FontWeight="Black" FontSize="16" Content="{StaticResource IconEffects}"/>
-                    
+
                     <!-- Separator -->
                     <Border Width="1" Height="40" Background="#2E2E2E" Margin="4,0"/>
-                    
+
                     <!-- Color Picker Dropdown -->
                     <controls:ColorPickerDropdown x:Name="ColorPickerDropdown"
                         SelectedColor="{Binding SelectedColorBrush}"
                         ColorChanged="OnColorChanged"
                         Height="40"
                         ToolTip.Tip="Color"/>
-                    
+
                     <!-- Width Picker Dropdown -->
                     <controls:WidthPickerDropdown
                         SelectedWidth="{Binding StrokeWidth}"
                         WidthChanged="OnWidthChanged"
                         Height="40"
                         ToolTip.Tip="Width"/>
-                    
+
                     <!-- Separator -->
                     <Border Width="1" Height="40" Background="#2E2E2E" Margin="4,0"/>
-                    
+
                     <!-- Undo Button -->
                     <Button Classes="editor-button" Width="40" Height="40"
                             Command="{Binding UndoCommand}" ToolTip.Tip="Undo (Ctrl+Z)"
                             FontFamily="{StaticResource FontAwesome}" FontWeight="Black" FontSize="16" Content="{StaticResource IconUndo}"/>
-                    
+
                     <!-- Redo Button -->
                     <Button Classes="editor-button" Width="40" Height="40"
                             Command="{Binding RedoCommand}" ToolTip.Tip="Redo (Ctrl+Shift+Z)"
                             FontFamily="{StaticResource FontAwesome}" FontWeight="Black" FontSize="16" Content="{StaticResource IconRedo}"/>
-                    
+
                     <!-- Separator -->
                     <Border Width="1" Height="40" Background="#2E2E2E" Margin="4,0"/>
-                    
+
                     <!-- Delete Button -->
                     <Button Classes="editor-button" Width="40" Height="40"
                             Command="{Binding DeleteSelectedCommand}" ToolTip.Tip="Delete Selected (Del)"
                             FontFamily="{StaticResource FontAwesome}" FontWeight="Black" FontSize="16" Content="{StaticResource IconDelete}"/>
-                    
+
                     <!-- Clear Button -->
                     <Button Classes="editor-button" Width="40" Height="40"
                             Command="{Binding ClearAnnotationsCommand}" ToolTip.Tip="Clear all annotations"
@@ -234,7 +242,7 @@
 
         <!-- Row 1: Main Content Area with Preview and Sidebar -->
         <Grid Grid.Row="1" ColumnDefinitions="*,300">
-            
+
             <!-- Central Preview Canvas -->
             <Grid Grid.Column="0" Margin="20">
                 <ScrollViewer Name="CanvasScrollViewer"
@@ -267,42 +275,42 @@
                                         <Grid Name="CanvasContainer"
                                               Width="{Binding ImageWidth}"
                                               Height="{Binding ImageHeight}">
-                                        
-                                        <!-- Image Layer -->
-                                        <Image Name="PreviewImageControl"
-                                               Source="{Binding PreviewImage}"
-                                               Stretch="Uniform"
-                                               HorizontalAlignment="Stretch"
-                                               VerticalAlignment="Stretch"/>
 
-                                        <!-- Annotation Layer (Saved content) -->
-                                        <Canvas Name="AnnotationCanvas"
-                                                Background="Transparent"
-                                                IsVisible="{Binding HasPreviewImage}"
-                                                HorizontalAlignment="Stretch"
-                                                VerticalAlignment="Stretch"
-                                                Cursor="Cross"
-                                                PointerPressed="OnCanvasPointerPressed"
-                                                PointerMoved="OnCanvasPointerMoved"
-                                                PointerReleased="OnCanvasPointerReleased">
-                                        </Canvas>
+                                            <!-- Image Layer -->
+                                            <Image Name="PreviewImageControl"
+                                                   Source="{Binding PreviewImage}"
+                                                   Stretch="Uniform"
+                                                   HorizontalAlignment="Stretch"
+                                                   VerticalAlignment="Stretch"/>
 
-                                        <!-- Overlay Layer (Transient UI: Selection handles, Crop) -->
-                                        <Canvas Name="OverlayCanvas"
-                                                IsHitTestVisible="True"
-                                                HorizontalAlignment="Stretch"
-                                                VerticalAlignment="Stretch"
-                                                PointerPressed="OnCanvasPointerPressed"
-                                                PointerMoved="OnCanvasPointerMoved"
-                                                PointerReleased="OnCanvasPointerReleased">
-                                            <Rectangle Name="CropOverlay" 
-                                                       IsVisible="False"
-                                                       Stroke="White"
-                                                       StrokeThickness="2"
-                                                       StrokeDashArray="4,2"
-                                                       Fill="#80000000" />
-                                        </Canvas>
-                                    </Grid>
+                                            <!-- Annotation Layer (Saved content) -->
+                                            <Canvas Name="AnnotationCanvas"
+                                                    Background="Transparent"
+                                                    IsVisible="{Binding HasPreviewImage}"
+                                                    HorizontalAlignment="Stretch"
+                                                    VerticalAlignment="Stretch"
+                                                    Cursor="Cross"
+                                                    PointerPressed="OnCanvasPointerPressed"
+                                                    PointerMoved="OnCanvasPointerMoved"
+                                                    PointerReleased="OnCanvasPointerReleased">
+                                            </Canvas>
+
+                                            <!-- Overlay Layer (Transient UI: Selection handles, Crop) -->
+                                            <Canvas Name="OverlayCanvas"
+                                                    IsHitTestVisible="True"
+                                                    HorizontalAlignment="Stretch"
+                                                    VerticalAlignment="Stretch"
+                                                    PointerPressed="OnCanvasPointerPressed"
+                                                    PointerMoved="OnCanvasPointerMoved"
+                                                    PointerReleased="OnCanvasPointerReleased">
+                                                <Rectangle Name="CropOverlay"
+                                                           IsVisible="False"
+                                                           Stroke="White"
+                                                           StrokeThickness="2"
+                                                           StrokeDashArray="4,2"
+                                                           Fill="#80000000" />
+                                            </Canvas>
+                                        </Grid>
                                     </Border>
                                 </Border>
                             </Border>
@@ -316,10 +324,10 @@
                 <ScrollViewer Padding="0,0,40,0"
                               HorizontalScrollBarVisibility="Disabled"
                               VerticalScrollBarVisibility="Auto">
-                     <StackPanel Spacing="12">
-                        <TextBlock Text="Settings" 
-                                   FontSize="18" 
-                                   FontWeight="Bold" 
+                    <StackPanel Spacing="12">
+                        <TextBlock Text="Settings"
+                                   FontSize="18"
+                                   FontWeight="Bold"
                                    Foreground="White"/>
 
                         <!-- Margin Slider -->
@@ -328,8 +336,8 @@
                                 <TextBlock Grid.Column="0" Text="Margin" Foreground="#9CA3AF"/>
                                 <TextBlock Grid.Column="1" Text="{Binding PreviewPadding, StringFormat='{}{0:F0}px'}" Foreground="White"/>
                             </Grid>
-                            <Slider Minimum="0" 
-                                    Maximum="200" 
+                            <Slider Minimum="0"
+                                    Maximum="200"
                                     Value="{Binding PreviewPadding}"
                                     Background="#374151"/>
                         </StackPanel>
@@ -340,8 +348,8 @@
                                 <TextBlock Grid.Column="0" Text="Padding" Foreground="#9CA3AF"/>
                                 <TextBlock Grid.Column="1" Text="{Binding SmartPadding, StringFormat='{}{0:F0}px'}" Foreground="White"/>
                             </Grid>
-                            <Slider Minimum="0" 
-                                    Maximum="200" 
+                            <Slider Minimum="0"
+                                    Maximum="200"
                                     Value="{Binding SmartPadding}"
                                     Background="#374151"/>
                             <!-- Smart Padding Checkbox -->
@@ -357,8 +365,8 @@
                                 <TextBlock Grid.Column="0" Text="Rounded Corner" Foreground="#9CA3AF"/>
                                 <TextBlock Grid.Column="1" Text="{Binding PreviewCornerRadius, StringFormat='{}{0:F0}px'}" Foreground="White"/>
                             </Grid>
-                            <Slider Minimum="0" 
-                                    Maximum="50" 
+                            <Slider Minimum="0"
+                                    Maximum="50"
                                     Value="{Binding PreviewCornerRadius}"
                                     Background="#374151"/>
                         </StackPanel>
@@ -369,8 +377,8 @@
                                 <TextBlock Grid.Column="0" Text="Shadow" Foreground="#9CA3AF"/>
                                 <TextBlock Grid.Column="1" Text="{Binding ShadowBlur, StringFormat='{}{0:F0}px'}" Foreground="White"/>
                             </Grid>
-                            <Slider Minimum="0" 
-                                    Maximum="100" 
+                            <Slider Minimum="0"
+                                    Maximum="100"
                                     Value="{Binding ShadowBlur}"
                                     Background="#374151"/>
                         </StackPanel>
@@ -385,7 +393,7 @@
                                         <Setter Property="Height" Value="32"/>
                                     </Style>
                                 </Grid.Styles>
-                                
+
                                 <!-- Row 0 -->
                                 <Button Grid.Row="0" Grid.Column="0" Content="Auto"
                                         Classes="editor-button"
@@ -402,7 +410,7 @@
                                         Command="{Binding SetOutputRatioCommand}" CommandParameter="4:3"
                                         Classes.active="{Binding SelectedOutputRatio, Converter={StaticResource EqualsConverter}, ConverterParameter=4:3}"
                                         HorizontalAlignment="Stretch" VerticalAlignment="Stretch"/>
-                                
+
                                 <!-- Row 1 -->
                                 <Button Grid.Row="1" Grid.Column="0" Content="3:2"
                                         Classes="editor-button"
@@ -419,7 +427,7 @@
                                         Command="{Binding SetOutputRatioCommand}" CommandParameter="5:3"
                                         Classes.active="{Binding SelectedOutputRatio, Converter={StaticResource EqualsConverter}, ConverterParameter=5:3}"
                                         HorizontalAlignment="Stretch" VerticalAlignment="Stretch"/>
-                                
+
                                 <!-- Row 2 -->
                                 <Button Grid.Row="2" Grid.Column="0" Content="9:16"
                                         Classes="editor-button"
@@ -477,7 +485,7 @@
                         </StackPanel>
 
                     </Button>
-                    
+
                     <Button Classes="editor-button" Command="{Binding QuickSaveCommand}" Height="36" Padding="16,0">
                         <StackPanel Orientation="Horizontal" Spacing="8">
                             <TextBlock Text="{StaticResource IconDownload}" FontSize="16" FontFamily="{StaticResource FontAwesome}" FontWeight="Black"/>
@@ -485,7 +493,7 @@
                         </StackPanel>
 
                     </Button>
-                    
+
                     <Button Classes="editor-button" Command="{Binding SaveAsCommand}" Height="36" Padding="16,0">
                         <StackPanel Orientation="Horizontal" Spacing="8">
                             <TextBlock Text="{StaticResource IconSave}" FontSize="16" FontFamily="{StaticResource FontAwesome}" FontWeight="Black"/>
@@ -493,7 +501,7 @@
                         </StackPanel>
 
                     </Button>
-                    
+
                     <Button Classes="editor-button" Command="{Binding UploadCommand}" Height="36" Padding="16,0">
                         <StackPanel Orientation="Horizontal" Spacing="8">
                             <TextBlock Text="&#xf093;" FontSize="16" FontFamily="{StaticResource FontAwesome}" FontWeight="Black"/>
@@ -501,10 +509,10 @@
                         </StackPanel>
                     </Button>
                 </StackPanel>
-                
+
                 <!-- Center: Empty spacer -->
                 <Border Grid.Column="1"/>
-                
+
                 <!-- Right: Zoom Controls -->
                 <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
                     <Button Classes="editor-button" Height="36"
@@ -525,7 +533,7 @@
                             Command="{Binding ResetZoomCommand}" ToolTip.Tip="Reset zoom">
                         <TextBlock Text="100%" FontSize="12" FontWeight="SemiBold" HorizontalAlignment="Center" VerticalAlignment="Center"/>
                     </Button>
-                    <TextBlock Text="{Binding Zoom, StringFormat='{}{0:P0}'}" 
+                    <TextBlock Text="{Binding Zoom, StringFormat='{}{0:P0}'}"
                                Foreground="#E2E8F0"
                                FontSize="12"
                                VerticalAlignment="Center"

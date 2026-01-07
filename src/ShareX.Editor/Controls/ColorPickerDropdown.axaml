@@ -16,21 +16,21 @@
                 HorizontalContentAlignment="Stretch">
             <Grid ColumnDefinitions="Auto,*,Auto">
                 <!-- Color Preview -->
-                <Border Grid.Column="0" 
-                        Width="24" 
-                        Height="24" 
+                <Border Grid.Column="0"
+                        Width="24"
+                        Height="24"
                         Background="{Binding SelectedColor, ElementName=ColorPickerDropdownRoot}"
                         CornerRadius="4"
                         BorderThickness="0"
                         VerticalAlignment="Center"
                         Margin="0,0,6,0"/>
-                
+
                 <!-- Spacer -->
                 <Border Grid.Column="1"/>
-                
+
                 <!-- Chevron Icon (FontAwesome ChevronDown) -->
-                <TextBlock Grid.Column="2" 
-                           Text="&#xf078;" 
+                <TextBlock Grid.Column="2"
+                           Text="&#xf078;"
                            FontFamily="avares://ShareX.Editor/Assets#Font Awesome 7 Free"
                            FontWeight="Black"
                            FontSize="10"
@@ -54,15 +54,15 @@
                     </ItemsControl.ItemsPanel>
                     <ItemsControl.ItemTemplate>
                         <DataTemplate>
-                            <Button Width="32" 
-                                    Height="32" 
+                            <Button Width="32"
+                                    Height="32"
                                     Padding="0"
                                     Background="Transparent"
                                     BorderThickness="0"
                                     Margin="2"
                                     Click="OnColorSelected"
                                     CommandParameter="{Binding .}">
-                                <Border Width="28" 
+                                <Border Width="28"
                                         Height="28"
                                         Background="{Binding .}"
                                         CornerRadius="4"

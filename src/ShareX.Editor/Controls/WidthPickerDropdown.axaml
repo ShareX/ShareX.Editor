@@ -16,24 +16,24 @@
                 HorizontalContentAlignment="Stretch">
             <Grid ColumnDefinitions="Auto,*,Auto">
                 <!-- Width Preview Circle -->
-                <Grid Grid.Column="0" 
-                      Width="24" 
-                      Height="24" 
+                <Grid Grid.Column="0"
+                      Width="24"
+                      Height="24"
                       VerticalAlignment="Center"
                       Margin="0,0,6,0">
-                    <Ellipse Width="{Binding SelectedWidth, ElementName=WidthPickerDropdownRoot}" 
+                    <Ellipse Width="{Binding SelectedWidth, ElementName=WidthPickerDropdownRoot}"
                              Height="{Binding SelectedWidth, ElementName=WidthPickerDropdownRoot}"
                              Fill="#94A3B8"
                              HorizontalAlignment="Center"
                              VerticalAlignment="Center"/>
                 </Grid>
-                
+
                 <!-- Spacer -->
                 <Border Grid.Column="1"/>
-                
+
                 <!-- Chevron Icon (FontAwesome ChevronDown) -->
-                <TextBlock Grid.Column="2" 
-                           Text="&#xf078;" 
+                <TextBlock Grid.Column="2"
+                           Text="&#xf078;"
                            FontFamily="avares://ShareX.Editor/Assets#Font Awesome 7 Free"
                            FontWeight="Black"
                            FontSize="10"
@@ -62,7 +62,7 @@
                                     CommandParameter="{Binding .}"
                                     ToolTip.Tip="{Binding ., StringFormat='{}{0}px'}">
                                 <Grid Width="24" Height="24">
-                                    <Ellipse Width="{Binding .}" 
+                                    <Ellipse Width="{Binding .}"
                                              Height="{Binding .}"
                                              Fill="#94A3B8"
                                              HorizontalAlignment="Center"
