@@ -185,6 +185,9 @@ namespace ShareX.Editor.ViewModels
         private bool _isEffectsPanelOpen;
 
         [ObservableProperty]
+        private bool _isSettingsPanelOpen = true;
+
+        [ObservableProperty]
         private int _numberCounter = 1;
 
         [ObservableProperty]
@@ -644,6 +647,13 @@ namespace ShareX.Editor.ViewModels
         {
             IsEffectsPanelOpen = !IsEffectsPanelOpen;
             StatusText = IsEffectsPanelOpen ? "Effects panel opened" : "Effects panel closed";
+        }
+
+        [RelayCommand]
+        private void ToggleSettingsPanel()
+        {
+            IsSettingsPanelOpen = !IsSettingsPanelOpen;
+            StatusText = IsSettingsPanelOpen ? "Background panel opened" : "Background panel closed";
         }
 
         [RelayCommand]

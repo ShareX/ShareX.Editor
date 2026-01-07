@@ -35,6 +35,7 @@
         <x:String x:Key="IconCrop">&#xf125;</x:String>
         <x:String x:Key="IconCutOut">&#xf0c4;</x:String>
         <x:String x:Key="IconEffects">&#xf0d0;</x:String>
+        <x:String x:Key="IconBackground">&#xf03e;</x:String>
         <x:String x:Key="IconUndo">&#xf0e2;</x:String>
         <x:String x:Key="IconRedo">&#xf01e;</x:String>
         <x:String x:Key="IconClear">&#xf12d;</x:String>
@@ -191,8 +192,14 @@
                             Classes.active="{Binding IsEffectsPanelOpen}"
                             Width="40" Height="40"
                             Command="{Binding ToggleEffectsPanelCommand}"
-                            ToolTip.Tip="Image Effects Panel (F)"
+                            ToolTip.Tip="Image Effects (F)"
                             FontFamily="{StaticResource FontAwesome}" FontWeight="Black" FontSize="16" Content="{StaticResource IconEffects}"/>
+                    <Button Classes="editor-button"
+                            Classes.active="{Binding IsSettingsPanelOpen}"
+                            Width="40" Height="40"
+                            Command="{Binding ToggleSettingsPanelCommand}"
+                            ToolTip.Tip="Background"
+                            FontFamily="{StaticResource FontAwesome}" FontWeight="Black" FontSize="16" Content="{StaticResource IconBackground}"/>
 
                     <!-- Separator -->
                     <Border Width="1" Height="40" Background="#2E2E2E" Margin="4,0"/>
@@ -241,7 +248,7 @@
         </Border>
 
         <!-- Row 1: Main Content Area with Preview and Sidebar -->
-        <Grid Grid.Row="1" ColumnDefinitions="*,300">
+        <Grid Grid.Row="1" ColumnDefinitions="*,Auto">
 
             <!-- Central Preview Canvas -->
             <Grid Grid.Column="0" Margin="20">
@@ -320,15 +327,11 @@
             </Grid>
 
             <!-- Right Sidebar (Settings Panel) -->
-            <Border Grid.Column="1" Padding="20">
+            <Border Grid.Column="1" Padding="20" Width="300" IsVisible="{Binding IsSettingsPanelOpen}">
                 <ScrollViewer Padding="0,0,40,0"
                               HorizontalScrollBarVisibility="Disabled"
                               VerticalScrollBarVisibility="Auto">
                     <StackPanel Spacing="12">
-                        <TextBlock Text="Settings"
-                                   FontSize="18"
-                                   FontWeight="Bold"
-                                   Foreground="White"/>
 
                         <!-- Margin Slider -->
                         <StackPanel Spacing="2">
