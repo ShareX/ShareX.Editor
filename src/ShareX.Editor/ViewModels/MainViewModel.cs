@@ -244,7 +244,10 @@ namespace ShareX.Editor.ViewModels
         [ObservableProperty]
         private string? _lastSavedPath;
 
+        [ObservableProperty]
+        private string _applicationName = "ShareX";
 
+        public string EditorTitle => $"{ApplicationName} Editor";
 
         public static MainViewModel Current { get; private set; }
 
@@ -259,6 +262,11 @@ namespace ShareX.Editor.ViewModels
             _appVersion = version != null ? $"v{version.Major}.{version.Minor}.{version.Build}" : "v1.0.0";
 
             UpdateCanvasProperties();
+        }
+
+        partial void OnApplicationNameChanged(string value)
+        {
+            OnPropertyChanged(nameof(EditorTitle));
         }
 
         partial void OnSelectedOutputRatioChanged(string value)
