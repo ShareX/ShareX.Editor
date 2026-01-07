@@ -47,12 +47,11 @@
     </UserControl.Resources>
 
     <UserControl.Styles>
-        <!-- Style for Output Ratio buttons -->
         <Style Selector="Button.ratio-button">
-            <Setter Property="Background" Value="#2D2D3F"/>
-            <Setter Property="BorderBrush" Value="#3B3B52"/>
+            <Setter Property="Background" Value="#2E2E2E"/>
+            <Setter Property="BorderBrush" Value="#1F1F1F"/>
             <Setter Property="BorderThickness" Value="1"/>
-            <Setter Property="Foreground" Value="#94A3B8"/>
+            <Setter Property="Foreground" Value="#E7E9EA"/>
             <Setter Property="Padding" Value="8,6"/>
             <Setter Property="CornerRadius" Value="4"/>
             <Setter Property="FontSize" Value="12"/>
@@ -74,7 +73,7 @@
 
     <Grid RowDefinitions="Auto,*,Auto">
         <!-- Row 0: Annotation Toolbar (single row with all tools and controls) -->
-        <Border Grid.Row="0" Padding="12,8">
+        <Border Grid.Row="0" Padding="12,8" Background="#222222">
             <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled">
                 <StackPanel Orientation="Horizontal" Spacing="4">
                     <!-- Drawing Tools -->
@@ -467,7 +466,7 @@
         </Grid>
 
         <!-- Row 2: Combined Bottom Bar (Export + Zoom Controls) -->
-        <Border Grid.Row="2" Padding="16,8">
+        <Border Grid.Row="2" Padding="16,8" Background="#222222">
             <Grid ColumnDefinitions="Auto,*,Auto">
                 <!-- Left: Export Actions -->
                 <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="8">

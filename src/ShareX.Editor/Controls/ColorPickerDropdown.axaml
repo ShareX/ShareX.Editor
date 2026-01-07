@@ -6,38 +6,13 @@
              x:Class="ShareX.Editor.Controls.ColorPickerDropdown"
              x:Name="ColorPickerDropdownRoot">
 
-    <UserControl.Styles>
-        <Style Selector="Button.dropdown-button">
-            <Setter Property="Background" Value="#2D2D3F"/>
-            <Setter Property="BorderBrush" Value="#3B3B52"/>
-            <Setter Property="BorderThickness" Value="1"/>
-            <Setter Property="Foreground" Value="#94A3B8"/>
-            <Setter Property="Padding" Value="6,6"/>
-            <Setter Property="CornerRadius" Value="4"/>
-            <Setter Property="Height" Value="40"/>
-            <Setter Property="MinWidth" Value="60"/>
-            <Setter Property="Cursor" Value="Hand"/>
-        </Style>
-        
-        <Style Selector="Button.dropdown-button:pointerover">
-            <Setter Property="Background" Value="#3B3B52"/>
-        </Style>
-        
-        <Style Selector="Border.popup-border">
-            <Setter Property="Background" Value="#2D2D3F"/>
-            <Setter Property="BorderBrush" Value="#3B3B52"/>
-            <Setter Property="BorderThickness" Value="1"/>
-            <Setter Property="CornerRadius" Value="4"/>
-            <Setter Property="Padding" Value="8"/>
-            <Setter Property="BoxShadow" Value="0 4 16 #40000000"/>
-        </Style>
-    </UserControl.Styles>
-
     <Grid>
         <!-- Dropdown Button -->
         <Button x:Name="DropdownButton"
-                Classes="dropdown-button"
+                Classes="ratio-button"
                 Click="OnDropdownButtonClick"
+                Height="40"
+                MinWidth="60"
                 HorizontalContentAlignment="Stretch">
             <Grid ColumnDefinitions="Auto,*,Auto">
                 <!-- Color Preview -->
