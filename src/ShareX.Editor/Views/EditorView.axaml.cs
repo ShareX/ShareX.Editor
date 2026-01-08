@@ -1457,38 +1457,44 @@ namespace ShareX.Editor.Views
             switch (vm.ActiveTool)
             {
                 case EditorTool.Rectangle:
-                    _currentShape = new global::Avalonia.Controls.Shapes.Rectangle
+                    var rectAnnotation = new RectangleAnnotation
                     {
-                        Stroke = brush,
-                        StrokeThickness = vm.StrokeWidth,
-                        Fill = Brushes.Transparent
+                        StrokeColor = vm.SelectedColor,
+                        StrokeWidth = vm.StrokeWidth,
+                        StartPoint = ToSKPoint(_startPoint),
+                        EndPoint = ToSKPoint(_startPoint)
                     };
+                    _currentShape = rectAnnotation.CreateVisual();
                     break;
                 case EditorTool.Ellipse:
-                    _currentShape = new global::Avalonia.Controls.Shapes.Ellipse
+                    var ellipseAnnotation = new EllipseAnnotation
                     {
-                        Stroke = brush,
-                        StrokeThickness = vm.StrokeWidth,
-                        Fill = Brushes.Transparent
+                        StrokeColor = vm.SelectedColor,
+                        StrokeWidth = vm.StrokeWidth,
+                        StartPoint = ToSKPoint(_startPoint),
+                        EndPoint = ToSKPoint(_startPoint)
                     };
+                    _currentShape = ellipseAnnotation.CreateVisual();
                     break;
                 case EditorTool.Line:
-                    _currentShape = new global::Avalonia.Controls.Shapes.Line
+                    var lineAnnotation = new LineAnnotation
                     {
-                        Stroke = brush,
-                        StrokeThickness = vm.StrokeWidth,
-                        StartPoint = _startPoint,
-                        EndPoint = _startPoint
+                        StrokeColor = vm.SelectedColor,
+                        StrokeWidth = vm.StrokeWidth,
+                        StartPoint = ToSKPoint(_startPoint),
+                        EndPoint = ToSKPoint(_startPoint)
                     };
+                    _currentShape = lineAnnotation.CreateVisual();
                     break;
                 case EditorTool.Arrow:
-                    _currentShape = new global::Avalonia.Controls.Shapes.Path
+                    var arrowAnnotation = new ArrowAnnotation
                     {
-                        Stroke = brush,
-                        StrokeThickness = vm.StrokeWidth,
-                        Fill = brush, // Fill arrowhead
-                        Data = new PathGeometry()
+                        StrokeColor = vm.SelectedColor,
+                        StrokeWidth = vm.StrokeWidth,
+                        StartPoint = ToSKPoint(_startPoint),
+                        EndPoint = ToSKPoint(_startPoint)
                     };
+                    _currentShape = arrowAnnotation.CreateVisual();
                     // Store initial endpoint for later editing
                     _shapeEndpoints[_currentShape] = (_startPoint, _startPoint);
                     break;
