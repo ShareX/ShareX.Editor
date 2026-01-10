@@ -391,12 +391,18 @@ public class EditorInputController
                 }
                 else if (_currentShape != null)
                 {
-                     _selectionController.SetSelectedShape(_currentShape);
+                     var shapeToSelect = _currentShape;
+                     // Use Dispatcher to let the visual tree update (layout pass) before creating handles
+                     Dispatcher.UIThread.Post(() => 
+                     {
+                         _selectionController.SetSelectedShape(shapeToSelect);
+                     });
 
                      // Auto-switch to Select tool for single-shot shapes to allow immediate manipulation
                      if (vm.ActiveTool != EditorTool.Pen && 
                          vm.ActiveTool != EditorTool.SmartEraser && 
                          vm.ActiveTool != EditorTool.Highlighter &&
+                         vm.ActiveTool != EditorTool.Number &&
                          vm.ActiveTool != EditorTool.Step)
                      {
                          vm.ActiveTool = EditorTool.Select;
