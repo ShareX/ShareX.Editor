@@ -517,7 +517,6 @@
                             <TextBlock Text="{StaticResource IconCopy}" FontSize="16" FontFamily="{StaticResource FontAwesome}" FontWeight="Black"/>
                             <TextBlock Text="Copy" FontSize="14"/>
                         </StackPanel>
-
                     </Button>
 
                     <Button Classes="editor-button" Command="{Binding QuickSaveCommand}" Height="40" Padding="16,0">
@@ -525,7 +524,6 @@
                             <TextBlock Text="{StaticResource IconDownload}" FontSize="16" FontFamily="{StaticResource FontAwesome}" FontWeight="Black"/>
                             <TextBlock Text="Save" FontSize="14"/>
                         </StackPanel>
-
                     </Button>
 
                     <Button Classes="editor-button" Command="{Binding SaveAsCommand}" Height="40" Padding="16,0">
@@ -533,7 +531,6 @@
                             <TextBlock Text="{StaticResource IconSave}" FontSize="16" FontFamily="{StaticResource FontAwesome}" FontWeight="Black"/>
                             <TextBlock Text="Save As..." FontSize="14"/>
                         </StackPanel>
-
                     </Button>
 
                     <Button Classes="editor-button" Command="{Binding UploadCommand}" Height="40" Padding="16,0">
@@ -549,29 +546,11 @@
 
                 <!-- Right: Zoom Controls -->
                 <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
-                    <Button Classes="editor-button" Height="40"
-                            Padding="12,0"
-                            Command="{Binding ZoomOutCommand}" ToolTip.Tip="Zoom out (Ctrl + Wheel)"
-                            FontFamily="{StaticResource FontAwesome}" FontWeight="Black" FontSize="14" Content="{StaticResource IconZoomOut}"/>
-                    <Slider Width="120"
-                            Minimum="0.25" Maximum="4"
-                            SmallChange="0.1" LargeChange="0.25"
-                            Value="{Binding Zoom}"
-                            VerticalAlignment="Center"/>
-                    <Button Classes="editor-button" Height="40"
-                            Padding="12,0"
-                            Command="{Binding ZoomInCommand}" ToolTip.Tip="Zoom in (Ctrl + Wheel)"
-                            FontFamily="{StaticResource FontAwesome}" FontWeight="Black" FontSize="14" Content="{StaticResource IconZoomIn}"/>
-                    <Button Classes="editor-button" Height="40"
-                            Padding="12,0"
-                            Command="{Binding ResetZoomCommand}" ToolTip.Tip="Reset zoom">
-                        <TextBlock Text="100%" FontSize="12" FontWeight="SemiBold" HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                    </Button>
-                    <TextBlock Text="{Binding Zoom, StringFormat='{}{0:P0}'}"
-                               Foreground="#E2E8F0"
-                               FontSize="12"
-                               VerticalAlignment="Center"
-                               Margin="4,0,8,0"/>
+                    <controls:ZoomPickerDropdown
+                        SelectedZoom="{Binding Zoom}"
+                        ZoomChanged="OnZoomChanged"
+                        Height="40"
+                        ToolTip.Tip="Zoom (Ctrl + Wheel)"/>
                 </StackPanel>
             </Grid>
         </Border>

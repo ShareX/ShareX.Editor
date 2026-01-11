@@ -433,6 +433,14 @@ namespace ShareX.Editor.Views
             }
         }
 
+        private void OnZoomChanged(object? sender, double zoom)
+        {
+            if (DataContext is MainViewModel vm)
+            {
+                vm.Zoom = zoom;
+            }
+        }
+
         private void OnSidebarScrollChanged(object? sender, ScrollChangedEventArgs e)
         {
             // TODO: Restore sidebar scrollbar overlay logic
