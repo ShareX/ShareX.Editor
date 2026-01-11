@@ -98,7 +98,7 @@ graph TD
     end
 
     subgraph "Content Layer (SkiaSharp)"
-        AvaloniaView -->|Commands (Crop/Cut)| EditorCore["EditorCore"]
+        AvaloniaView -->|"Commands (Crop/Cut)"| EditorCore["EditorCore"]
         EditorCore -->|Manipulates| MasterBitmap["Master SKBitmap"]
         MasterBitmap -->|Draws to| SKSurface["SKCanvasControl / WriteableBitmap"]
         SKSurface -->|Composites| AvaloniaView
