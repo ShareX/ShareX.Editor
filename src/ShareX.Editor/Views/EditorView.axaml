@@ -58,19 +58,33 @@
             <Setter Property="Height" Value="32"/>
             <Setter Property="HorizontalContentAlignment" Value="Center"/>
             <Setter Property="VerticalContentAlignment" Value="Center"/>
+
+            <Style Selector="^:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+                <Setter Property="BorderBrush" Value="#1F1F1F"/>
+                <Setter Property="BorderThickness" Value="1"/>
+            </Style>
+
+            <Style Selector="^:pressed">
+                <Setter Property="RenderTransform" Value="none"/>
+            </Style>
+
+            <Style Selector="^:pressed /template/ ContentPresenter#PART_ContentPresenter">
+                <Setter Property="BorderBrush" Value="#1F1F1F"/>
+                <Setter Property="BorderThickness" Value="1"/>
+            </Style>
+
+            <Style Selector="^.active">
+                <Setter Property="Background">
+                    <Setter.Value>
+                        <LinearGradientBrush StartPoint="0%,0%" EndPoint="100%,100%">
+                            <GradientStop Color="#3E83F2" Offset="0"/>
+                            <GradientStop Color="#3975D5" Offset="1"/>
+                        </LinearGradientBrush>
+                    </Setter.Value>
+                </Setter>
+            </Style>
         </Style>
-        <Style Selector="Button.editor-button.active">
-            <Setter Property="Background">
-                <Setter.Value>
-                    <LinearGradientBrush StartPoint="0%,0%" EndPoint="100%,100%">
-                        <GradientStop Color="#8B5CF6" Offset="0"/>
-                        <GradientStop Color="#9333EA" Offset="1"/>
-                    </LinearGradientBrush>
-                </Setter.Value>
-            </Setter>
-            <Setter Property="Foreground" Value="White"/>
-            <Setter Property="BorderBrush" Value="Transparent"/>
-        </Style>
+
         <Style Selector="Border.popup-border">
             <Setter Property="Background" Value="#2E2E2E"/>
             <Setter Property="BorderBrush" Value="#1F1F1F"/>
@@ -78,6 +92,20 @@
             <Setter Property="CornerRadius" Value="4"/>
             <Setter Property="Padding" Value="8"/>
             <Setter Property="BoxShadow" Value="0 4 16 #40000000"/>
+        </Style>
+
+        <Style Selector="Slider:horizontal">
+            <Setter Property="Foreground" Value="#3E83F2"/>
+
+		    <Style Selector="^ /template/ Thumb">
+                <Setter Property="Background" Value="#3E83F2"/>
+                <Setter Property="BorderBrush" Value="#2E2E2E"/>
+                <Setter Property="BorderThickness" Value="4"/>
+            </Style>
+
+            <Style Selector="^ /template/ Thumb:pointerover">
+                <Setter Property="BorderThickness" Value="3"/>
+            </Style>
         </Style>
     </UserControl.Styles>
 
