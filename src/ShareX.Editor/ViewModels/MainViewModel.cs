@@ -95,10 +95,10 @@ namespace ShareX.Editor.ViewModels
         private double _previewPadding = 30;
 
         [ObservableProperty]
-        private double _smartPadding = 0;
+        private double _smartPadding = 30;
 
         [ObservableProperty]
-        private bool _useSmartPadding = false;
+        private bool _useSmartPadding = true;
 
         private bool _isApplyingSmartPadding = false;
 

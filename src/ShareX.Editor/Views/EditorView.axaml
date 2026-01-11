@@ -107,6 +107,13 @@
                 <Setter Property="BorderThickness" Value="3"/>
             </Style>
         </Style>
+
+        <Style Selector="CheckBox">
+            <Style Selector="^:checked /template/ Border#NormalRectangle">
+                <Setter Property="Background" Value="#3E83F2"/>
+                <Setter Property="BorderThickness" Value="0"/>
+            </Style>
+        </Style>
     </UserControl.Styles>
 
     <Grid RowDefinitions="Auto,*,Auto">
