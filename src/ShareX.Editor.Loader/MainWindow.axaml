@@ -6,6 +6,7 @@
         mc:Ignorable="d" d:DesignWidth="1200" d:DesignHeight="800"
         x:Class="ShareX.Editor.Loader.MainWindow"
         Title="ShareX Editor"
-        WindowState="Maximized">
+        WindowState="Maximized"
+        WindowStartupLocation="CenterScreen">
   <views:EditorView Name="EditorView" />
 </Window>
