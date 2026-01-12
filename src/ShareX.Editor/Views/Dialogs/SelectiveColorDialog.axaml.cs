@@ -1,11 +1,8 @@
-using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Interactivity;
 using Avalonia.Markup.Xaml;
 using ShareX.Editor.Helpers;
 using SkiaSharp;
-using System;
-using System.Collections.Generic;
 
 namespace ShareX.Editor.Views.Dialogs
 {
@@ -24,13 +21,13 @@ namespace ShareX.Editor.Views.Dialogs
         // But PreviewEffect usually takes ONE function that generates the bitmap from source.
         // If we want multiple ranges, we need to apply them sequentially in one pass.
         // To do that, we need to store the settings for ALL ranges.
-        
+
         private Dictionary<ImageHelpers.SelectiveColorRange, (float h, float s, float l)> _adjustments = new();
 
         public SelectiveColorDialog()
         {
             AvaloniaXamlLoader.Load(this);
-            
+
             // Initialize dictionary
             foreach (ImageHelpers.SelectiveColorRange r in Enum.GetValues(typeof(ImageHelpers.SelectiveColorRange)))
             {
@@ -40,10 +37,13 @@ namespace ShareX.Editor.Views.Dialogs
 
         private void OnRangeChanged(object? sender, SelectionChangedEventArgs e)
         {
-            if (_suppressPreview) return;
-            
-            // When range changes, update sliders to reflect stored values for that range
+            if (!this.IsLoaded || _suppressPreview) return;
+
+            // Safe guard if FindControl fails during init
             var combo = this.FindControl<ComboBox>("RangeComboBox");
+            if (combo == null) return;
+
+            // When range changes, update sliders to reflect stored values for that range
             if (combo.SelectedIndex >= 0)
             {
                 var range = (ImageHelpers.SelectiveColorRange)combo.SelectedIndex;
@@ -60,27 +60,27 @@ namespace ShareX.Editor.Views.Dialogs
         private void OnValueChanged(object? sender, Avalonia.Controls.Primitives.RangeBaseValueChangedEventArgs e)
         {
             if (_suppressPreview) return;
-            
+
             // Update stored value for current range
-             var combo = this.FindControl<ComboBox>("RangeComboBox");
-             if (combo != null && combo.SelectedIndex >= 0)
-             {
-                 var range = (ImageHelpers.SelectiveColorRange)combo.SelectedIndex;
-                 float h = (float)(this.FindControl<Slider>("HueSlider")?.Value ?? 0);
-                 float s = (float)(this.FindControl<Slider>("SatSlider")?.Value ?? 0);
-                 float l = (float)(this.FindControl<Slider>("LightSlider")?.Value ?? 0);
-                 
-                 _adjustments[range] = (h, s, l);
-                 
-                 RequestPreview();
-             }
+            var combo = this.FindControl<ComboBox>("RangeComboBox");
+            if (combo != null && combo.SelectedIndex >= 0)
+            {
+                var range = (ImageHelpers.SelectiveColorRange)combo.SelectedIndex;
+                float h = (float)(this.FindControl<Slider>("HueSlider")?.Value ?? 0);
+                float s = (float)(this.FindControl<Slider>("SatSlider")?.Value ?? 0);
+                float l = (float)(this.FindControl<Slider>("LightSlider")?.Value ?? 0);
+
+                _adjustments[range] = (h, s, l);
+
+                RequestPreview();
+            }
         }
 
         private void RequestPreview()
         {
-             PreviewRequested?.Invoke(this, new EffectEventArgs(img => ApplyAllAdjustments(img), "Selective Color Adjustment"));
+            PreviewRequested?.Invoke(this, new EffectEventArgs(img => ApplyAllAdjustments(img), "Selective Color Adjustment"));
         }
-        
+
         private SKBitmap ApplyAllAdjustments(SKBitmap source)
         {
             // We need to apply ALL active adjustments.
@@ -88,11 +88,11 @@ namespace ShareX.Editor.Views.Dialogs
             // Or we iterate?
             // Iterating pixel by pixel and checking all ranges is efficient. 
             // Calling ApplySelectiveColor multiple times (9 times!) is very slow (9 passes).
-            
+
             // We should create a new helper in ImageHelpers or make ApplySelectiveColor smarter?
             // Or just loop here? Code-behind logic isn't ideal for complex processing but...
             // Actually, let's just chain them for PREVIEW simplifiction? No, slow.
-            
+
             // Better: Add a method to ImageHelpers that takes a Dictionary or array of adjustments.
             return Helpers.ImageHelpers.ApplySelectiveColorAdvanced(source, _adjustments);
         }

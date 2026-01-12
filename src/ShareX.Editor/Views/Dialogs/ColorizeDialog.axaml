@@ -7,28 +7,25 @@
              x:Name="ColorizeDialogRoot">
 
     <UserControl.Resources>
-        <SolidColorBrush x:Key="ColorizeAccentColor">#3975D5</SolidColorBrush>
-        <SolidColorBrush x:Key="ColorizeTextColor">#E7E9EA</SolidColorBrush>
-        <SolidColorBrush x:Key="ColorizeLabelColor">#9CA3AF</SolidColorBrush>
     </UserControl.Resources>
     
     <UserControl.Styles>
         <Style Selector="TextBlock.label">
-             <Setter Property="Foreground" Value="{StaticResource ColorizeLabelColor}"/>
+             <Setter Property="Foreground" Value="#9CA3AF"/>
              <Setter Property="FontSize" Value="13"/>
              <Setter Property="FontWeight" Value="SemiBold"/>
              <Setter Property="Margin" Value="0,0,0,4"/>
         </Style>
         <Style Selector="Button.primary">
-            <Setter Property="Background" Value="{StaticResource ColorizeAccentColor}"/>
-            <Setter Property="Foreground" Value="{StaticResource ColorizeTextColor}"/>
+            <Setter Property="Background" Value="#3975D5"/>
+            <Setter Property="Foreground" Value="#E7E9EA"/>
             <Setter Property="Padding" Value="20,8"/>
             <Setter Property="CornerRadius" Value="4"/>
             <Setter Property="FontWeight" Value="SemiBold"/>
         </Style>
         <Style Selector="Button.secondary">
             <Setter Property="Background" Value="#3E3E3E"/>
-            <Setter Property="Foreground" Value="{StaticResource ColorizeTextColor}"/>
+            <Setter Property="Foreground" Value="#E7E9EA"/>
             <Setter Property="Padding" Value="20,8"/>
             <Setter Property="CornerRadius" Value="4"/>
         </Style>
@@ -40,7 +37,7 @@
             <TextBlock Text="Colorize" 
                        FontSize="18" 
                        FontWeight="Bold" 
-                       Foreground="{StaticResource ColorizeTextColor}"/>
+                       Foreground="#E7E9EA"/>
             
             <StackPanel Spacing="12">
                 <!-- Hue Slider -->
@@ -49,7 +46,7 @@
                         <TextBlock Classes="label" Text="Hue" VerticalAlignment="Center"/>
                         <TextBlock Grid.Column="1" 
                                    Text="{Binding ElementName=HueSlider, Path=Value, StringFormat='{}{0:0}°'}" 
-                                   Foreground="{StaticResource ColorizeTextColor}"
+                                   Foreground="#E7E9EA"
                                    FontWeight="Bold"/>
                     </Grid>
                     <Slider x:Name="HueSlider"
@@ -64,7 +61,7 @@
                         <TextBlock Classes="label" Text="Saturation" VerticalAlignment="Center"/>
                         <TextBlock Grid.Column="1" 
                                    Text="{Binding ElementName=SaturationSlider, Path=Value, StringFormat='{}{0:0}%'}" 
-                                   Foreground="{StaticResource ColorizeTextColor}"
+                                   Foreground="#E7E9EA"
                                    FontWeight="Bold"/>
                     </Grid>
                     <Slider x:Name="SaturationSlider"
@@ -79,7 +76,7 @@
                         <TextBlock Classes="label" Text="Strength" VerticalAlignment="Center"/>
                         <TextBlock Grid.Column="1" 
                                    Text="{Binding ElementName=StrengthSlider, Path=Value, StringFormat='{}{0:0}%'}" 
-                                   Foreground="{StaticResource ColorizeTextColor}"
+                                   Foreground="#E7E9EA"
                                    FontWeight="Bold"/>
                     </Grid>
                     <Slider x:Name="StrengthSlider"

@@ -1230,6 +1230,7 @@ namespace ShareX.Editor.ViewModels
         // --- Effect Live Preview Logic ---
 
         private SkiaSharp.SKBitmap _preEffectImage;
+        private bool _wasSmartPaddingEnabled;
 
         /// <summary>
         /// Called when an effect dialog opens to store the state before previewing.
@@ -1238,6 +1239,13 @@ namespace ShareX.Editor.ViewModels
         {
             if (_currentSourceImage == null) return;
             _preEffectImage = _currentSourceImage.Copy();
+            
+            // Disable SmartPadding for performance and correct preview rendering
+            _wasSmartPaddingEnabled = UseSmartPadding;
+            if (_wasSmartPaddingEnabled)
+            {
+                UseSmartPadding = false;
+            }
         }
 
         /// <summary>
@@ -1292,7 +1300,14 @@ namespace ShareX.Editor.ViewModels
                 UpdatePreview(_preEffectImage, clearAnnotations: false);
                 // Do NOT dispose _preEffectImage here, because UpdatePreview takes ownership 
                 // and sets it as _currentSourceImage.
+                // and sets it as _currentSourceImage.
                 _preEffectImage = null;
+            }
+
+            // Restore SmartPadding
+            if (_wasSmartPaddingEnabled)
+            {
+                UseSmartPadding = true;
             }
         }
 
@@ -1346,6 +1361,12 @@ namespace ShareX.Editor.ViewModels
 
             _preEffectImage?.Dispose();
             _preEffectImage = null;
+
+            // Restore SmartPadding
+            if (_wasSmartPaddingEnabled)
+            {
+                UseSmartPadding = true;
+            }
         }
     }
 }
