@@ -1,6 +1,6 @@
 # Gap Analysis: Image Effects
 
-**Version**: 1.1  
+**Version**: 1.2  
 **Date**: 2026-01-12  
 **Scope**: `src\ShareX.Editor\ImageEffects` (Baseline) vs `EditorView/EffectsPanel` (Implementation)
 
@@ -10,88 +10,80 @@
 
 The `ImagesEffects` library provides a suite of algorithms for image manipulation. These are exposed to the user primarily through the **Effects Panel**.
 
-**Overall Status**: ⚠️ **Partial**.
-While the mechanism to expose effects is robust (reflection-based auto-discovery), distinct functional gaps exist. Most notably, the **Resize** effect is implemented as a stub and does not function. Additionally, redundancy exists between effects implemented in this library and "Tools" that perform identical actions (Blur, Pixelate).
+**Overall Status**: ⚠️ **Incomplete UI**.
+The backend logic for effects is properly loaded via reflection. However, the **UI is missing the input controls** for configuring effect parameters (sliders, color pickers, checkboxes).
+- **Parameterless Effects**: Are **Complete** (e.g., Black & White, Inverse), as they require no user input.
+- **Parameterized Effects**: Are **Pending UI**, as the application currently displays a placeholder message ("Effect parameters will be configured here") instead of actual controls.
 
 ---
 
 ## 📋 Feature Summary Table
 
-The following table lists all effects found in the `ImageEffects` library and their implementation status in the Editor View (accessible via the Effects Panel).
-
-| Category | Effect | EditorView |
-| :--- | :--- | :--- |
-| **Adjustments** | Alpha | Complete |
-| **Adjustments** | BlackWhite | Complete |
-| **Adjustments** | Brightness | Complete |
-| **Adjustments** | Colorize | Complete |
-| **Adjustments** | Contrast | Complete |
-| **Adjustments** | Gamma | Complete |
-| **Adjustments** | Grayscale | Complete |
-| **Adjustments** | Hue | Complete |
-| **Adjustments** | Inverse | Complete |
-| **Adjustments** | MatrixColor | Complete |
-| **Adjustments** | Polaroid | Complete |
-| **Adjustments** | Saturation | Complete |
-| **Adjustments** | Sepia | Complete |
-| **Drawings** | DrawBackground | Complete |
-| **Drawings** | DrawBackgroundImage | Complete |
-| **Drawings** | DrawBorder | Complete |
-| **Drawings** | DrawCheckerboard | Complete |
-| **Drawings** | DrawImage | Complete |
-| **Drawings** | DrawText | Complete |
-| **Filters** | Blur | Complete |
-| **Filters** | ColorDepth | Complete |
-| **Filters** | EdgeDetect | Complete |
-| **Filters** | Emboss | Complete |
-| **Filters** | GaussianBlur | Complete |
-| **Filters** | Glow | Complete |
-| **Filters** | MatrixConvolution | Complete |
-| **Filters** | MeanRemoval | Complete |
-| **Filters** | Outline | Complete |
-| **Filters** | Pixelate | Complete |
-| **Filters** | Reflection | Complete |
-| **Filters** | RGBSplit | Complete |
-| **Filters** | Shadow | Complete |
-| **Filters** | Sharpen | Complete |
-| **Filters** | Slice | Complete |
-| **Manipulations** | AutoCrop | Complete |
-| **Manipulations** | Canvas | Complete |
-| **Manipulations** | Crop | Complete |
-| **Manipulations** | Flip | Complete |
-| **Manipulations** | ForceProportions | Complete |
-| **Manipulations** | Resize | **Pending** |
-| **Manipulations** | Rotate | Complete |
-| **Manipulations** | RoundedCorners | Complete |
-| **Manipulations** | Scale | Complete |
-| **Manipulations** | Skew | Complete |
+| Category | Effect | EditorView Status | Notes |
+| :--- | :--- | :--- | :--- |
+| **Adjustments** | Alpha | 🔴 **Pending UI** | Needs Opacity slider. |
+| **Adjustments** | BlackWhite | ✅ **Complete** | Parameterless. |
+| **Adjustments** | Brightness | 🔴 **Pending UI** | Needs Brightness level. |
+| **Adjustments** | Colorize | 🔴 **Pending UI** | Needs Color picker. |
+| **Adjustments** | Contrast | 🔴 **Pending UI** | Needs Contrast level. |
+| **Adjustments** | Gamma | 🔴 **Pending UI** | Needs Gamma level. |
+| **Adjustments** | Grayscale | ✅ **Complete** | Parameterless. |
+| **Adjustments** | Hue | 🔴 **Pending UI** | Needs Hue slider. |
+| **Adjustments** | Inverse | ✅ **Complete** | Parameterless. |
+| **Adjustments** | MatrixColor | 🔴 **Pending UI** | Needs Matrix input. |
+| **Adjustments** | Polaroid | 🔴 **Pending UI** | Needs Margin/Rotation params. |
+| **Adjustments** | Saturation | 🔴 **Pending UI** | Needs Saturation level. |
+| **Adjustments** | Sepia | ✅ **Complete** | Parameterless (Fixed). |
+| **Drawings** | DrawBackground | 🔴 **Pending UI** | Needs Color/Padding. |
+| **Drawings** | DrawBackgroundImage | 🔴 **Pending UI** | Needs Path/Opacity. |
+| **Drawings** | DrawBorder | 🔴 **Pending UI** | Needs Size/Color. |
+| **Drawings** | DrawCheckerboard | 🔴 **Pending UI** | Needs Size/Colors. |
+| **Drawings** | DrawImage | 🔴 **Pending UI** | Needs Image path. |
+| **Drawings** | DrawText | 🔴 **Pending UI** | Needs Text/Font properties. |
+| **Filters** | Blur | 🔴 **Pending UI** | Needs Radius. |
+| **Filters** | ColorDepth | 🔴 **Pending UI** | Needs Depth/Bits. |
+| **Filters** | EdgeDetect | ✅ **Complete** | Parameterless (usually). |
+| **Filters** | Emboss | ✅ **Complete** | Parameterless (usually). |
+| **Filters** | GaussianBlur | 🔴 **Pending UI** | Needs Radius. |
+| **Filters** | Glow | 🔴 **Pending UI** | Needs Radius/Color. |
+| **Filters** | MatrixConvolution | 🔴 **Pending UI** | Needs Kernel/Divisor. |
+| **Filters** | MeanRemoval | ✅ **Complete** | Parameterless. |
+| **Filters** | Outline | 🔴 **Pending UI** | Needs Thickness/Color. |
+| **Filters** | Pixelate | 🔴 **Pending UI** | Needs Pixel Size. |
+| **Filters** | Reflection | 🔴 **Pending UI** | Needs Opacity/Offset. |
+| **Filters** | RGBSplit | 🔴 **Pending UI** | Needs Offset. |
+| **Filters** | Shadow | 🔴 **Pending UI** | Needs Opacity/Size/Offset. |
+| **Filters** | Sharpen | ✅ **Complete** | Parameterless (Fixed kernel). |
+| **Filters** | Slice | 🔴 **Pending UI** | Needs Slice params. |
+| **Manipulations** | AutoCrop | 🔴 **Pending UI** | Needs Color/Tolerance. |
+| **Manipulations** | Canvas | 🔴 **Pending UI** | Needs Size/Color. |
+| **Manipulations** | Crop | 🔴 **Pending UI** | Needs Rect coords. |
+| **Manipulations** | Flip | 🔴 **Pending UI** | Needs Orient. (Horiz/Vert). |
+| **Manipulations** | ForceProportions | 🔴 **Pending UI** | Needs Ratio. |
+| **Manipulations** | Resize | 🔴 **Pending UI** | **Broken Implementation** + Needs Size params. |
+| **Manipulations** | Rotate | 🔴 **Pending UI** | Needs Angle. |
+| **Manipulations** | RoundedCorners | 🔴 **Pending UI** | Needs Radius. |
+| **Manipulations** | Scale | 🔴 **Pending UI** | Needs Scale factor. |
+| **Manipulations** | Skew | 🔴 **Pending UI** | Needs X/Y skew. |
 
 ---
 
-## 🔍 Identified Gaps & Findings
+## 🔍 Major Gaps
 
-### 1. 🛑 Broken Feature: Resize
-**Finding**: The class `shareX.Editor.ImageEffects.Manipulations.Resize` exists and is visible in the UI.
-**Issue**: The `Apply()` method contains a `TODO` comment and returns the original image without modification.
-**Impact**: User selecting "Resize" in the effects panel will see no change.
+### 1. Missing UI Templates for Parameters
+**Critical Finding**: The `GenericEffectParameterTemplate` in `EffectParameterTemplates.axaml` is a placeholder text block.
+**Impact**: Users cannot configure *any* effect that requires parameters (e.g., changing Blur radius, picking a Color for Colorize). This renders the majority of effects functionally useless in the UI despite the backend logic working.
 
-### 2. 🔄 Logic Duplication
-**Finding**: Core algorithms for **Blur** and **Pixelate** are implemented twice:
-1.  In `ImageEffectsProcessing.cs` (used by Global Effects).
-2.  Inside `BlurAnnotation.cs` and `PixelateAnnotation.cs` (used by Tools).
-**Impact**: Maintenance burden. Improvements to the blur algorithm in one place will not automatically reflect in the other.
-
-### 3. Feature Overlap
-**Finding**: `Crop`, `Rotate`, and `Flip` exist as both **ImageEffects** (in the list) and **Toolbar Commands**.
-**Impact**: This might confuse users. "Crop" as an effect is typically a hard-coded parameter crop, whereas the Toolbar Crop is interactive.
+### 2. Broken Implementation: Resize
+The `Resize` effect is doubly non-functional: it not only lacks UI inputs but its backend `Apply()` method is a stub that does nothing.
 
 ---
 
 ## 💡 Recommendations
 
-### Short Term (Fixes)
-1.  **Implement Resize**: Connect `Resize.Apply()` to the existing `ImageEffectsProcessing.ResizeImage` helper method. This is a quick fix.
+### Short Term
+1.  **Implement Generic Parameter UI**: Create a robust `DataTemplate` (or set of templates) that uses reflection or a PropertyGrid-like control to auto-generate UI for `int` (Slider/NumericUpDown), `bool` (CheckBox), `float`, `string`, and `SKColor` (ColorPicker).
+2.  **Fix Resize Logic**: Hook up the `Resize` logic to the helper methods.
 
-### Medium Term (Refactor)
-2.  **Consolidate Algorithms**: Refactor `BlurAnnotation` and `PixelateAnnotation` to call `ImageEffectsProcessing.ApplyBlur` and `Pixelate`. This ensures a single source of truth for these algorithms.
-3.  **Curate Effects List**: Review if `Crop` and `DrawText` should be hidden from the "Effects" list, as they are better served by their interactive Tool counterparts.
+### Long Term
+3.  **Specialized Templates**: Create manual, polished templates for complex effects (e.g., Matrix Convolution, DrawText) that auto-generation cannot handle gracefully.
