@@ -84,6 +84,9 @@ namespace ShareX.Editor.Views
             _editorCore.HistoryChanged += () => Avalonia.Threading.Dispatcher.UIThread.Post(() => {
                 if (DataContext is MainViewModel vm) UpdateViewModelHistoryState(vm);
             });
+
+            // Capture wheel events in tunneling phase so ScrollViewer doesn't scroll when using Ctrl+wheel zoom.
+            AddHandler(PointerWheelChangedEvent, OnPreviewPointerWheelChanged, RoutingStrategies.Tunnel | RoutingStrategies.Bubble, true);
         }
         
         private void UpdateViewModelHistoryState(MainViewModel vm)
@@ -91,6 +94,7 @@ namespace ShareX.Editor.Views
             vm.UpdateCoreHistoryState(_editorCore.CanUndo, _editorCore.CanRedo);
         }
         
+
         private void UpdateViewModelMetadata(MainViewModel vm)
         {
             // Initial sync of metadata if needed
@@ -687,6 +691,14 @@ namespace ShareX.Editor.Views
             if (DataContext is MainViewModel vm)
             {
                 vm.SetStrokeWidthCommand.Execute(width);
+            }
+        }
+
+        private void OnZoomChanged(object? sender, double zoom)
+        {
+            if (DataContext is MainViewModel vm)
+            {
+                vm.Zoom = zoom;
             }
         }
 
