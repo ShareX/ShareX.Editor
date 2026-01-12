@@ -92,7 +92,8 @@ namespace ShareX.Editor.ViewModels
                 OnPropertyChanged(nameof(SmartPaddingColor));
 
                 // Apply smart padding crop if enabled (but not if we're already applying it)
-                if (UseSmartPadding && !_isApplyingSmartPadding)
+                // Only trigger if background effects are active to avoid overwriting live previews
+                if (UseSmartPadding && !_isApplyingSmartPadding && AreBackgroundEffectsActive)
                 {
                     ApplySmartPaddingCrop();
                 }
@@ -116,13 +117,13 @@ namespace ShareX.Editor.ViewModels
 
         private bool _isApplyingSmartPadding = false;
 
-        public Thickness SmartPaddingThickness => new Thickness(SmartPadding);
+        public Thickness SmartPaddingThickness => AreBackgroundEffectsActive ? new Thickness(SmartPadding) : new Thickness(0);
 
         public IBrush SmartPaddingColor
         {
             get
             {
-                if (PreviewImage == null || SmartPadding <= 0)
+                if (!AreBackgroundEffectsActive || PreviewImage == null || SmartPadding <= 0)
                 {
                     return Brushes.Transparent;
                 }
@@ -170,7 +171,7 @@ namespace ShareX.Editor.ViewModels
         // Add a brush version for the dropdown control
         public IBrush SelectedColorBrush
         {
-            get => new SolidColorBrush(Color.Parse(_selectedColor));
+            get => new SolidColorBrush(Color.Parse(SelectedColor));
             set
             {
                 if (value is SolidColorBrush solidBrush)
@@ -207,6 +208,24 @@ namespace ShareX.Editor.ViewModels
 
         private bool _isCoreUndoAvailable;
         private bool _isCoreRedoAvailable;
+
+        private bool _isPreviewingEffect;
+        public bool AreBackgroundEffectsActive => IsSettingsPanelOpen && !_isPreviewingEffect;
+
+        partial void OnIsSettingsPanelOpenChanged(bool value)
+        {
+            // Toggle background effects visibility
+            OnPropertyChanged(nameof(AreBackgroundEffectsActive));
+            UpdateCanvasProperties();
+            
+            // Re-evaluate Smart Padding application
+            // If we closed the panel, we might need to revert crop. If opened, apply crop.
+            // But ApplySmartPaddingCrop depends on UseSmartPadding too.
+            if (_originalSourceImage != null)
+            {
+                 ApplySmartPaddingCrop();
+            }
+        }
 
         public void UpdateCoreHistoryState(bool canUndo, bool canRedo)
         {
@@ -432,10 +451,17 @@ namespace ShareX.Editor.ViewModels
                 }
 
                 // Check if we found any content
-                if (minX > maxX || minY > maxY)
+                if (minX > maxX || minY > maxY || !AreBackgroundEffectsActive)
                 {
-                    // No content found, keep original
-                    StatusText = "Smart Padding: No content to crop";
+                    // No content found (or background effects disabled), keep original
+                    // (But verify if we should just show original)
+                    _currentSourceImage = _originalSourceImage;
+                    PreviewImage = BitmapConversionHelpers.ToAvaloniBitmap(_originalSourceImage);
+                    ImageDimensions = $"{_originalSourceImage.Width} x {_originalSourceImage.Height}";
+
+                    if (!AreBackgroundEffectsActive) StatusText = "Background effects hidden";
+                    else StatusText = "Smart Padding: No content to crop";
+                    
                     return;
                 }
 
@@ -481,16 +507,26 @@ namespace ShareX.Editor.ViewModels
 
         private void UpdateCanvasProperties()
         {
-            CanvasPadding = CalculateOutputPadding(PreviewPadding, TargetOutputAspectRatio);
-            CanvasShadow = new BoxShadows(new BoxShadow
+            if (AreBackgroundEffectsActive)
             {
-                Blur = ShadowBlur,
-                Color = Color.FromArgb(80, 0, 0, 0),
-                OffsetX = 0,
-                OffsetY = 10
-            });
-            CanvasCornerRadius = Math.Max(0, PreviewCornerRadius);
+                CanvasPadding = CalculateOutputPadding(PreviewPadding, TargetOutputAspectRatio);
+                CanvasShadow = new BoxShadows(new BoxShadow
+                {
+                    Blur = ShadowBlur,
+                    Color = Color.FromArgb(80, 0, 0, 0),
+                    OffsetX = 0,
+                    OffsetY = 10
+                });
+                CanvasCornerRadius = Math.Max(0, PreviewCornerRadius);
+            }
+            else
+            {
+                CanvasPadding = new Thickness(0);
+                CanvasShadow = new BoxShadows(); // No shadow
+                CanvasCornerRadius = 0;
+            }
             OnPropertyChanged(nameof(SmartPaddingColor));
+            OnPropertyChanged(nameof(SmartPaddingThickness));
         }
 
         private Thickness CalculateOutputPadding(double basePadding, double? targetAspectRatio)
@@ -1230,7 +1266,7 @@ namespace ShareX.Editor.ViewModels
         // --- Effect Live Preview Logic ---
 
         private SkiaSharp.SKBitmap _preEffectImage;
-        private bool _wasSmartPaddingEnabled;
+
 
         /// <summary>
         /// Called when an effect dialog opens to store the state before previewing.
@@ -1238,14 +1274,13 @@ namespace ShareX.Editor.ViewModels
         public void StartEffectPreview()
         {
             if (_currentSourceImage == null) return;
-            _preEffectImage = _currentSourceImage.Copy();
             
-            // Disable SmartPadding for performance and correct preview rendering
-            _wasSmartPaddingEnabled = UseSmartPadding;
-            if (_wasSmartPaddingEnabled)
-            {
-                UseSmartPadding = false;
-            }
+            _isPreviewingEffect = true;
+            OnPropertyChanged(nameof(AreBackgroundEffectsActive));
+            UpdateCanvasProperties();
+            ApplySmartPaddingCrop(); 
+
+            _preEffectImage = _currentSourceImage.Copy();
         }
 
         /// <summary>
@@ -1288,6 +1323,11 @@ namespace ShareX.Editor.ViewModels
 
             _preEffectImage?.Dispose();
             _preEffectImage = null;
+
+            _isPreviewingEffect = false;
+            OnPropertyChanged(nameof(AreBackgroundEffectsActive));
+            UpdateCanvasProperties();
+            ApplySmartPaddingCrop();
         }
 
         /// <summary>
@@ -1304,11 +1344,11 @@ namespace ShareX.Editor.ViewModels
                 _preEffectImage = null;
             }
 
-            // Restore SmartPadding
-            if (_wasSmartPaddingEnabled)
-            {
-                UseSmartPadding = true;
-            }
+            // Restore Background Effects
+            _isPreviewingEffect = false;
+            OnPropertyChanged(nameof(AreBackgroundEffectsActive));
+            UpdateCanvasProperties();
+            ApplySmartPaddingCrop();
         }
 
         /// <summary>
@@ -1362,11 +1402,11 @@ namespace ShareX.Editor.ViewModels
             _preEffectImage?.Dispose();
             _preEffectImage = null;
 
-            // Restore SmartPadding
-            if (_wasSmartPaddingEnabled)
-            {
-                UseSmartPadding = true;
-            }
+            // Restore Background Effects
+            _isPreviewingEffect = false;
+            OnPropertyChanged(nameof(AreBackgroundEffectsActive));
+            UpdateCanvasProperties();
+            ApplySmartPaddingCrop();
         }
     }
 }

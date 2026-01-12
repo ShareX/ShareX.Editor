@@ -21,6 +21,8 @@ namespace ShareX.Editor.Controls
         public event EventHandler? PolaroidRequested;
         public event EventHandler? ColorizeRequested;
         public event EventHandler? SelectiveColorRequested;
+        public event EventHandler? ReplaceColorRequested;
+        public event EventHandler? GrayscaleRequested;
 
         public EffectsMenuDropdown()
         {
@@ -115,6 +117,18 @@ namespace ShareX.Editor.Controls
         {
             ClosePopup();
             SelectiveColorRequested?.Invoke(this, EventArgs.Empty);
+        }
+
+        private void OnReplaceColorClick(object? sender, RoutedEventArgs e)
+        {
+            ClosePopup();
+            ReplaceColorRequested?.Invoke(this, EventArgs.Empty);
+        }
+
+        private void OnGrayscaleClick(object? sender, RoutedEventArgs e)
+        {
+            ClosePopup();
+            GrayscaleRequested?.Invoke(this, EventArgs.Empty);
         }
     }
 }

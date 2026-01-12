@@ -167,6 +167,13 @@
                         </StackPanel>
                     </Button>
 
+                    <Button Classes="menu-item" Click="OnReplaceColorClick">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Classes="menu-icon" Text="{StaticResource IconSync}"/>
+                            <TextBlock Classes="menu-text" Text="Replace Color…"/>
+                        </StackPanel>
+                    </Button>
+
                     <!-- Separator -->
                     <Border Classes="menu-separator"/>
 
@@ -184,6 +191,13 @@
                         <StackPanel Orientation="Horizontal">
                             <TextBlock Classes="menu-icon" Text="{StaticResource IconAdjust}"/>
                             <TextBlock Classes="menu-text" Text="Black &amp; White"/>
+                        </StackPanel>
+                    </Button>
+
+                    <Button Classes="menu-item" Click="OnGrayscaleClick">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Classes="menu-icon" Text="{StaticResource IconCloud}"/>
+                            <TextBlock Classes="menu-text" Text="Grayscale…"/>
                         </StackPanel>
                     </Button>
 

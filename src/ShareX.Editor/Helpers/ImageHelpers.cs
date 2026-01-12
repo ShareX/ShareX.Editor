@@ -428,30 +428,20 @@ public static class ImageHelpers
 
     public static SKBitmap ApplyHue(SKBitmap source, float amount)
     {
-        // amount is -180 to 180 degrees
-        // Using RotateColor method logic or similar implementation
-        // There isn't a direct 5x4 matrix for Hue easily without complex calculation.
-        // But SkiaSharp has CreateLighting or CreateBlend, but CreateHighContrast doesn't do Hue.
-        // Ideally we use SKColorFilter.CreateColorMatrix.
-        // Calculating hue rotation matrix is complex. 
-        // Simplification: Iterate pixels or use optimized math.
-        // For performance, let's use a pixel loop for Hue if ColorFilter isn't easy, 
-        // BUT SkiaSharp has no built-in Hue filter.
-        // Users expect "Hue cycle".
+        // amount is -180 to 180 degrees usually.
+        float radians = (float)(amount * Math.PI / 180.0);
+        float c = (float)Math.Cos(radians);
+        float s = (float)Math.Sin(radians);
 
-        // Actually, let's defer detailed matrix math to a separate helper or use a pixel loop for now
-        // if we want to be absolutely sure of correctness, though slower.
-        // Given this is an Editor, performance is key. 
-        // Let's try to approximate or use a known matrix algorithm for Hue.
+        // Hue rotation matrix
+        float[] matrix = {
+            0.213f + c * 0.787f - s * 0.213f, 0.715f - c * 0.715f - s * 0.715f, 0.072f - c * 0.072f + s * 0.928f, 0, 0,
+            0.213f - c * 0.213f + s * 0.143f, 0.715f + c * 0.285f + s * 0.140f, 0.072f - c * 0.072f - s * 0.283f, 0, 0,
+            0.213f - c * 0.213f - s * 0.787f, 0.715f - c * 0.715f + s * 0.715f, 0.072f + c * 0.928f + s * 0.072f, 0, 0,
+            0, 0, 0, 1, 0
+        };
 
-        // Using pixel manipulation for Hue to ensure accuracy
-        return ApplyPixelOperation(source, (color) =>
-        {
-            color.ToHsl(out float h, out float s, out float l);
-            h = (h + amount) % 360;
-            if (h < 0) h += 360;
-            return SKColor.FromHsl(h, s, l, color.Alpha);
-        });
+        return ApplyColorMatrix(source, matrix);
     }
 
     public static SKBitmap ApplySaturation(SKBitmap source, float amount)
@@ -527,16 +517,38 @@ public static class ImageHelpers
         return ApplyColorMatrix(source, matrix);
     }
 
-    public static SKBitmap ApplyGrayscale(SKBitmap source)
+    public static SKBitmap ApplyGrayscale(SKBitmap source, float strength = 100f)
     {
-        // BT.709
-        float[] matrix = {
-            0.2126f, 0.7152f, 0.0722f, 0, 0,
-            0.2126f, 0.7152f, 0.0722f, 0, 0,
-            0.2126f, 0.7152f, 0.0722f, 0, 0,
-            0,       0,       0,       1, 0
-        };
-        return ApplyColorMatrix(source, matrix);
+        // strength 0-100
+        if (strength >= 100)
+        {
+            // BT.709
+            float[] matrix = {
+                0.2126f, 0.7152f, 0.0722f, 0, 0,
+                0.2126f, 0.7152f, 0.0722f, 0, 0,
+                0.2126f, 0.7152f, 0.0722f, 0, 0,
+                0,       0,       0,       1, 0
+            };
+            return ApplyColorMatrix(source, matrix);
+        }
+        else if (strength <= 0)
+        {
+            return source.Copy();
+        }
+        else
+        {
+            float s = strength / 100f;
+            float invS = 1f - s;
+            
+            // Interpolate between Identity and Grayscale matrix
+            float[] matrix = {
+                0.2126f * s + invS, 0.7152f * s,        0.0722f * s,        0, 0,
+                0.2126f * s,        0.7152f * s + invS, 0.0722f * s,        0, 0,
+                0.2126f * s,        0.7152f * s,        0.0722f * s + invS, 0, 0,
+                0,                  0,                  0,                  1, 0
+            };
+            return ApplyColorMatrix(source, matrix);
+        }
     }
 
     public static SKBitmap ApplyBlackAndWhite(SKBitmap source)

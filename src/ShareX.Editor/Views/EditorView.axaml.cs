@@ -979,6 +979,16 @@ namespace ShareX.Editor.Views
             ShowEffectDialog(new SelectiveColorDialog());
         }
 
+        private void OnReplaceColorRequested(object? sender, EventArgs e)
+        {
+            ShowEffectDialog(new ReplaceColorDialog());
+        }
+
+        private void OnGrayscaleRequested(object? sender, EventArgs e)
+        {
+            ShowEffectDialog(new GrayscaleDialog());
+        }
+
         private void ShowEffectDialog<T>(T dialog) where T : UserControl
         {
             var vm = DataContext as MainViewModel;
