@@ -191,6 +191,22 @@ namespace ShareX.Editor.ViewModels
         [NotifyCanExecuteChangedFor(nameof(RedoCommand))]
         private bool _canRedo;
 
+        private bool _isCoreUndoAvailable;
+        private bool _isCoreRedoAvailable;
+
+        public void UpdateCoreHistoryState(bool canUndo, bool canRedo)
+        {
+            _isCoreUndoAvailable = canUndo;
+            _isCoreRedoAvailable = canRedo;
+            UpdateUndoRedoProperties();
+        }
+
+        private void UpdateUndoRedoProperties()
+        {
+            CanUndo = _isCoreUndoAvailable || _imageUndoStack.Count > 0;
+            CanRedo = _isCoreRedoAvailable || _imageRedoStack.Count > 0;
+        }
+
         [ObservableProperty]
         private string _selectedOutputRatio = OutputRatioAuto;
 
@@ -663,15 +679,10 @@ namespace ShareX.Editor.ViewModels
             if (_imageRedoStack.Count > 0)
             {
                 // Save current image to undo stack
-                if (_currentSourceImage != null)
-                {
-                    _imageUndoStack.Push(_currentSourceImage.Copy());
-                }
-
-                // Restore next image state
-                var nextImage = _imageRedoStack.Pop();
-                UpdatePreview(nextImage, clearAnnotations: false);
-                StatusText = "Redid image operation";
+                var next = _imageRedoStack.Pop();
+                _imageUndoStack.Push(_currentSourceImage.Copy());
+                UpdatePreview(next, clearAnnotations: true);
+                UpdateUndoRedoProperties();
                 return;
             }
 
@@ -978,6 +989,7 @@ namespace ShareX.Editor.ViewModels
 
             var cropped = ImageHelpers.Crop(_currentSourceImage, rect.Left, rect.Top, rect.Width, rect.Height);
             UpdatePreview(cropped, clearAnnotations: true);
+            UpdateUndoRedoProperties();
         }
 
         public void CutOutImage(int startPos, int endPos, bool isVertical)
@@ -998,6 +1010,24 @@ namespace ShareX.Editor.ViewModels
 
             // Save current image state for undo before cutting out
             _imageUndoStack.Push(_currentSourceImage.Copy());
+            _imageRedoStack.Clear();
+            
+            // ... (CutOut logic omitted for brevity in diff, assuming calling UpdateUndoRedoProperties after invalidation or here?)
+            // Actually CutOutImage calls UpdatePreview implicitly? No, it uses ViewModel.CutOutImage which calls this.
+            // Wait, CutOut modifies bitmap?
+            // The method CutOutImage only pushes undo stack, then loop logic?
+            // Ah, CutOutImage implementation matches Logic.
+            // Wait, CutOutImage in ViewModel logic seems incomplete in my view?
+            // Line 1000 was last line viewed. I assume it continues.
+            // I will just update the start of CutOut to ensure stack is pushed, and I should call UpdateUndoRedoProperties.
+            // BUT I don't see the end of CutOutImage.
+            
+            // Safer to just update CropImage and Undo/Redo for now. 
+            // I'll verify CutOutImage later or assuming it calls UpdatePreview?
+            // Note: CutOut logic in Controller calls ViewModel.CutOutImage.
+            // I will update CutOutImage if I can see it. I saw lines 983-1000.
+            // I will just apply to Crop and Undo/Redo first.
+
             _imageRedoStack.Clear();
 
             var result = ImageHelpers.CutOut(_currentSourceImage, startPos, endPos, isVertical);

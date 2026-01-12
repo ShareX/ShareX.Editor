@@ -436,7 +436,8 @@ public class EditorCore : IDisposable
         }
 
         // Create annotation memento for undo/redo
-        _history.CreateAnnotationsMemento();
+        // We exclude the current annotation because the undo stack must contain the state BEFORE this addition
+        _history.CreateAnnotationsMemento(excludeAnnotation: _currentAnnotation);
         HistoryChanged?.Invoke();
 
         // Request edit for text/speech annotations
@@ -648,6 +649,23 @@ public class EditorCore : IDisposable
         }
     }
 
+    /// <summary>
+    /// Add an annotation from an external controller (e.g. InputController)
+    /// This captures the history state BEFORE adding the annotation.
+    /// </summary>
+    public void AddAnnotation(Annotation annotation)
+    {
+        // Capture state BEFORE adding the new annotation (Undo will revert to this state)
+        _history.CreateAnnotationsMemento();
+        
+        _annotations.Add(annotation);
+        
+        HistoryChanged?.Invoke();
+        // We don't necessarily need to render if the view already added the control,
+        // but this ensures raster effects are updated if needed.
+        InvalidateRequested?.Invoke();
+    }
+
     #endregion
 
     #region Undo/Redo
@@ -670,8 +688,13 @@ public class EditorCore : IDisposable
     /// <summary>
     /// Get a snapshot of current annotations (shallow copy for memento)
     /// </summary>
-    internal List<Annotation> GetAnnotationsSnapshot()
+    /// <param name="excludeAnnotation">Optional annotation to exclude from the snapshot (e.g. current one being drawn)</param>
+    internal List<Annotation> GetAnnotationsSnapshot(Annotation? excludeAnnotation = null)
     {
+        if (excludeAnnotation != null)
+        {
+            return _annotations.Where(a => a != excludeAnnotation).ToList();
+        }
         return new List<Annotation>(_annotations);
     }
 

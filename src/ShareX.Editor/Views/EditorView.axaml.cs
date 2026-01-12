@@ -45,7 +45,8 @@ namespace ShareX.Editor.Views
         private readonly EditorZoomController _zoomController;
         private readonly EditorSelectionController _selectionController;
         private readonly EditorInputController _inputController;
-        
+
+        internal EditorCore EditorCore => _editorCore;
         // SIP0018: Hybrid Rendering
         private SKCanvasControl? _canvasControl;
         private readonly EditorCore _editorCore;
@@ -85,8 +86,7 @@ namespace ShareX.Editor.Views
         
         private void UpdateViewModelHistoryState(MainViewModel vm)
         {
-            vm.CanUndo = _editorCore.CanUndo;
-            vm.CanRedo = _editorCore.CanRedo;
+            vm.UpdateCoreHistoryState(_editorCore.CanUndo, _editorCore.CanRedo);
         }
         
         private void UpdateViewModelMetadata(MainViewModel vm)
