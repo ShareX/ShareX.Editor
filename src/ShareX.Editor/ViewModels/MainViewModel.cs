@@ -26,6 +26,7 @@
 using Avalonia;
 using Avalonia.Media;
 using Avalonia.Media.Imaging;
+using ShareX.Editor.ImageEffects;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using ShareX.Editor.Annotations;
@@ -1229,25 +1230,25 @@ namespace ShareX.Editor.ViewModels
         [RelayCommand]
         private void InvertColors()
         {
-            ApplyOneShotEffect(ImageHelpers.ApplyInvert, "Inverted colors");
+            ApplyOneShotEffect(img => new InvertImageEffect().Apply(img), "Inverted colors");
         }
 
         [RelayCommand]
         private void BlackAndWhite()
         {
-            ApplyOneShotEffect(ImageHelpers.ApplyBlackAndWhite, "Applied Black & White filter");
+            ApplyOneShotEffect(img => new BlackAndWhiteImageEffect().Apply(img), "Applied Black & White filter");
         }
 
         [RelayCommand]
         private void Sepia()
         {
-            ApplyOneShotEffect(ImageHelpers.ApplySepia, "Applied Sepia filter");
+            ApplyOneShotEffect(img => new SepiaImageEffect().Apply(img), "Applied Sepia filter");
         }
 
         [RelayCommand]
         private void Polaroid()
         {
-            ApplyOneShotEffect(ImageHelpers.ApplyPolaroid, "Applied Polaroid filter");
+            ApplyOneShotEffect(img => new PolaroidImageEffect().Apply(img), "Applied Polaroid filter");
         }
 
         private void ApplyOneShotEffect(Func<SkiaSharp.SKBitmap, SkiaSharp.SKBitmap> effect, string statusMessage)

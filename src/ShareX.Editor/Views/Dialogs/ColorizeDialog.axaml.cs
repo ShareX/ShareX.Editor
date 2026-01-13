@@ -3,7 +3,7 @@ using Avalonia.Controls;
 using Avalonia.Interactivity;
 using Avalonia.Markup.Xaml;
 using Avalonia.Media;
-using ShareX.Editor.Helpers;
+using ShareX.Editor.ImageEffects;
 using SkiaSharp;
 using System;
 
@@ -80,7 +80,7 @@ namespace ShareX.Editor.Views.Dialogs
              var color = GetCurrentColor();
              float strength = GetStrength();
 
-             PreviewRequested?.Invoke(this, new EffectEventArgs(img => ImageHelpers.ApplyColorize(img, color, strength), $"Colorize: Hue {GetHue():0}, Strength {strength:0}%"));
+             PreviewRequested?.Invoke(this, new EffectEventArgs(img => new ColorizeImageEffect { Color = color, Strength = strength }.Apply(img), $"Colorize: Hue {GetHue():0}, Strength {strength:0}%"));
         }
 
         private float GetHue()
@@ -94,7 +94,7 @@ namespace ShareX.Editor.Views.Dialogs
             var color = GetCurrentColor();
             float strength = GetStrength();
             
-            ApplyRequested?.Invoke(this, new EffectEventArgs(img => ImageHelpers.ApplyColorize(img, color, strength), "Applied Colorize"));
+            ApplyRequested?.Invoke(this, new EffectEventArgs(img => new ColorizeImageEffect { Color = color, Strength = strength }.Apply(img), "Applied Colorize"));
         }
 
         private void OnCancelClick(object? sender, RoutedEventArgs e)

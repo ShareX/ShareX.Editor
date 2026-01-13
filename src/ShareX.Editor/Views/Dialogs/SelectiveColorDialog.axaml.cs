@@ -2,6 +2,7 @@ using Avalonia.Controls;
 using Avalonia.Interactivity;
 using Avalonia.Markup.Xaml;
 using ShareX.Editor.Helpers;
+using ShareX.Editor.ImageEffects;
 using SkiaSharp;
 
 namespace ShareX.Editor.Views.Dialogs
@@ -22,16 +23,16 @@ namespace ShareX.Editor.Views.Dialogs
         // If we want multiple ranges, we need to apply them sequentially in one pass.
         // To do that, we need to store the settings for ALL ranges.
 
-        private Dictionary<ImageHelpers.SelectiveColorRange, (float h, float s, float l)> _adjustments = new();
+        private Dictionary<SelectiveColorRange, SelectiveColorAdjustment> _adjustments = new();
 
         public SelectiveColorDialog()
         {
             AvaloniaXamlLoader.Load(this);
 
             // Initialize dictionary
-            foreach (ImageHelpers.SelectiveColorRange r in Enum.GetValues(typeof(ImageHelpers.SelectiveColorRange)))
+            foreach (SelectiveColorRange r in Enum.GetValues(typeof(SelectiveColorRange)))
             {
-                _adjustments[r] = (0, 0, 0);
+                _adjustments[r] = new SelectiveColorAdjustment(0, 0, 0);
             }
         }
 
@@ -46,13 +47,13 @@ namespace ShareX.Editor.Views.Dialogs
             // When range changes, update sliders to reflect stored values for that range
             if (combo.SelectedIndex >= 0)
             {
-                var range = (ImageHelpers.SelectiveColorRange)combo.SelectedIndex;
-                var (h, s, l) = _adjustments[range];
+                var range = (SelectiveColorRange)combo.SelectedIndex;
+                var adj = _adjustments[range];
 
                 _suppressPreview = true;
-                this.FindControl<Slider>("HueSlider").Value = h;
-                this.FindControl<Slider>("SatSlider").Value = s;
-                this.FindControl<Slider>("LightSlider").Value = l;
+                this.FindControl<Slider>("HueSlider").Value = adj.Hue;
+                this.FindControl<Slider>("SatSlider").Value = adj.Saturation;
+                this.FindControl<Slider>("LightSlider").Value = adj.Lightness;
                 _suppressPreview = false;
             }
         }
@@ -65,12 +66,12 @@ namespace ShareX.Editor.Views.Dialogs
             var combo = this.FindControl<ComboBox>("RangeComboBox");
             if (combo != null && combo.SelectedIndex >= 0)
             {
-                var range = (ImageHelpers.SelectiveColorRange)combo.SelectedIndex;
+                var range = (SelectiveColorRange)combo.SelectedIndex;
                 float h = (float)(this.FindControl<Slider>("HueSlider")?.Value ?? 0);
                 float s = (float)(this.FindControl<Slider>("SatSlider")?.Value ?? 0);
                 float l = (float)(this.FindControl<Slider>("LightSlider")?.Value ?? 0);
 
-                _adjustments[range] = (h, s, l);
+                _adjustments[range] = new SelectiveColorAdjustment(h, s, l);
 
                 RequestPreview();
             }
@@ -83,18 +84,12 @@ namespace ShareX.Editor.Views.Dialogs
 
         private SKBitmap ApplyAllAdjustments(SKBitmap source)
         {
-            // We need to apply ALL active adjustments.
-            // Since ImageHelpers.ApplySelectiveColor takes ONE range, we might need a helper that takes all.
-            // Or we iterate?
-            // Iterating pixel by pixel and checking all ranges is efficient. 
-            // Calling ApplySelectiveColor multiple times (9 times!) is very slow (9 passes).
-
-            // We should create a new helper in ImageHelpers or make ApplySelectiveColor smarter?
-            // Or just loop here? Code-behind logic isn't ideal for complex processing but...
-            // Actually, let's just chain them for PREVIEW simplifiction? No, slow.
-
-            // Better: Add a method to ImageHelpers that takes a Dictionary or array of adjustments.
-            return Helpers.ImageHelpers.ApplySelectiveColorAdvanced(source, _adjustments);
+            // Create the effect and apply it
+            var effect = new SelectiveColorImageEffect
+            {
+                Adjustments = new Dictionary<SelectiveColorRange, SelectiveColorAdjustment>(_adjustments)
+            };
+            return effect.Apply(source);
         }
 
         private void OnApplyClick(object? sender, RoutedEventArgs e)

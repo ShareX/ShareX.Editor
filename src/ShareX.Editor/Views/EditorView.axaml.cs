@@ -40,6 +40,7 @@ using SkiaSharp;
 using System.ComponentModel;
 using System.Linq; // Added for Enumerable.Select
 using ShareX.Editor.Views.Dialogs;
+using ShareX.Editor.ImageEffects;
 
 namespace ShareX.Editor.Views
 {
@@ -919,75 +920,41 @@ namespace ShareX.Editor.Views
 
         // --- Effects Menu Handlers ---
 
-        private void OnBrightnessRequested(object? sender, EventArgs e)
+        // --- Effects Menu Handlers ---
+
+        private void OnEffectRequested(object? sender, ImageEffect effect)
         {
-            ShowEffectDialog(new BrightnessDialog());
+            if (DataContext is not MainViewModel vm) return;
+
+            switch (effect)
+            {
+                // Adjustments
+                case BrightnessImageEffect: ShowEffectDialog(new BrightnessDialog()); break;
+                case ContrastImageEffect: ShowEffectDialog(new ContrastDialog()); break;
+                case HueImageEffect: ShowEffectDialog(new HueDialog()); break;
+                case SaturationImageEffect: ShowEffectDialog(new SaturationDialog()); break;
+                case GammaImageEffect: ShowEffectDialog(new GammaDialog()); break;
+                case AlphaImageEffect: ShowEffectDialog(new AlphaDialog()); break;
+                case ColorizeImageEffect: ShowEffectDialog(new ColorizeDialog()); break;
+                case SelectiveColorImageEffect: ShowEffectDialog(new SelectiveColorDialog()); break;
+                case ReplaceColorImageEffect: ShowEffectDialog(new ReplaceColorDialog()); break;
+                
+                // Filters with parameters
+                case GrayscaleImageEffect: ShowEffectDialog(new GrayscaleDialog()); break;
+
+                // Filters without parameters (Immediate execution)
+                case InvertImageEffect: vm.InvertColorsCommand.Execute(null); break;
+                case BlackAndWhiteImageEffect: vm.BlackAndWhiteCommand.Execute(null); break;
+                case SepiaImageEffect: vm.SepiaCommand.Execute(null); break;
+                case PolaroidImageEffect: vm.PolaroidCommand.Execute(null); break;
+                
+                // Fallback for others or future effects
+                default: 
+                    // TODO: Generic dialog or log error
+                    break;
+            }
         }
 
-        private void OnContrastRequested(object? sender, EventArgs e)
-        {
-            ShowEffectDialog(new ContrastDialog());
-        }
-
-        private void OnHueRequested(object? sender, EventArgs e)
-        {
-            ShowEffectDialog(new HueDialog());
-        }
-
-        private void OnSaturationRequested(object? sender, EventArgs e)
-        {
-            ShowEffectDialog(new SaturationDialog());
-        }
-
-        private void OnGammaRequested(object? sender, EventArgs e)
-        {
-            ShowEffectDialog(new GammaDialog());
-        }
-
-        private void OnAlphaRequested(object? sender, EventArgs e)
-        {
-            ShowEffectDialog(new AlphaDialog());
-        }
-
-        private void OnInvertRequested(object? sender, EventArgs e)
-        {
-            if (DataContext is MainViewModel vm) vm.InvertColorsCommand.Execute(null);
-        }
-
-        private void OnBlackAndWhiteRequested(object? sender, EventArgs e)
-        {
-            if (DataContext is MainViewModel vm) vm.BlackAndWhiteCommand.Execute(null);
-        }
-
-        private void OnSepiaRequested(object? sender, EventArgs e)
-        {
-            if (DataContext is MainViewModel vm) vm.SepiaCommand.Execute(null);
-        }
-
-        private void OnPolaroidRequested(object? sender, EventArgs e)
-        {
-            if (DataContext is MainViewModel vm) vm.PolaroidCommand.Execute(null);
-        }
-
-        private void OnColorizeRequested(object? sender, EventArgs e)
-        {
-            ShowEffectDialog(new ColorizeDialog());
-        }
-
-        private void OnSelectiveColorRequested(object? sender, EventArgs e)
-        {
-            ShowEffectDialog(new SelectiveColorDialog());
-        }
-
-        private void OnReplaceColorRequested(object? sender, EventArgs e)
-        {
-            ShowEffectDialog(new ReplaceColorDialog());
-        }
-
-        private void OnGrayscaleRequested(object? sender, EventArgs e)
-        {
-            ShowEffectDialog(new GrayscaleDialog());
-        }
 
         private void ShowEffectDialog<T>(T dialog) where T : UserControl
         {
