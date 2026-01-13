@@ -50,10 +50,15 @@ namespace ShareX.Editor.Views.Dialogs
                 var range = (SelectiveColorRange)combo.SelectedIndex;
                 var adj = _adjustments[range];
 
+                var hueSlider = this.FindControl<Slider>("HueSlider");
+                var satSlider = this.FindControl<Slider>("SatSlider");
+                var lightSlider = this.FindControl<Slider>("LightSlider");
+                if (hueSlider == null || satSlider == null || lightSlider == null) return;
+
                 _suppressPreview = true;
-                this.FindControl<Slider>("HueSlider").Value = adj.Hue;
-                this.FindControl<Slider>("SatSlider").Value = adj.Saturation;
-                this.FindControl<Slider>("LightSlider").Value = adj.Lightness;
+                hueSlider.Value = adj.Hue;
+                satSlider.Value = adj.Saturation;
+                lightSlider.Value = adj.Lightness;
                 _suppressPreview = false;
             }
         }

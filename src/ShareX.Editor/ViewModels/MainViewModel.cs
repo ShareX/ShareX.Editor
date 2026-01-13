@@ -301,7 +301,7 @@ namespace ShareX.Editor.ViewModels
 
         public string EditorTitle => $"{ApplicationName} Editor";
 
-        public static MainViewModel Current { get; private set; }
+        public static MainViewModel Current { get; private set; } = null!;
 
         public MainViewModel()
         {
@@ -731,7 +731,10 @@ namespace ShareX.Editor.ViewModels
             {
                 // Save current image to undo stack
                 var next = _imageRedoStack.Pop();
-                _imageUndoStack.Push(_currentSourceImage.Copy());
+                if (_currentSourceImage != null)
+                {
+                    _imageUndoStack.Push(_currentSourceImage.Copy());
+                }
                 UpdatePreview(next, clearAnnotations: true);
                 UpdateUndoRedoProperties();
                 return;
@@ -1266,7 +1269,7 @@ namespace ShareX.Editor.ViewModels
 
         // --- Effect Live Preview Logic ---
 
-        private SkiaSharp.SKBitmap _preEffectImage;
+        private SkiaSharp.SKBitmap? _preEffectImage;
 
 
         /// <summary>
@@ -1315,6 +1318,8 @@ namespace ShareX.Editor.ViewModels
             // Actually, we haven't changed _currentSourceImage yet, only PreviewImage.
             // So _currentSourceImage is still the "Before" state.
             
+            if (_currentSourceImage == null) return;
+
             _imageUndoStack.Push(_currentSourceImage.Copy());
             _imageRedoStack.Clear();
 
@@ -1386,7 +1391,7 @@ namespace ShareX.Editor.ViewModels
         /// </summary>
         public void ApplyEffect(Func<SkiaSharp.SKBitmap, SkiaSharp.SKBitmap> effect, string statusMessage)
         {
-            if (_preEffectImage == null) return;
+            if (_preEffectImage == null || _currentSourceImage == null) return;
 
              _imageUndoStack.Push(_currentSourceImage.Copy()); // _currentSourceImage matches _preEffectImage roughly
             _imageRedoStack.Clear();

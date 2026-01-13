@@ -110,9 +110,10 @@ public class EditorSelectionController
                 Control? hitTarget = null;
                 while (hitSource != null && hitSource != canvas)
                 {
-                    if (canvas.Children.Contains(hitSource as Control))
+                    var candidate = hitSource as Control;
+                    if (candidate != null && canvas.Children.Contains(candidate))
                     {
-                        hitTarget = hitSource as Control;
+                        hitTarget = candidate;
                         break;
                     }
                     hitSource = hitSource.GetVisualParent();
@@ -136,9 +137,10 @@ public class EditorSelectionController
                  Control? hitTarget = null;
                  while (hitSource != null && hitSource != canvas)
                  {
-                     if (canvas.Children.Contains(hitSource as Control))
+                     var candidate = hitSource as Control;
+                     if (candidate != null && canvas.Children.Contains(candidate))
                      {
-                         hitTarget = hitSource as Control;
+                         hitTarget = candidate;
                          break;
                      }
                      hitSource = hitSource.GetVisualParent();
@@ -222,7 +224,17 @@ public class EditorSelectionController
 
     private void HandleResize(Point currentPoint)
     {
+        if (_selectedShape == null || _draggedHandle == null)
+        {
+            return;
+        }
+
         var handleTag = _draggedHandle.Tag?.ToString();
+        if (string.IsNullOrEmpty(handleTag))
+        {
+            return;
+        }
+
         var deltaX = currentPoint.X - _startPoint.X;
         var deltaY = currentPoint.Y - _startPoint.Y;
 
@@ -327,6 +339,11 @@ public class EditorSelectionController
 
     private void HandleMove(Point currentPoint)
     {
+        if (_selectedShape == null)
+        {
+            return;
+        }
+
         var deltaX = currentPoint.X - _lastDragPoint.X;
         var deltaY = currentPoint.Y - _lastDragPoint.Y;
 
@@ -553,7 +570,7 @@ public class EditorSelectionController
         {
             if (s is TextBox tb)
             {
-                annotation.Text = tb.Text;
+                annotation.Text = tb.Text ?? string.Empty;
                 balloonControl.InvalidateVisual();
                 canvas.Children.Remove(tb);
                 _balloonTextEditor = null;

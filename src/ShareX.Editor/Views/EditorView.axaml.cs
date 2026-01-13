@@ -1,4 +1,4 @@
-#nullable disable
+#nullable enable
 #region License Information (GPL v3)
 
 /*
@@ -116,7 +116,8 @@ namespace ShareX.Editor.Views
                 vm.SnapshotRequested += () =>
                 {
                     var skBitmap = GetSnapshot();
-                    return Task.FromResult<Avalonia.Media.Imaging.Bitmap?>(BitmapConversionHelpers.ToAvaloniBitmap(skBitmap));
+                    var snapshot = skBitmap != null ? BitmapConversionHelpers.ToAvaloniBitmap(skBitmap) : null;
+                    return Task.FromResult<Avalonia.Media.Imaging.Bitmap?>(snapshot);
                 };
 
                 // Original code subscribed to vm.PropertyChanged
@@ -465,8 +466,8 @@ namespace ShareX.Editor.Views
                 return s;
              }
              // Effect annotations (Blur, Pixelate, Magnify, Highlight)
-             else if (annotation is BaseEffectAnnotation effect) {
-                 Control factorControl = null;
+            else if (annotation is BaseEffectAnnotation effect) {
+                 Control? factorControl = null;
                  if (annotation is BlurAnnotation blur) factorControl = new global::Avalonia.Controls.Shapes.Rectangle { Tag = blur };
                  else if (annotation is PixelateAnnotation pix) factorControl = new global::Avalonia.Controls.Shapes.Rectangle { Tag = pix };
                  else if (annotation is MagnifyAnnotation mag) factorControl = new global::Avalonia.Controls.Shapes.Rectangle { Tag = mag };
@@ -605,7 +606,7 @@ namespace ShareX.Editor.Views
             }
         }
 
-        private SkiaSharp.SKBitmap GetSnapshot()
+        private SkiaSharp.SKBitmap? GetSnapshot()
         {
             // Snapshot logic
             var container = this.FindControl<Grid>("CanvasContainer");

@@ -73,9 +73,10 @@ public class EditorInputController
              Control? hitTarget = null;
              while (hitSource != null && hitSource != canvas)
              {
-                 if (canvas.Children.Contains(hitSource as Control))
+                 var candidate = hitSource as Control;
+                 if (candidate != null && canvas.Children.Contains(candidate))
                  {
-                     hitTarget = hitSource as Control;
+                     hitTarget = candidate;
                      break;
                  }
                  hitSource = hitSource.GetVisualParent();
@@ -96,7 +97,8 @@ public class EditorInputController
              return;
         }
 
-        if (_selectionController.OnPointerPressed(sender, e))
+        var selectionSender = sender ?? canvas;
+        if (_selectionController.OnPointerPressed(selectionSender, e))
         {
             return;
         }
@@ -286,7 +288,8 @@ public class EditorInputController
     {
          _zoomController.OnScrollViewerPointerMoved(_view.FindControl<ScrollViewer>("CanvasScrollViewer"), e);
         
-         if (_selectionController.OnPointerMoved(sender, e)) return;
+         var selectionSender = sender ?? _view;
+         if (_selectionController.OnPointerMoved(selectionSender, e)) return;
 
          if (!_isDrawing || _currentShape == null) return;
 
@@ -436,7 +439,8 @@ public class EditorInputController
     public void OnCanvasPointerReleased(object? sender, PointerReleasedEventArgs e)
     {
         _zoomController.OnScrollViewerPointerReleased(_view.FindControl<ScrollViewer>("CanvasScrollViewer"), e);
-        if (_selectionController.OnPointerReleased(sender, e)) return;
+        var selectionSender = sender ?? _view;
+        if (_selectionController.OnPointerReleased(selectionSender, e)) return;
 
         if (_isDrawing)
         {
@@ -497,7 +501,7 @@ public class EditorInputController
     
     public void OnKeyDown(object sender, KeyEventArgs e)
     {
-         _zoomController.OnScrollViewerPointerPressed(_view.FindControl<ScrollViewer>("CanvasScrollViewer"), null);
+         // Keyboard shortcuts are handled elsewhere; no pointer emulation needed here.
     }
     
     private void CancelActiveRegionDrawing(Canvas canvas)
