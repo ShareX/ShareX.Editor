@@ -1,4 +1,5 @@
 using Avalonia.Controls;
+using Avalonia.Controls.Primitives;
 using Avalonia.Interactivity;
 using Avalonia.Markup.Xaml;
 using Avalonia.Media;
@@ -14,22 +15,48 @@ public partial class BorderDialog : UserControl
     public event EventHandler? CancelRequested;
 
     private SKColor _color = SKColors.Black;
+    private bool _isLoaded = false;
+
+    // Control references
+    private ComboBox? _typeComboBox;
+    private ComboBox? _dashStyleComboBox;
+    private Slider? _sizeSlider;
+    private TextBox? _colorTextBox;
+    private Border? _colorPreview;
 
     public BorderDialog()
+    {
+        InitializeComponent();
+        
+        // Find controls after XAML is loaded
+        _typeComboBox = this.FindControl<ComboBox>("TypeComboBox");
+        _dashStyleComboBox = this.FindControl<ComboBox>("DashStyleComboBox");
+        _sizeSlider = this.FindControl<Slider>("SizeSlider");
+        _colorTextBox = this.FindControl<TextBox>("ColorTextBox");
+        _colorPreview = this.FindControl<Border>("ColorPreview");
+        
+        Loaded += OnLoaded;
+    }
+
+    private void InitializeComponent()
     {
         AvaloniaXamlLoader.Load(this);
     }
 
+    private void OnLoaded(object? sender, RoutedEventArgs e)
+    {
+        _isLoaded = true;
+        RaisePreview();
+    }
+
     private ImageHelpers.BorderType GetBorderType()
     {
-        var combo = this.FindControl<ComboBox>("TypeComboBox");
-        return combo?.SelectedIndex == 1 ? ImageHelpers.BorderType.Inside : ImageHelpers.BorderType.Outside;
+        return _typeComboBox?.SelectedIndex == 1 ? ImageHelpers.BorderType.Inside : ImageHelpers.BorderType.Outside;
     }
 
     private ImageHelpers.DashStyle GetDashStyle()
     {
-        var combo = this.FindControl<ComboBox>("DashStyleComboBox");
-        return combo?.SelectedIndex switch
+        return _dashStyleComboBox?.SelectedIndex switch
         {
             1 => ImageHelpers.DashStyle.Dash,
             2 => ImageHelpers.DashStyle.Dot,
@@ -38,22 +65,28 @@ public partial class BorderDialog : UserControl
         };
     }
 
-    private int GetSize() => (int)(this.FindControl<Slider>("SizeSlider")?.Value ?? 5);
+    private int GetSize() => (int)(_sizeSlider?.Value ?? 5);
 
-    private void OnValueChanged(object? sender, RoutedEventArgs e) => RaisePreview();
+    private void OnValueChanged(object? sender, RangeBaseValueChangedEventArgs e)
+    {
+        if (_isLoaded) RaisePreview();
+    }
+    
+    private void OnSelectionChanged(object? sender, SelectionChangedEventArgs e)
+    {
+        if (_isLoaded) RaisePreview();
+    }
 
     private void OnColorTextChanged(object? sender, TextChangedEventArgs e)
     {
-        var textBox = this.FindControl<TextBox>("ColorTextBox");
-        var preview = this.FindControl<Border>("ColorPreview");
-        if (textBox != null && preview != null)
+        if (_colorTextBox != null && _colorPreview != null)
         {
             try
             {
-                var color = Color.Parse(textBox.Text ?? "#000000");
-                preview.Background = new SolidColorBrush(color);
+                var color = Color.Parse(_colorTextBox.Text ?? "#000000");
+                _colorPreview.Background = new SolidColorBrush(color);
                 _color = new SKColor(color.R, color.G, color.B, color.A);
-                RaisePreview();
+                if (_isLoaded) RaisePreview();
             }
             catch { }
         }

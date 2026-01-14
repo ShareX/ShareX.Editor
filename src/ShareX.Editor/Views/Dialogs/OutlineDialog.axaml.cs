@@ -1,4 +1,5 @@
 using Avalonia.Controls;
+using Avalonia.Controls.Primitives;
 using Avalonia.Interactivity;
 using Avalonia.Markup.Xaml;
 using Avalonia.Media;
@@ -14,29 +15,56 @@ public partial class OutlineDialog : UserControl
     public event EventHandler? CancelRequested;
 
     private SKColor _color = SKColors.Black;
+    private bool _isLoaded = false;
+
+    // Control references
+    private Slider? _sizeSlider;
+    private Slider? _paddingSlider;
+    private TextBox? _colorTextBox;
+    private Border? _colorPreview;
 
     public OutlineDialog()
+    {
+        InitializeComponent();
+        
+        // Find controls after XAML is loaded
+        _sizeSlider = this.FindControl<Slider>("SizeSlider");
+        _paddingSlider = this.FindControl<Slider>("PaddingSlider");
+        _colorTextBox = this.FindControl<TextBox>("ColorTextBox");
+        _colorPreview = this.FindControl<Border>("ColorPreview");
+        
+        Loaded += OnLoaded;
+    }
+
+    private void InitializeComponent()
     {
         AvaloniaXamlLoader.Load(this);
     }
 
-    private int GetSize() => (int)(this.FindControl<Slider>("SizeSlider")?.Value ?? 3);
-    private int GetPadding() => (int)(this.FindControl<Slider>("PaddingSlider")?.Value ?? 0);
+    private void OnLoaded(object? sender, RoutedEventArgs e)
+    {
+        _isLoaded = true;
+        RaisePreview();
+    }
 
-    private void OnValueChanged(object? sender, RoutedEventArgs e) => RaisePreview();
+    private int GetSize() => (int)(_sizeSlider?.Value ?? 3);
+    private int GetPadding() => (int)(_paddingSlider?.Value ?? 0);
+
+    private void OnValueChanged(object? sender, RangeBaseValueChangedEventArgs e)
+    {
+        if (_isLoaded) RaisePreview();
+    }
 
     private void OnColorTextChanged(object? sender, TextChangedEventArgs e)
     {
-        var textBox = this.FindControl<TextBox>("ColorTextBox");
-        var preview = this.FindControl<Border>("ColorPreview");
-        if (textBox != null && preview != null)
+        if (_colorTextBox != null && _colorPreview != null)
         {
             try
             {
-                var color = Color.Parse(textBox.Text ?? "#000000");
-                preview.Background = new SolidColorBrush(color);
+                var color = Color.Parse(_colorTextBox.Text ?? "#000000");
+                _colorPreview.Background = new SolidColorBrush(color);
                 _color = new SKColor(color.R, color.G, color.B, color.A);
-                RaisePreview();
+                if (_isLoaded) RaisePreview();
             }
             catch { }
         }

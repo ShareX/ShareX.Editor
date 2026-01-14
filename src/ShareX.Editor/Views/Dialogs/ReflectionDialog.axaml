@@ -80,7 +80,7 @@
             <!-- Skew -->
             <Grid ColumnDefinitions="Auto,*">
                 <CheckBox x:Name="SkewCheckBox" Content="Skew" Foreground="{StaticResource TextColor}" 
-                          Checked="OnValueChanged" Unchecked="OnValueChanged"/>
+                          Checked="OnCheckChanged" Unchecked="OnCheckChanged"/>
                 <StackPanel Grid.Column="1" Spacing="2" Margin="16,0,0,0">
                     <Grid ColumnDefinitions="*,Auto">
                         <TextBlock Classes="label" Text="Skew Size"/>

@@ -552,60 +552,137 @@ public static class ImageHelpers
         return result;
     }
 
-    public static SKBitmap ApplyTornEdge(SKBitmap source, int depth, int range, bool top, bool right, bool bottom, bool left, bool curved)
+    public static SKBitmap ApplyTornEdge(SKBitmap source, int depth, int range, bool top, bool right, bool bottom, bool left, bool curved, bool random)
     {
         if (source is null) throw new ArgumentNullException(nameof(source));
-        if (depth <= 0 || range <= 0) return source.Copy();
+        if (depth < 1 || range < 1) return source.Copy();
+        if (!top && !right && !bottom && !left) return source.Copy();
 
-        SKBitmap result = source.Copy();
-        using SKCanvas canvas = new SKCanvas(result);
+        int horizontalTornCount = source.Width / range;
+        int verticalTornCount = source.Height / range;
 
-        Random rand = new Random(42); // Fixed seed for reproducible results
-        using SKPaint erasePaint = new SKPaint
+        if (horizontalTornCount < 2 && verticalTornCount < 2)
         {
-            Color = SKColors.Transparent,
-            BlendMode = SKBlendMode.Src
-        };
-
-        void TearEdge(bool horizontal, bool isStart)
-        {
-            int length = horizontal ? source.Width : source.Height;
-            int step = range;
-            
-            for (int i = 0; i < length; i += step)
-            {
-                int tearDepth = rand.Next(depth / 2, depth);
-                int tearWidth = rand.Next(range / 2, range);
-                
-                SKRect tearRect;
-                if (horizontal)
-                {
-                    int y = isStart ? 0 : source.Height - tearDepth;
-                    tearRect = new SKRect(i, y, Math.Min(i + tearWidth, length), isStart ? tearDepth : source.Height);
-                }
-                else
-                {
-                    int x = isStart ? 0 : source.Width - tearDepth;
-                    tearRect = new SKRect(x, i, isStart ? tearDepth : source.Width, Math.Min(i + tearWidth, length));
-                }
-
-                if (curved)
-                {
-                    using SKPath path = new SKPath();
-                    path.AddOval(tearRect);
-                    canvas.DrawPath(path, erasePaint);
-                }
-                else
-                {
-                    canvas.DrawRect(tearRect, erasePaint);
-                }
-            }
+            return source.Copy();
         }
 
-        if (top) TearEdge(true, true);
-        if (bottom) TearEdge(true, false);
-        if (left) TearEdge(false, true);
-        if (right) TearEdge(false, false);
+        List<SKPoint> points = new List<SKPoint>();
+        Random rand = new Random(42); // Fixed seed for consistent preview
+
+        // Helper function to get depth value
+        int GetDepthValue(int index) => random ? rand.Next(0, depth + 1) : ((index / range) & 1) * depth;
+
+        // Top edge
+        if (top && horizontalTornCount > 1)
+        {
+            int startX = (left && verticalTornCount > 1) ? depth : 0;
+            int endX = (right && verticalTornCount > 1) ? source.Width - depth : source.Width;
+            for (int x = startX; x < endX; x += range)
+            {
+                int y = GetDepthValue(x);
+                points.Add(new SKPoint(x, y));
+            }
+        }
+        else
+        {
+            points.Add(new SKPoint(0, 0));
+            points.Add(new SKPoint(source.Width, 0));
+        }
+
+        // Right edge
+        if (right && verticalTornCount > 1)
+        {
+            int startY = (top && horizontalTornCount > 1) ? depth : 0;
+            int endY = (bottom && horizontalTornCount > 1) ? source.Height - depth : source.Height;
+            for (int y = startY; y < endY; y += range)
+            {
+                int x = GetDepthValue(y);
+                points.Add(new SKPoint(source.Width - depth + x, y));
+            }
+        }
+        else
+        {
+            points.Add(new SKPoint(source.Width, 0));
+            points.Add(new SKPoint(source.Width, source.Height));
+        }
+
+        // Bottom edge (reverse direction)
+        if (bottom && horizontalTornCount > 1)
+        {
+            int startX = (right && verticalTornCount > 1) ? source.Width - depth : source.Width;
+            int endX = (left && verticalTornCount > 1) ? depth : 0;
+            for (int x = startX; x >= endX; x -= range)
+            {
+                int y = GetDepthValue(x);
+                points.Add(new SKPoint(x, source.Height - depth + y));
+            }
+        }
+        else
+        {
+            points.Add(new SKPoint(source.Width, source.Height));
+            points.Add(new SKPoint(0, source.Height));
+        }
+
+        // Left edge (reverse direction)
+        if (left && verticalTornCount > 1)
+        {
+            int startY = (bottom && horizontalTornCount > 1) ? source.Height - depth : source.Height;
+            int endY = (top && horizontalTornCount > 1) ? depth : 0;
+            for (int y = startY; y >= endY; y -= range)
+            {
+                int x = GetDepthValue(y);
+                points.Add(new SKPoint(x, y));
+            }
+        }
+        else
+        {
+            points.Add(new SKPoint(0, source.Height));
+            points.Add(new SKPoint(0, 0));
+        }
+
+        // Remove duplicate consecutive points
+        var distinctPoints = points.Distinct().ToArray();
+
+        SKBitmap result = new SKBitmap(source.Width, source.Height);
+        using SKCanvas canvas = new SKCanvas(result);
+        canvas.Clear(SKColors.Transparent);
+
+        // Create shader from source bitmap
+        using SKShader shader = SKShader.CreateBitmap(source, SKShaderTileMode.Clamp, SKShaderTileMode.Clamp);
+        using SKPaint paint = new SKPaint
+        {
+            Shader = shader,
+            IsAntialias = true
+        };
+
+        using SKPath path = new SKPath();
+        if (distinctPoints.Length > 2)
+        {
+            if (curved)
+            {
+                // Create curved path using cubic bezier approximation
+                path.MoveTo(distinctPoints[0]);
+                for (int i = 1; i < distinctPoints.Length - 1; i++)
+                {
+                    var p0 = distinctPoints[i - 1];
+                    var p1 = distinctPoints[i];
+                    var p2 = distinctPoints[i + 1];
+                    
+                    var mid1 = new SKPoint((p0.X + p1.X) / 2, (p0.Y + p1.Y) / 2);
+                    var mid2 = new SKPoint((p1.X + p2.X) / 2, (p1.Y + p2.Y) / 2);
+                    
+                    path.QuadTo(p1, mid2);
+                }
+                path.LineTo(distinctPoints[^1]);
+                path.Close();
+            }
+            else
+            {
+                path.AddPoly(distinctPoints, true);
+            }
+            
+            canvas.DrawPath(path, paint);
+        }
 
         return result;
     }

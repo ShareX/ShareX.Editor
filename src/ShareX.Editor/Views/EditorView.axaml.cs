@@ -1004,6 +1004,7 @@ namespace ShareX.Editor.Views
             // Only close if clicking on the background, not the dialog content
             if (e.Source == sender && DataContext is MainViewModel vm)
             {
+                vm.CancelEffectPreview();
                 vm.CloseModalCommand.Execute(null);
             }
         }

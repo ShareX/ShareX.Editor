@@ -98,7 +98,7 @@
 
             <!-- Auto Resize -->
             <CheckBox x:Name="AutoResizeCheckBox" Content="Auto resize" IsChecked="True" Foreground="{StaticResource TextColor}" 
-                      Checked="OnValueChanged" Unchecked="OnValueChanged"/>
+                      Checked="OnCheckChanged" Unchecked="OnCheckChanged"/>
 
             <!-- Buttons -->
             <Grid ColumnDefinitions="*,Auto,Auto" Margin="0,8,0,0">

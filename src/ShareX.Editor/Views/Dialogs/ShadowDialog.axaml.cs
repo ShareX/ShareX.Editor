@@ -1,4 +1,5 @@
 using Avalonia.Controls;
+using Avalonia.Controls.Primitives;
 using Avalonia.Interactivity;
 using Avalonia.Markup.Xaml;
 using Avalonia.Media;
@@ -14,33 +15,73 @@ public partial class ShadowDialog : UserControl
     public event EventHandler? CancelRequested;
 
     private SKColor _color = SKColors.Black;
+    private bool _isLoaded = false;
+
+    // Control references
+    private Slider? _opacitySlider;
+    private Slider? _sizeSlider;
+    private Slider? _darknessSlider;
+    private Slider? _offsetXSlider;
+    private Slider? _offsetYSlider;
+    private CheckBox? _autoResizeCheckBox;
+    private TextBox? _colorTextBox;
+    private Border? _colorPreview;
 
     public ShadowDialog()
+    {
+        InitializeComponent();
+        
+        // Find controls after XAML is loaded
+        _opacitySlider = this.FindControl<Slider>("OpacitySlider");
+        _sizeSlider = this.FindControl<Slider>("SizeSlider");
+        _darknessSlider = this.FindControl<Slider>("DarknessSlider");
+        _offsetXSlider = this.FindControl<Slider>("OffsetXSlider");
+        _offsetYSlider = this.FindControl<Slider>("OffsetYSlider");
+        _autoResizeCheckBox = this.FindControl<CheckBox>("AutoResizeCheckBox");
+        _colorTextBox = this.FindControl<TextBox>("ColorTextBox");
+        _colorPreview = this.FindControl<Border>("ColorPreview");
+        
+        Loaded += OnLoaded;
+    }
+
+    private void InitializeComponent()
     {
         AvaloniaXamlLoader.Load(this);
     }
 
-    private float GetOpacity() => (float)(this.FindControl<Slider>("OpacitySlider")?.Value ?? 80);
-    private int GetSize() => (int)(this.FindControl<Slider>("SizeSlider")?.Value ?? 20);
-    private float GetDarkness() => (float)(this.FindControl<Slider>("DarknessSlider")?.Value ?? 50) / 100f;
-    private int GetOffsetX() => (int)(this.FindControl<Slider>("OffsetXSlider")?.Value ?? 5);
-    private int GetOffsetY() => (int)(this.FindControl<Slider>("OffsetYSlider")?.Value ?? 5);
-    private bool GetAutoResize() => this.FindControl<CheckBox>("AutoResizeCheckBox")?.IsChecked ?? true;
+    private void OnLoaded(object? sender, RoutedEventArgs e)
+    {
+        _isLoaded = true;
+        RaisePreview();
+    }
 
-    private void OnValueChanged(object? sender, RoutedEventArgs e) => RaisePreview();
+    private float GetOpacity() => (float)(_opacitySlider?.Value ?? 80);
+    private int GetSize() => (int)(_sizeSlider?.Value ?? 20);
+    private float GetDarkness() => (float)(_darknessSlider?.Value ?? 50) / 100f;
+    private int GetOffsetX() => (int)(_offsetXSlider?.Value ?? 5);
+    private int GetOffsetY() => (int)(_offsetYSlider?.Value ?? 5);
+    private bool GetAutoResize() => _autoResizeCheckBox?.IsChecked ?? true;
+
+    private void OnValueChanged(object? sender, RangeBaseValueChangedEventArgs e)
+    {
+        if (_isLoaded) RaisePreview();
+    }
+
+    private void OnCheckChanged(object? sender, RoutedEventArgs e)
+    {
+        if (_isLoaded) RaisePreview();
+    }
 
     private void OnColorTextChanged(object? sender, TextChangedEventArgs e)
     {
-        var textBox = this.FindControl<TextBox>("ColorTextBox");
-        var preview = this.FindControl<Border>("ColorPreview");
-        if (textBox != null && preview != null)
+        if (_colorTextBox != null && _colorPreview != null)
         {
             try
             {
-                var color = Color.Parse(textBox.Text ?? "#000000");
-                preview.Background = new SolidColorBrush(color);
+                var color = Color.Parse(_colorTextBox.Text ?? "#000000");
+                _colorPreview.Background = new SolidColorBrush(color);
                 _color = new SKColor(color.R, color.G, color.B, color.A);
-                RaisePreview();
+                if (_isLoaded) RaisePreview();
             }
             catch { }
         }

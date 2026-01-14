@@ -46,7 +46,7 @@
             <!-- Border Type -->
             <StackPanel Spacing="4">
                 <TextBlock Classes="label" Text="Type"/>
-                <ComboBox x:Name="TypeComboBox" SelectedIndex="0" SelectionChanged="OnValueChanged">
+                <ComboBox x:Name="TypeComboBox" SelectedIndex="0" SelectionChanged="OnSelectionChanged">
                     <ComboBoxItem Content="Outside"/>
                     <ComboBoxItem Content="Inside"/>
                 </ComboBox>
@@ -65,7 +65,7 @@
             <!-- Dash Style -->
             <StackPanel Spacing="4">
                 <TextBlock Classes="label" Text="Dash Style"/>
-                <ComboBox x:Name="DashStyleComboBox" SelectedIndex="0" SelectionChanged="OnValueChanged">
+                <ComboBox x:Name="DashStyleComboBox" SelectedIndex="0" SelectionChanged="OnSelectionChanged">
                     <ComboBoxItem Content="Solid"/>
                     <ComboBoxItem Content="Dash"/>
                     <ComboBoxItem Content="Dot"/>
