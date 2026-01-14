@@ -337,4 +337,308 @@ public static class ImageHelpers
 
         return result;
     }
+
+    // ============== FILTERS ==============
+
+    public enum BorderType { Outside, Inside }
+    public enum DashStyle { Solid, Dash, Dot, DashDot }
+
+    public static SKBitmap ApplyBorder(SKBitmap source, BorderType type, int size, DashStyle dashStyle, SKColor color)
+    {
+        if (source is null) throw new ArgumentNullException(nameof(source));
+        if (size <= 0) return source.Copy();
+
+        int newWidth = type == BorderType.Outside ? source.Width + size * 2 : source.Width;
+        int newHeight = type == BorderType.Outside ? source.Height + size * 2 : source.Height;
+
+        SKBitmap result = new SKBitmap(newWidth, newHeight);
+        using SKCanvas canvas = new SKCanvas(result);
+        canvas.Clear(SKColors.Transparent);
+
+        int offsetX = type == BorderType.Outside ? size : 0;
+        int offsetY = type == BorderType.Outside ? size : 0;
+
+        // Draw image
+        canvas.DrawBitmap(source, offsetX, offsetY);
+
+        // Draw border
+        using SKPaint paint = new SKPaint
+        {
+            Color = color,
+            Style = SKPaintStyle.Stroke,
+            StrokeWidth = size,
+            IsAntialias = true
+        };
+
+        // Set dash effect
+        float[] intervals = dashStyle switch
+        {
+            DashStyle.Dash => new float[] { size * 3, size },
+            DashStyle.Dot => new float[] { size, size },
+            DashStyle.DashDot => new float[] { size * 3, size, size, size },
+            _ => null!
+        };
+        if (intervals != null)
+        {
+            paint.PathEffect = SKPathEffect.CreateDash(intervals, 0);
+        }
+
+        float halfStroke = size / 2f;
+        SKRect borderRect = type == BorderType.Outside
+            ? new SKRect(halfStroke, halfStroke, newWidth - halfStroke, newHeight - halfStroke)
+            : new SKRect(halfStroke, halfStroke, source.Width - halfStroke, source.Height - halfStroke);
+
+        canvas.DrawRect(borderRect, paint);
+
+        return result;
+    }
+
+    public static SKBitmap ApplyOutline(SKBitmap source, int size, int padding, SKColor color)
+    {
+        if (source is null) throw new ArgumentNullException(nameof(source));
+        if (size <= 0) return source.Copy();
+
+        int totalExpand = size + padding;
+        int newWidth = source.Width + totalExpand * 2;
+        int newHeight = source.Height + totalExpand * 2;
+
+        SKBitmap result = new SKBitmap(newWidth, newHeight);
+        using SKCanvas canvas = new SKCanvas(result);
+        canvas.Clear(SKColors.Transparent);
+
+        // Create outline by drawing image multiple times offset in all directions
+        using SKPaint outlinePaint = new SKPaint { ColorFilter = SKColorFilter.CreateBlendMode(color, SKBlendMode.SrcIn) };
+        
+        // Draw outline copies
+        for (int dx = -size; dx <= size; dx++)
+        {
+            for (int dy = -size; dy <= size; dy++)
+            {
+                if (dx * dx + dy * dy <= size * size) // Circular outline
+                {
+                    canvas.DrawBitmap(source, totalExpand + dx, totalExpand + dy, outlinePaint);
+                }
+            }
+        }
+
+        // Draw original image on top
+        canvas.DrawBitmap(source, totalExpand, totalExpand);
+
+        return result;
+    }
+
+    public static SKBitmap ApplyShadow(SKBitmap source, float opacity, int size, float darkness, SKColor color, int offsetX, int offsetY, bool autoResize)
+    {
+        if (source is null) throw new ArgumentNullException(nameof(source));
+        if (size <= 0 && !autoResize) return source.Copy();
+
+        int expandX = autoResize ? Math.Abs(offsetX) + size : 0;
+        int expandY = autoResize ? Math.Abs(offsetY) + size : 0;
+        int newWidth = source.Width + expandX * 2;
+        int newHeight = source.Height + expandY * 2;
+
+        SKBitmap result = new SKBitmap(newWidth, newHeight);
+        using SKCanvas canvas = new SKCanvas(result);
+        canvas.Clear(SKColors.Transparent);
+
+        int imageX = expandX + (autoResize && offsetX < 0 ? -offsetX : 0);
+        int imageY = expandY + (autoResize && offsetY < 0 ? -offsetY : 0);
+        int shadowX = imageX + offsetX;
+        int shadowY = imageY + offsetY;
+
+        // Create shadow
+        SKColor shadowColor = new SKColor(
+            (byte)(color.Red * darkness),
+            (byte)(color.Green * darkness),
+            (byte)(color.Blue * darkness),
+            (byte)(255 * opacity / 100f));
+
+        using SKPaint shadowPaint = new SKPaint
+        {
+            ColorFilter = SKColorFilter.CreateBlendMode(shadowColor, SKBlendMode.SrcIn),
+            ImageFilter = SKImageFilter.CreateBlur(size / 2f, size / 2f)
+        };
+
+        canvas.DrawBitmap(source, shadowX, shadowY, shadowPaint);
+        canvas.DrawBitmap(source, imageX, imageY);
+
+        return result;
+    }
+
+    public static SKBitmap ApplyGlow(SKBitmap source, int size, float strength, SKColor color, int offsetX, int offsetY)
+    {
+        if (source is null) throw new ArgumentNullException(nameof(source));
+        if (size <= 0) return source.Copy();
+
+        int expand = size + Math.Max(Math.Abs(offsetX), Math.Abs(offsetY));
+        int newWidth = source.Width + expand * 2;
+        int newHeight = source.Height + expand * 2;
+
+        SKBitmap result = new SKBitmap(newWidth, newHeight);
+        using SKCanvas canvas = new SKCanvas(result);
+        canvas.Clear(SKColors.Transparent);
+
+        SKColor glowColor = color.WithAlpha((byte)(255 * strength / 100f));
+
+        using SKPaint glowPaint = new SKPaint
+        {
+            ColorFilter = SKColorFilter.CreateBlendMode(glowColor, SKBlendMode.SrcIn),
+            ImageFilter = SKImageFilter.CreateBlur(size, size)
+        };
+
+        // Draw glow
+        canvas.DrawBitmap(source, expand + offsetX, expand + offsetY, glowPaint);
+        // Draw original
+        canvas.DrawBitmap(source, expand, expand);
+
+        return result;
+    }
+
+    public static SKBitmap ApplyReflection(SKBitmap source, int percentage, int maxAlpha, int minAlpha, int offset, bool skew, int skewSize)
+    {
+        if (source is null) throw new ArgumentNullException(nameof(source));
+        if (percentage <= 0) return source.Copy();
+
+        int reflectionHeight = (int)(source.Height * percentage / 100f);
+        int newHeight = source.Height + offset + reflectionHeight;
+
+        SKBitmap result = new SKBitmap(source.Width, newHeight);
+        using SKCanvas canvas = new SKCanvas(result);
+        canvas.Clear(SKColors.Transparent);
+
+        // Draw original
+        canvas.DrawBitmap(source, 0, 0);
+
+        // Create reflection (flipped vertically)
+        using SKBitmap flipped = new SKBitmap(source.Width, reflectionHeight);
+        using (SKCanvas fc = new SKCanvas(flipped))
+        {
+            fc.Scale(1, -1, 0, reflectionHeight / 2f);
+            fc.DrawBitmap(source, 0, 0);
+        }
+
+        // Apply gradient fade
+        using SKPaint gradientPaint = new SKPaint();
+        var gradient = SKShader.CreateLinearGradient(
+            new SKPoint(0, 0),
+            new SKPoint(0, reflectionHeight),
+            new SKColor[] { new SKColor(255, 255, 255, (byte)maxAlpha), new SKColor(255, 255, 255, (byte)minAlpha) },
+            null,
+            SKShaderTileMode.Clamp);
+        gradientPaint.Shader = gradient;
+        gradientPaint.BlendMode = SKBlendMode.DstIn;
+
+        using SKBitmap reflectionBitmap = new SKBitmap(source.Width, reflectionHeight);
+        using (SKCanvas rc = new SKCanvas(reflectionBitmap))
+        {
+            rc.DrawBitmap(flipped, 0, 0);
+            rc.DrawRect(new SKRect(0, 0, source.Width, reflectionHeight), gradientPaint);
+        }
+
+        // Apply skew if needed
+        if (skew && skewSize > 0)
+        {
+            canvas.Save();
+            canvas.Skew(skewSize / 100f, 0);
+        }
+
+        canvas.DrawBitmap(reflectionBitmap, 0, source.Height + offset);
+
+        if (skew && skewSize > 0)
+        {
+            canvas.Restore();
+        }
+
+        return result;
+    }
+
+    public static SKBitmap ApplyTornEdge(SKBitmap source, int depth, int range, bool top, bool right, bool bottom, bool left, bool curved)
+    {
+        if (source is null) throw new ArgumentNullException(nameof(source));
+        if (depth <= 0 || range <= 0) return source.Copy();
+
+        SKBitmap result = source.Copy();
+        using SKCanvas canvas = new SKCanvas(result);
+
+        Random rand = new Random(42); // Fixed seed for reproducible results
+        using SKPaint erasePaint = new SKPaint
+        {
+            Color = SKColors.Transparent,
+            BlendMode = SKBlendMode.Src
+        };
+
+        void TearEdge(bool horizontal, bool isStart)
+        {
+            int length = horizontal ? source.Width : source.Height;
+            int step = range;
+            
+            for (int i = 0; i < length; i += step)
+            {
+                int tearDepth = rand.Next(depth / 2, depth);
+                int tearWidth = rand.Next(range / 2, range);
+                
+                SKRect tearRect;
+                if (horizontal)
+                {
+                    int y = isStart ? 0 : source.Height - tearDepth;
+                    tearRect = new SKRect(i, y, Math.Min(i + tearWidth, length), isStart ? tearDepth : source.Height);
+                }
+                else
+                {
+                    int x = isStart ? 0 : source.Width - tearDepth;
+                    tearRect = new SKRect(x, i, isStart ? tearDepth : source.Width, Math.Min(i + tearWidth, length));
+                }
+
+                if (curved)
+                {
+                    using SKPath path = new SKPath();
+                    path.AddOval(tearRect);
+                    canvas.DrawPath(path, erasePaint);
+                }
+                else
+                {
+                    canvas.DrawRect(tearRect, erasePaint);
+                }
+            }
+        }
+
+        if (top) TearEdge(true, true);
+        if (bottom) TearEdge(true, false);
+        if (left) TearEdge(false, true);
+        if (right) TearEdge(false, false);
+
+        return result;
+    }
+
+    public static SKBitmap ApplySlice(SKBitmap source, int minHeight, int maxHeight, int minShift, int maxShift)
+    {
+        if (source is null) throw new ArgumentNullException(nameof(source));
+        if (minHeight <= 0 || maxHeight <= minHeight) return source.Copy();
+
+        Random rand = new Random(42);
+        int maxAbsShift = Math.Max(Math.Abs(minShift), Math.Abs(maxShift));
+        int newWidth = source.Width + maxAbsShift * 2;
+
+        SKBitmap result = new SKBitmap(newWidth, source.Height);
+        using SKCanvas canvas = new SKCanvas(result);
+        canvas.Clear(SKColors.Transparent);
+
+        int y = 0;
+        while (y < source.Height)
+        {
+            int sliceHeight = rand.Next(minHeight, maxHeight + 1);
+            sliceHeight = Math.Min(sliceHeight, source.Height - y);
+            
+            int shift = rand.Next(minShift, maxShift + 1);
+
+            SKRect srcRect = new SKRect(0, y, source.Width, y + sliceHeight);
+            SKRect dstRect = new SKRect(maxAbsShift + shift, y, maxAbsShift + shift + source.Width, y + sliceHeight);
+
+            canvas.DrawBitmap(source, srcRect, dstRect);
+
+            y += sliceHeight;
+        }
+
+        return result;
+    }
 }

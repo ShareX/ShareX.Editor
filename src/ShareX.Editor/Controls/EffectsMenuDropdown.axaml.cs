@@ -205,5 +205,56 @@ namespace ShareX.Editor.Controls
             ClosePopup();
             FlipVerticalRequested?.Invoke(this, EventArgs.Empty);
         }
+
+        // --- Filters ---
+        public event EventHandler? BorderRequested;
+        public event EventHandler? OutlineRequested;
+        public event EventHandler? ShadowRequested;
+        public event EventHandler? GlowRequested;
+        public event EventHandler? ReflectionRequested;
+        public event EventHandler? TornEdgeRequested;
+        public event EventHandler? SliceRequested;
+
+        private void OnBorderClick(object? sender, RoutedEventArgs e)
+        {
+            ClosePopup();
+            BorderRequested?.Invoke(this, EventArgs.Empty);
+        }
+
+        private void OnOutlineClick(object? sender, RoutedEventArgs e)
+        {
+            ClosePopup();
+            OutlineRequested?.Invoke(this, EventArgs.Empty);
+        }
+
+        private void OnShadowClick(object? sender, RoutedEventArgs e)
+        {
+            ClosePopup();
+            ShadowRequested?.Invoke(this, EventArgs.Empty);
+        }
+
+        private void OnGlowClick(object? sender, RoutedEventArgs e)
+        {
+            ClosePopup();
+            GlowRequested?.Invoke(this, EventArgs.Empty);
+        }
+
+        private void OnReflectionClick(object? sender, RoutedEventArgs e)
+        {
+            ClosePopup();
+            ReflectionRequested?.Invoke(this, EventArgs.Empty);
+        }
+
+        private void OnTornEdgeClick(object? sender, RoutedEventArgs e)
+        {
+            ClosePopup();
+            TornEdgeRequested?.Invoke(this, EventArgs.Empty);
+        }
+
+        private void OnSliceClick(object? sender, RoutedEventArgs e)
+        {
+            ClosePopup();
+            SliceRequested?.Invoke(this, EventArgs.Empty);
+        }
     }
 }

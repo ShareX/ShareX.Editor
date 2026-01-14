@@ -956,6 +956,15 @@ namespace ShareX.Editor.Views
         private void OnSepiaRequested(object? sender, EventArgs e) { if (DataContext is MainViewModel vm) vm.SepiaCommand.Execute(null); }
         private void OnPolaroidRequested(object? sender, EventArgs e) { if (DataContext is MainViewModel vm) vm.PolaroidCommand.Execute(null); }
 
+        // Filter handlers
+        private void OnBorderRequested(object? sender, EventArgs e) => ShowEffectDialog(new BorderDialog());
+        private void OnOutlineRequested(object? sender, EventArgs e) => ShowEffectDialog(new OutlineDialog());
+        private void OnShadowRequested(object? sender, EventArgs e) => ShowEffectDialog(new ShadowDialog());
+        private void OnGlowRequested(object? sender, EventArgs e) => ShowEffectDialog(new GlowDialog());
+        private void OnReflectionRequested(object? sender, EventArgs e) => ShowEffectDialog(new ReflectionDialog());
+        private void OnTornEdgeRequested(object? sender, EventArgs e) => ShowEffectDialog(new TornEdgeDialog());
+        private void OnSliceRequested(object? sender, EventArgs e) => ShowEffectDialog(new SliceDialog());
+
 
         private void ShowEffectDialog<T>(T dialog) where T : UserControl
         {
