@@ -3,7 +3,7 @@ using ShareX.Editor.Helpers;
 
 namespace ShareX.Editor.ImageEffects;
 
-public class AdjustmentBrightnessImageEffect : AdjustmentImageEffect
+public class AdjustmentsBrightnessImageEffect : AdjustmentsImageEffect
 {
     public override string Name => "Brightness";
     public override string IconKey => "IconSun";

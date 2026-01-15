@@ -3,7 +3,7 @@ using ShareX.Editor.Helpers;
 
 namespace ShareX.Editor.ImageEffects;
 
-public class AdjustmentReplaceColorImageEffect : AdjustmentImageEffect
+public class AdjustmentsReplaceColorImageEffect : AdjustmentsImageEffect
 {
     public override string Name => "Replace Color";
     public override string IconKey => "IconSync";

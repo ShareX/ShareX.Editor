@@ -3,7 +3,7 @@ using SkiaSharp;
 
 namespace ShareX.Editor.ImageEffects;
 
-public class FilterOutlineImageEffect : ImageEffect
+public class FiltersOutlineImageEffect : ImageEffect
 {
     public int Size { get; set; }
     public int Padding { get; set; }
@@ -12,7 +12,7 @@ public class FilterOutlineImageEffect : ImageEffect
     public override string Name => "Outline";
     public override ImageEffectCategory Category => ImageEffectCategory.Filters;
 
-    public FilterOutlineImageEffect(int size, int padding, SKColor color)
+    public FiltersOutlineImageEffect(int size, int padding, SKColor color)
     {
         Size = size;
         Padding = padding;

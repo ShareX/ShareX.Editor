@@ -3,7 +3,7 @@ using ShareX.Editor.Helpers;
 
 namespace ShareX.Editor.ImageEffects;
 
-public class AdjustmentContrastImageEffect : AdjustmentImageEffect
+public class AdjustmentsContrastImageEffect : AdjustmentsImageEffect
 {
     public override string Name => "Contrast";
     public override string IconKey => "IconAdjust";

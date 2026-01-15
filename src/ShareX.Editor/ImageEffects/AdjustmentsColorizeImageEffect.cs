@@ -3,7 +3,7 @@ using ShareX.Editor.Helpers;
 
 namespace ShareX.Editor.ImageEffects;
 
-public class AdjustmentColorizeImageEffect : AdjustmentImageEffect
+public class AdjustmentsColorizeImageEffect : AdjustmentsImageEffect
 {
     public override string Name => "Colorize";
     public override string IconKey => "IconTint";

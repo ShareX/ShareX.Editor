@@ -1,0 +1,31 @@
+using SkiaSharp;
+
+namespace ShareX.Editor.ImageEffects;
+
+public class FiltersRoundedCornersImageEffect : FiltersImageEffect
+{
+    public override string Name => "Rounded Corners";
+    public override string IconKey => "IconSquare";
+    public override bool HasParameters => true;
+    public int CornerRadius { get; set; } = 20;
+
+    public override SKBitmap Apply(SKBitmap source) 
+    {
+        if (source is null) throw new ArgumentNullException(nameof(source));
+        if (CornerRadius <= 0) return source.Copy();
+
+        SKBitmap result = new SKBitmap(source.Width, source.Height, source.ColorType, source.AlphaType);
+        using (SKCanvas canvas = new SKCanvas(result))
+        {
+            canvas.Clear(SKColors.Transparent);
+            
+            using var path = new SKPath();
+            path.AddRoundRect(new SKRoundRect(new SKRect(0, 0, source.Width, source.Height), CornerRadius, CornerRadius));
+            
+            canvas.ClipPath(path);
+            canvas.DrawBitmap(source, 0, 0);
+        }
+        
+        return result;
+    }
+}

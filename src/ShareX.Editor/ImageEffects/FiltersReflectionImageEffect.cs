@@ -3,7 +3,7 @@ using SkiaSharp;
 
 namespace ShareX.Editor.ImageEffects;
 
-public class FilterReflectionImageEffect : ImageEffect
+public class FiltersReflectionImageEffect : ImageEffect
 {
     public int Percentage { get; set; }
     public int MaxAlpha { get; set; }
@@ -15,7 +15,7 @@ public class FilterReflectionImageEffect : ImageEffect
     public override string Name => "Reflection";
     public override ImageEffectCategory Category => ImageEffectCategory.Filters;
 
-    public FilterReflectionImageEffect(int percentage, int maxAlpha, int minAlpha, int offset, bool skew, int skewSize)
+    public FiltersReflectionImageEffect(int percentage, int maxAlpha, int minAlpha, int offset, bool skew, int skewSize)
     {
         Percentage = percentage;
         MaxAlpha = maxAlpha;

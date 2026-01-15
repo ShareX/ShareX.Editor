@@ -3,17 +3,16 @@ using ShareX.Editor.Helpers;
 
 namespace ShareX.Editor.ImageEffects;
 
-public class RotateImageEffect : ImageEffect
+public class ManipulationsRotateImageEffect : ImageEffect
 {
     private readonly float _angle;
     private readonly string _name;
     private readonly bool _autoResize;
 
     public override string Name => _name;
+    public override ImageEffectCategory Category => ImageEffectCategory.Manipulations;
 
-    public override ImageEffectCategory Category => ImageEffectCategory.Rotate;
-
-    public RotateImageEffect(float angle, string name, bool autoResize = true)
+    public ManipulationsRotateImageEffect(float angle, string name, bool autoResize = true)
     {
         _angle = angle;
         _name = name;
@@ -24,19 +23,16 @@ public class RotateImageEffect : ImageEffect
     {
         if (source is null) throw new ArgumentNullException(nameof(source));
 
-        // For standard 90/180 rotations with auto-resize, we can optimize
         if (_angle % 90 == 0 && _autoResize)
         {
             return RotateOrthogonal(source, (int)_angle);
         }
 
-        // For custom angles or when autoResize is off, use clipped or arbitrary
         return _autoResize ? RotateArbitrary(source, _angle) : RotateClipped(source, _angle);
     }
 
     private SKBitmap RotateClipped(SKBitmap source, float angle)
     {
-        // Rotate but keep original dimensions (clips edges)
         SKBitmap result = new SKBitmap(source.Width, source.Height, source.ColorType, source.AlphaType);
         using (SKCanvas canvas = new SKCanvas(result))
         {
@@ -90,7 +86,6 @@ public class RotateImageEffect : ImageEffect
 
     private SKBitmap RotateArbitrary(SKBitmap source, float angle)
     {
-        // Calculate new bounds
         SKMatrix matrix = SKMatrix.CreateRotationDegrees(angle, source.Width / 2f, source.Height / 2f);
         SKRect rect = new SKRect(0, 0, source.Width, source.Height);
         SKRect mapped = matrix.MapRect(rect);
@@ -102,20 +97,16 @@ public class RotateImageEffect : ImageEffect
         using (SKCanvas canvas = new SKCanvas(result))
         {
             canvas.Clear(SKColors.Transparent);
-            
-            // Center the image in new canvas
             canvas.Translate(newWidth / 2f, newHeight / 2f);
             canvas.RotateDegrees(angle);
             canvas.Translate(-source.Width / 2f, -source.Height / 2f);
-            
             canvas.DrawBitmap(source, 0, 0);
         }
         return result;
     }
 
-    // Factory methods for convenience
-    public static RotateImageEffect Clockwise90 => new RotateImageEffect(90, "Rotate 90° clockwise");
-    public static RotateImageEffect CounterClockwise90 => new RotateImageEffect(-90, "Rotate 90° counter clockwise");
-    public static RotateImageEffect Rotate180 => new RotateImageEffect(180, "Rotate 180°");
-    public static RotateImageEffect Custom(float angle, bool autoResize = true) => new RotateImageEffect(angle, "Rotate custom angle", autoResize);
+    public static ManipulationsRotateImageEffect Clockwise90 => new ManipulationsRotateImageEffect(90, "Rotate 90° clockwise");
+    public static ManipulationsRotateImageEffect CounterClockwise90 => new ManipulationsRotateImageEffect(-90, "Rotate 90° counter clockwise");
+    public static ManipulationsRotateImageEffect Rotate180 => new ManipulationsRotateImageEffect(180, "Rotate 180°");
+    public static ManipulationsRotateImageEffect Custom(float angle, bool autoResize = true) => new ManipulationsRotateImageEffect(angle, "Rotate custom angle", autoResize);
 }

@@ -3,7 +3,7 @@ using ShareX.Editor.Helpers;
 
 namespace ShareX.Editor.ImageEffects;
 
-public class AdjustmentSaturationImageEffect : AdjustmentImageEffect
+public class AdjustmentsSaturationImageEffect : AdjustmentsImageEffect
 {
     public override string Name => "Saturation";
     public override string IconKey => "IconFillDrip";

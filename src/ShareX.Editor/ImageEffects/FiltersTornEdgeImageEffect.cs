@@ -4,7 +4,7 @@ using System.Collections.Generic;
 
 namespace ShareX.Editor.ImageEffects;
 
-public class FilterTornEdgeImageEffect : ImageEffect
+public class FiltersTornEdgeImageEffect : ImageEffect
 {
     public int Depth { get; set; }
     public int Range { get; set; }
@@ -17,7 +17,7 @@ public class FilterTornEdgeImageEffect : ImageEffect
     public override string Name => "Torn edge";
     public override ImageEffectCategory Category => ImageEffectCategory.Filters;
 
-    public FilterTornEdgeImageEffect(int depth, int range, bool top, bool right, bool bottom, bool left, bool curved)
+    public FiltersTornEdgeImageEffect(int depth, int range, bool top, bool right, bool bottom, bool left, bool curved)
     {
         Depth = depth;
         Range = range;

@@ -3,7 +3,7 @@ using SkiaSharp;
 
 namespace ShareX.Editor.ImageEffects;
 
-public class FilterShadowImageEffect : ImageEffect
+public class FiltersShadowImageEffect : ImageEffect
 {
     public float Opacity { get; set; }
     public int Size { get; set; }
@@ -16,7 +16,7 @@ public class FilterShadowImageEffect : ImageEffect
     public override string Name => "Shadow";
     public override ImageEffectCategory Category => ImageEffectCategory.Filters;
 
-    public FilterShadowImageEffect(float opacity, int size, float darkness, SKColor color, int offsetX, int offsetY, bool autoResize)
+    public FiltersShadowImageEffect(float opacity, int size, float darkness, SKColor color, int offsetX, int offsetY, bool autoResize)
     {
         Opacity = opacity;
         Size = size;

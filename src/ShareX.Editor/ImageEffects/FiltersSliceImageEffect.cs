@@ -3,7 +3,7 @@ using SkiaSharp;
 
 namespace ShareX.Editor.ImageEffects;
 
-public class FilterSliceImageEffect : ImageEffect
+public class FiltersSliceImageEffect : ImageEffect
 {
     public int MinHeight { get; set; }
     public int MaxHeight { get; set; }
@@ -13,7 +13,7 @@ public class FilterSliceImageEffect : ImageEffect
     public override string Name => "Slice";
     public override ImageEffectCategory Category => ImageEffectCategory.Filters;
 
-    public FilterSliceImageEffect(int minHeight, int maxHeight, int minShift, int maxShift)
+    public FiltersSliceImageEffect(int minHeight, int maxHeight, int minShift, int maxShift)
     {
         MinHeight = minHeight;
         MaxHeight = maxHeight;

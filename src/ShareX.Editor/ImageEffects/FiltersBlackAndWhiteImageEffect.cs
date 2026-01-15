@@ -1,0 +1,18 @@
+using SkiaSharp;
+using ShareX.Editor.Helpers;
+
+namespace ShareX.Editor.ImageEffects;
+
+public class FiltersBlackAndWhiteImageEffect : FiltersImageEffect
+{
+    public override string Name => "Black and White";
+    public override string IconKey => "IconAdjust";
+    public override SKBitmap Apply(SKBitmap source) 
+    {
+        return ImageHelpers.ApplyPixelOperation(source, (color) =>
+        {
+            float lum = 0.2126f * color.Red + 0.7152f * color.Green + 0.0722f * color.Blue;
+            return lum > 127 ? SKColors.White : SKColors.Black;
+        });
+    }
+}

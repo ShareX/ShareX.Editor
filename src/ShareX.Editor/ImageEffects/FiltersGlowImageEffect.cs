@@ -3,7 +3,7 @@ using SkiaSharp;
 
 namespace ShareX.Editor.ImageEffects;
 
-public class FilterGlowImageEffect : ImageEffect
+public class FiltersGlowImageEffect : ImageEffect
 {
     public int Size { get; set; }
     public float Strength { get; set; }
@@ -15,7 +15,7 @@ public class FilterGlowImageEffect : ImageEffect
 
     public override ImageEffectCategory Category => ImageEffectCategory.Filters;
 
-    public FilterGlowImageEffect(int size, float strength, SKColor color, int offsetX, int offsetY)
+    public FiltersGlowImageEffect(int size, float strength, SKColor color, int offsetX, int offsetY)
     {
         Size = size;
         Strength = strength;

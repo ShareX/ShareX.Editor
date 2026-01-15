@@ -3,7 +3,7 @@ using ShareX.Editor.Helpers;
 
 namespace ShareX.Editor.ImageEffects;
 
-public class AdjustmentHueImageEffect : AdjustmentImageEffect
+public class AdjustmentsHueImageEffect : AdjustmentsImageEffect
 {
     public override string Name => "Hue";
     public override string IconKey => "IconPalette";

@@ -11,36 +11,36 @@ public static class ImageEffectRegistry
     {
         var effects = new List<ImageEffect>
         {
-            // Rotate
-            RotateImageEffect.Clockwise90,
-            RotateImageEffect.CounterClockwise90,
-            RotateImageEffect.Rotate180,
+            // Manipulations - Rotate
+            ManipulationsRotateImageEffect.Clockwise90,
+            ManipulationsRotateImageEffect.CounterClockwise90,
+            ManipulationsRotateImageEffect.Rotate180,
             
-            // Flip
-            FlipImageEffect.Horizontal,
-            FlipImageEffect.Vertical,
+            // Manipulations - Flip
+            ManipulationsFlipImageEffect.Horizontal,
+            ManipulationsFlipImageEffect.Vertical,
             
-            // Resize (Placeholders for menu, actual logic requires parameters)
-            new ResizeImageEffect(), 
-            new AutoCropImageEffect(),
+            // Manipulations - Resize (parameterized)
+            new ManipulationsResizeImageEffect(), 
+            new ManipulationsAutoCropImageEffect(),
             
             // Adjustments
-            new AdjustmentBrightnessImageEffect(),
-            new AdjustmentContrastImageEffect(),
-            new AdjustmentHueImageEffect(),
-            new AdjustmentSaturationImageEffect(),
-            new AdjustmentGammaImageEffect(),
-            new AdjustmentAlphaImageEffect(),
-            new AdjustmentColorizeImageEffect(),
-            new AdjustmentSelectiveColorImageEffect(),
-            new AdjustmentReplaceColorImageEffect(),
+            new AdjustmentsBrightnessImageEffect(),
+            new AdjustmentsContrastImageEffect(),
+            new AdjustmentsHueImageEffect(),
+            new AdjustmentsSaturationImageEffect(),
+            new AdjustmentsGammaImageEffect(),
+            new AdjustmentsAlphaImageEffect(),
+            new AdjustmentsColorizeImageEffect(),
+            new AdjustmentsSelectiveColorImageEffect(),
+            new AdjustmentsReplaceColorImageEffect(),
             
             // Filters
-            new InvertImageEffect(),
-            new GrayscaleImageEffect(),
-            new BlackAndWhiteImageEffect(),
-            new SepiaImageEffect(),
-            new PolaroidImageEffect()
+            new FiltersInvertImageEffect(),
+            new FiltersGrayscaleImageEffect(),
+            new FiltersBlackAndWhiteImageEffect(),
+            new FiltersSepiaImageEffect(),
+            new FiltersPolaroidImageEffect()
         };
 
         Effects = effects.AsReadOnly();

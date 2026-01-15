@@ -1253,25 +1253,25 @@ namespace ShareX.Editor.ViewModels
         [RelayCommand]
         private void InvertColors()
         {
-            ApplyOneShotEffect(img => new InvertImageEffect().Apply(img), "Inverted colors");
+            ApplyOneShotEffect(img => new FiltersInvertImageEffect().Apply(img), "Inverted colors");
         }
 
         [RelayCommand]
         private void BlackAndWhite()
         {
-            ApplyOneShotEffect(img => new BlackAndWhiteImageEffect().Apply(img), "Applied Black & White filter");
+            ApplyOneShotEffect(img => new FiltersBlackAndWhiteImageEffect().Apply(img), "Applied Black & White filter");
         }
 
         [RelayCommand]
         private void Sepia()
         {
-            ApplyOneShotEffect(img => new SepiaImageEffect().Apply(img), "Applied Sepia filter");
+            ApplyOneShotEffect(img => new FiltersSepiaImageEffect().Apply(img), "Applied Sepia filter");
         }
 
         [RelayCommand]
         private void Polaroid()
         {
-            ApplyOneShotEffect(img => new PolaroidImageEffect().Apply(img), "Applied Polaroid filter");
+            ApplyOneShotEffect(img => new FiltersPolaroidImageEffect().Apply(img), "Applied Polaroid filter");
         }
 
         private void ApplyOneShotEffect(Func<SkiaSharp.SKBitmap, SkiaSharp.SKBitmap> effect, string statusMessage)
@@ -1478,7 +1478,7 @@ namespace ShareX.Editor.ViewModels
             if (!IsRotateCustomAngleDialogOpen || _rotateCustomAngleOriginalBitmap == null) return;
 
             float angle = (float)Math.Clamp(RotateAngleDegrees, -180, 180);
-            var effect = RotateImageEffect.Custom(angle, RotateAutoResize);
+            var effect = ManipulationsRotateImageEffect.Custom(angle, RotateAutoResize);
 
             var result = effect.Apply(_rotateCustomAngleOriginalBitmap);
             
@@ -1496,7 +1496,7 @@ namespace ShareX.Editor.ViewModels
             _imageUndoStack.Push(_rotateCustomAngleOriginalBitmap.Copy());
             _imageRedoStack.Clear();
 
-            var effect = RotateImageEffect.Custom(angle, RotateAutoResize);
+            var effect = ManipulationsRotateImageEffect.Custom(angle, RotateAutoResize);
             var result = effect.Apply(_rotateCustomAngleOriginalBitmap);
             
             UpdatePreview(result, clearAnnotations: true);

@@ -3,7 +3,7 @@ using ShareX.Editor.Helpers;
 
 namespace ShareX.Editor.ImageEffects;
 
-public class AdjustmentAlphaImageEffect : AdjustmentImageEffect
+public class AdjustmentsAlphaImageEffect : AdjustmentsImageEffect
 {
     public override string Name => "Alpha";
     public override string IconKey => "IconEyeDropper";

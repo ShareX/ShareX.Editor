@@ -3,7 +3,7 @@ using ShareX.Editor.Helpers;
 
 namespace ShareX.Editor.ImageEffects;
 
-public class AdjustmentGammaImageEffect : AdjustmentImageEffect
+public class AdjustmentsGammaImageEffect : AdjustmentsImageEffect
 {
     public override string Name => "Gamma";
     public override string IconKey => "IconWaveSquare";

@@ -28,13 +28,13 @@ namespace ShareX.Editor.Views.Dialogs
         private void RequestPreview()
         {
             int radius = (int)(this.FindControl<Slider>("RadiusSlider")?.Value ?? 5);
-            PreviewRequested?.Invoke(this, new EffectEventArgs(img => new BlurImageEffect { Radius = radius }.Apply(img), "Blur"));
+            PreviewRequested?.Invoke(this, new EffectEventArgs(img => new FiltersBlurImageEffect { Radius = radius }.Apply(img), "Blur"));
         }
 
         private void OnApplyClick(object? sender, RoutedEventArgs e)
         {
             int radius = (int)(this.FindControl<Slider>("RadiusSlider")?.Value ?? 5);
-            ApplyRequested?.Invoke(this, new EffectEventArgs(img => new BlurImageEffect { Radius = radius }.Apply(img), "Applied Blur"));
+            ApplyRequested?.Invoke(this, new EffectEventArgs(img => new FiltersBlurImageEffect { Radius = radius }.Apply(img), "Applied Blur"));
         }
 
         private void OnCancelClick(object? sender, RoutedEventArgs e)

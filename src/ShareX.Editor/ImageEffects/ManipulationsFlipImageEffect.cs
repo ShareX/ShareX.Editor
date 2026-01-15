@@ -3,7 +3,7 @@ using ShareX.Editor.Helpers;
 
 namespace ShareX.Editor.ImageEffects;
 
-public class FlipImageEffect : ImageEffect
+public class ManipulationsFlipImageEffect : ImageEffect
 {
     public enum FlipDirection { Horizontal, Vertical }
 
@@ -11,9 +11,9 @@ public class FlipImageEffect : ImageEffect
     private readonly string _name;
 
     public override string Name => _name;
-    public override ImageEffectCategory Category => ImageEffectCategory.Flip;
+    public override ImageEffectCategory Category => ImageEffectCategory.Manipulations;
 
-    public FlipImageEffect(FlipDirection direction, string name)
+    public ManipulationsFlipImageEffect(FlipDirection direction, string name)
     {
         _direction = direction;
         _name = name;
@@ -40,6 +40,6 @@ public class FlipImageEffect : ImageEffect
         return result;
     }
 
-    public static FlipImageEffect Horizontal => new FlipImageEffect(FlipDirection.Horizontal, "Flip horizontal");
-    public static FlipImageEffect Vertical => new FlipImageEffect(FlipDirection.Vertical, "Flip vertical");
+    public static ManipulationsFlipImageEffect Horizontal => new ManipulationsFlipImageEffect(FlipDirection.Horizontal, "Flip horizontal");
+    public static ManipulationsFlipImageEffect Vertical => new ManipulationsFlipImageEffect(FlipDirection.Vertical, "Flip vertical");
 }
