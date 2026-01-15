@@ -755,14 +755,37 @@ public class EditorSelectionController
     private void UpdateHoverState(Canvas canvas, Point currentPoint)
     {
         // Only show hover outlines when Select tool is active
-        if (_view.DataContext is MainViewModel vm && vm.ActiveTool != EditorTool.Select)
+        if (_view.DataContext is MainViewModel vm)
         {
-            ClearHoverOutline();
-            return;
+            // If Select/Spotlight tool inactive, we generally clear hover.
+            // BUT: If there is an active selection (e.g. just created shape), we KEEP it highlighted.
+            if (vm.ActiveTool != EditorTool.Select && vm.ActiveTool != EditorTool.Spotlight)
+            {
+                if (_selectedShape == null)
+                {
+                    ClearHoverOutline();
+                    return;
+                }
+                // Fall through to hit testing to check if we are hovering the selected shape
+            }
         }
         
         // Find shape under cursor (hit test)
         Control? hitShape = HitTestShape(canvas, currentPoint);
+
+        // Filter: If using Spotlight tool, only highlight existing Spotlights
+        if (_view.DataContext is MainViewModel vm2 && vm2.ActiveTool == EditorTool.Spotlight)
+        {
+            if (!(hitShape is SpotlightControl)) hitShape = null;
+        }
+
+        // Filter: If using other tools (Rect, etc), only allow hovering the ACTIVE selection
+        if (_view.DataContext is MainViewModel vm3 && 
+            vm3.ActiveTool != EditorTool.Select && 
+            vm3.ActiveTool != EditorTool.Spotlight)
+        {
+             if (hitShape != _selectedShape) hitShape = null;
+        }
         
         // If we're hovering over the selected shape, keep showing ant lines on it
         // Otherwise, show ant lines on the hovered (unselected) shape
