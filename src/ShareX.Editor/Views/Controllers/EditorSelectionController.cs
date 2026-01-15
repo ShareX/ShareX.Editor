@@ -591,7 +591,11 @@ public class EditorSelectionController
             return;
         }
 
-        if (_selectedShape is Grid || _selectedShape is ShareX.Editor.Controls.SpotlightControl) return;
+        if (_selectedShape is Grid || _selectedShape is ShareX.Editor.Controls.SpotlightControl)
+        {
+            UpdateHoverOutline();
+            return;
+        }
 
         // Fallback to explicit Width/Height if Bounds are not yet calculated (e.g. before layout pass)
         var width = _selectedShape.Bounds.Width;
