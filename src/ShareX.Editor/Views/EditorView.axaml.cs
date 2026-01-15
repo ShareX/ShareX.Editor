@@ -448,11 +448,14 @@ namespace ShareX.Editor.Views
                     BorderThickness = new Thickness(0),
                     FontSize = Math.Max(12, text.StrokeWidth * 4),
                     Padding = new Thickness(4),
-                    Tag = text
+                    Tag = text,
+                    IsHitTestVisible = false
                 };
+                tb.LostFocus += (s, e) => { if (s is TextBox t) t.IsHitTestVisible = false; };
                 Canvas.SetLeft(tb, text.StartPoint.X);
                 Canvas.SetTop(tb, text.StartPoint.Y);
                 return tb;
+
              }
              else if (annotation is SpotlightAnnotation spotlight) {
                 var s = new SpotlightControl { Annotation = spotlight, Tag = spotlight };

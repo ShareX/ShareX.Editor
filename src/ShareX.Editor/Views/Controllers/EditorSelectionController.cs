@@ -31,6 +31,8 @@ public class EditorSelectionController
     private global::Avalonia.Controls.Shapes.Rectangle? _hoverOutlineWhite;
     private global::Avalonia.Controls.Shapes.Polyline? _hoverPolylineBlack;
     private global::Avalonia.Controls.Shapes.Polyline? _hoverPolylineWhite;
+    private global::Avalonia.Controls.Shapes.Ellipse? _hoverEllipseBlack;
+    private global::Avalonia.Controls.Shapes.Ellipse? _hoverEllipseWhite;
 
     // Store arrow/line endpoints for editing
     private Dictionary<Control, (Point Start, Point End)> _shapeEndpoints = new();
@@ -159,6 +161,14 @@ public class EditorSelectionController
 
                  if (hitTarget != null)
                  {
+                     if (hitTarget is TextBox tb && e.ClickCount == 2)
+                     {
+                         tb.IsHitTestVisible = true;
+                         tb.Focus();
+                         e.Handled = true;
+                         return true;
+                     }
+
                      _selectedShape = hitTarget;
                      _isDraggingShape = true;
                      _lastDragPoint = point;
@@ -174,6 +184,14 @@ public class EditorSelectionController
                      var manualHit = HitTestShape(canvas, point);
                      if (manualHit != null)
                      {
+                          if (manualHit is TextBox tb && e.ClickCount == 2)
+                          {
+                              tb.IsHitTestVisible = true;
+                              tb.Focus();
+                              e.Handled = true;
+                              return true;
+                          }
+
                           _selectedShape = manualHit;
                           _isDraggingShape = true;
                           _lastDragPoint = point;
@@ -763,7 +781,8 @@ public class EditorSelectionController
             
             // Skip non-moveable overlays and text editors
             if (child.Name == "CropOverlay" || child.Name == "CutOutOverlay") continue;
-            if (child is TextBox) continue;
+            // TextBox excluded? No, we want to select it now.
+            // if (child is TextBox) continue;
             
             // Check if point is within the bounds of this control
             var bounds = child.Bounds;
@@ -855,6 +874,16 @@ public class EditorSelectionController
             overlay?.Children.Remove(_hoverPolylineWhite);
             _hoverPolylineWhite = null;
         }
+        if (_hoverEllipseBlack != null)
+        {
+            overlay?.Children.Remove(_hoverEllipseBlack);
+            _hoverEllipseBlack = null;
+        }
+        if (_hoverEllipseWhite != null)
+        {
+            overlay?.Children.Remove(_hoverEllipseWhite);
+            _hoverEllipseWhite = null;
+        }
         _hoveredShape = null;
     }
     
@@ -908,6 +937,44 @@ public class EditorSelectionController
         // Actually UpdateHoverState calls ClearHoverOutline when shape changes, so we start fresh.
         // But for safety/robustness we can ensure only the correct type exists.
         
+        if (_hoveredShape is Ellipse || (_hoveredShape is Grid && _hoveredShape.Tag is NumberAnnotation))
+        {
+             if (_hoverEllipseBlack == null)
+             {
+                 _hoverEllipseBlack = new Ellipse
+                 {
+                     Stroke = Brushes.Black,
+                     StrokeThickness = 1,
+                     StrokeDashArray = new global::Avalonia.Collections.AvaloniaList<double> { 3, 3 },
+                     IsHitTestVisible = false
+                 };
+                 overlay.Children.Add(_hoverEllipseBlack);
+             }
+             if (_hoverEllipseWhite == null)
+             {
+                 _hoverEllipseWhite = new Ellipse
+                 {
+                     Stroke = Brushes.White,
+                     StrokeThickness = 1,
+                     StrokeDashArray = new global::Avalonia.Collections.AvaloniaList<double> { 3, 3 },
+                     StrokeDashOffset = 3,
+                     IsHitTestVisible = false
+                 };
+                 overlay.Children.Add(_hoverEllipseWhite);
+             }
+
+             Canvas.SetLeft(_hoverEllipseBlack, left - 2);
+             Canvas.SetTop(_hoverEllipseBlack, top - 2);
+             _hoverEllipseBlack.Width = width + 4;
+             _hoverEllipseBlack.Height = height + 4;
+
+             Canvas.SetLeft(_hoverEllipseWhite, left - 2);
+             Canvas.SetTop(_hoverEllipseWhite, top - 2);
+             _hoverEllipseWhite.Width = width + 4;
+             _hoverEllipseWhite.Height = height + 4;
+             return;
+        }
+
         if (_hoveredShape is Polyline polyline)
         {
              if (_hoverPolylineBlack == null)
