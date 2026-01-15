@@ -1,5 +1,4 @@
 using SkiaSharp;
-using ShareX.Editor.Helpers;
 
 namespace ShareX.Editor.ImageEffects;
 
@@ -12,6 +11,18 @@ public class ManipulationsRoundedCornersImageEffect : ImageEffect
 
     public override SKBitmap Apply(SKBitmap source) 
     {
-        return ImageHelpers.RoundedCorners(source, CornerRadius);
+        if (source is null) throw new ArgumentNullException(nameof(source));
+        if (CornerRadius <= 0) return source.Copy();
+
+        SKBitmap result = new SKBitmap(source.Width, source.Height, source.ColorType, source.AlphaType);
+        using SKCanvas canvas = new SKCanvas(result);
+        canvas.Clear(SKColors.Transparent);
+
+        using SKPath clipPath = new SKPath();
+        clipPath.AddRoundRect(new SKRect(0, 0, source.Width, source.Height), CornerRadius, CornerRadius);
+        canvas.ClipPath(clipPath, SKClipOperation.Intersect, true);
+        
+        canvas.DrawBitmap(source, 0, 0);
+        return result;
     }
 }

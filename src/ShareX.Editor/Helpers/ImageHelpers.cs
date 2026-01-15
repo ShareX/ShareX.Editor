@@ -502,24 +502,4 @@ public static class ImageHelpers
         return sharpened;
     }
 
-    /// <summary>
-    /// Apply rounded corners to the image
-    /// </summary>
-    public static SKBitmap RoundedCorners(SKBitmap source, int radius)
-    {
-        if (source is null) throw new ArgumentNullException(nameof(source));
-        if (radius <= 0) return source.Copy();
-
-        SKBitmap result = new SKBitmap(source.Width, source.Height, source.ColorType, source.AlphaType);
-        using SKCanvas canvas = new SKCanvas(result);
-        canvas.Clear(SKColors.Transparent);
-
-        using SKPath clipPath = new SKPath();
-        clipPath.AddRoundRect(new SKRect(0, 0, source.Width, source.Height), radius, radius);
-        canvas.ClipPath(clipPath, SKClipOperation.Intersect, true);
-        
-        canvas.DrawBitmap(source, 0, 0);
-        return result;
-    }
-
 }
