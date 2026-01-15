@@ -125,6 +125,10 @@ namespace ShareX.Editor.Views
 
                 // Initialize zoom
                 _zoomController.InitLastZoom(vm.Zoom);
+
+                // Wire up View interactions
+                vm.CopyRequested += OnCopyRequested;
+                vm.SaveAsRequested += OnSaveAsRequested;
                 
                 // Initial load
                 if (vm.PreviewImage != null)
@@ -141,6 +145,8 @@ namespace ShareX.Editor.Views
             if (DataContext is MainViewModel vm)
             {
                 vm.PropertyChanged -= OnViewModelPropertyChanged;
+                vm.CopyRequested -= OnCopyRequested;
+                vm.SaveAsRequested -= OnSaveAsRequested;
             }
 
             _selectionController.RequestUpdateEffect -= OnRequestUpdateEffect;
@@ -1006,6 +1012,38 @@ namespace ShareX.Editor.Views
                 vm.CancelEffectPreview();
                 vm.CloseModalCommand.Execute(null);
             }
+        }
+        private async Task OnCopyRequested(Avalonia.Media.Imaging.Bitmap bitmap)
+        {
+            if (ShareX.Editor.Services.EditorServices.Clipboard != null)
+            {
+                using var skBitmap = BitmapConversionHelpers.ToSKBitmap(bitmap);
+                if (skBitmap != null)
+                {
+                    ShareX.Editor.Services.EditorServices.Clipboard.SetImage(skBitmap);
+                }
+            }
+            await Task.CompletedTask;
+        }
+
+        private async Task<string?> OnSaveAsRequested()
+        {
+            var topLevel = TopLevel.GetTopLevel(this);
+            if (topLevel?.StorageProvider == null) return null;
+
+            var file = await topLevel.StorageProvider.SaveFilePickerAsync(new Avalonia.Platform.Storage.FilePickerSaveOptions
+            {
+                Title = "Save Image",
+                FileTypeChoices = new[]
+                {
+                    new Avalonia.Platform.Storage.FilePickerFileType("PNG Image") { Patterns = new[] { "*.png" } },
+                    new Avalonia.Platform.Storage.FilePickerFileType("JPEG Image") { Patterns = new[] { "*.jpg", "*.jpeg" } },
+                    new Avalonia.Platform.Storage.FilePickerFileType("Bitmap") { Patterns = new[] { "*.bmp" } }
+                },
+                DefaultExtension = "png"
+            });
+
+            return file?.Path.LocalPath;
         }
     }
 }
