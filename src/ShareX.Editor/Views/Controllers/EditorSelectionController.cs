@@ -29,6 +29,8 @@ public class EditorSelectionController
     private Control? _hoveredShape;
     private global::Avalonia.Controls.Shapes.Rectangle? _hoverOutlineBlack;
     private global::Avalonia.Controls.Shapes.Rectangle? _hoverOutlineWhite;
+    private global::Avalonia.Controls.Shapes.Polyline? _hoverPolylineBlack;
+    private global::Avalonia.Controls.Shapes.Polyline? _hoverPolylineWhite;
 
     // Store arrow/line endpoints for editing
     private Dictionary<Control, (Point Start, Point End)> _shapeEndpoints = new();
@@ -167,6 +169,20 @@ public class EditorSelectionController
                  }
                  else
                  {
+                     // Fallback: Manual hit detection (for Polylines with lenient stroke hit test)
+                     // If Avalonia hit test failed (e.g. clicked slightly off-stroke on polyline), use our custom tolerance.
+                     var manualHit = HitTestShape(canvas, point);
+                     if (manualHit != null)
+                     {
+                          _selectedShape = manualHit;
+                          _isDraggingShape = true;
+                          _lastDragPoint = point;
+                          UpdateSelectionHandles();
+                          e.Pointer.Capture(manualHit);
+                          e.Handled = true;
+                          return true;
+                     }
+
                      ClearSelection();
                      // Don't return true, allowing rubber band selection (if implemented) or just clearing
                      return false;
@@ -528,6 +544,12 @@ public class EditorSelectionController
              return;
         }
 
+        if (_selectedShape is Polyline)
+        {
+            UpdateHoverOutline();
+            return;
+        }
+
         if (_selectedShape is Grid || _selectedShape is ShareX.Editor.Controls.SpotlightControl) return;
 
         // Fallback to explicit Width/Height if Bounds are not yet calculated (e.g. before layout pass)
@@ -699,8 +721,40 @@ public class EditorSelectionController
         }
         
         // Find shape under cursor (hit test)
-        Control? hitShape = null;
+        Control? hitShape = HitTestShape(canvas, currentPoint);
         
+        // If we're hovering over the selected shape, keep showing ant lines on it
+        // Otherwise, show ant lines on the hovered (unselected) shape
+        if (hitShape == _selectedShape && _selectedShape != null)
+        {
+            // Keep showing ant lines on selected shape
+            if (_hoveredShape != _selectedShape)
+            {
+                ClearHoverOutline();
+                _hoveredShape = _selectedShape;
+            }
+            UpdateHoverOutline();
+        }
+        else if (hitShape != _hoveredShape)
+        {
+            // Hovering over a different shape (or no shape)
+            ClearHoverOutline();
+            _hoveredShape = hitShape;
+            
+            if (_hoveredShape != null)
+            {
+                UpdateHoverOutline();
+            }
+        }
+        else if (_hoveredShape != null)
+        {
+            // Shape is still hovered, update outline position (in case shape moved)
+            UpdateHoverOutline();
+        }
+    }
+    
+    private Control? HitTestShape(Canvas canvas, Point currentPoint)
+    {
         // Iterate through canvas children in reverse (top-most first)
         for (int i = canvas.Children.Count - 1; i >= 0; i--)
         {
@@ -738,44 +792,46 @@ public class EditorSelectionController
                 var maxY = Math.Max(endpoints.Start.Y, endpoints.End.Y) + 10;
                 shapeBounds = new Rect(minX, minY, maxX - minX, maxY - minY);
             }
+            // Special handling for Polyline (Freehand)
+            else if (child is global::Avalonia.Controls.Shapes.Polyline polyline && polyline.Points != null)
+            {
+                double minX = double.MaxValue, minY = double.MaxValue;
+                double maxX = double.MinValue, maxY = double.MinValue;
+                foreach (var p in polyline.Points)
+                {
+                    if (p.X < minX) minX = p.X;
+                    if (p.Y < minY) minY = p.Y;
+                    if (p.X > maxX) maxX = p.X;
+                    if (p.Y > maxY) maxY = p.Y;
+                }
+                if (minX == double.MaxValue) 
+                { 
+                    minX = 0; minY = 0; maxX = 0; maxY = 0; 
+                }
+                else
+                {
+                    minX -= 5; minY -= 5; maxX += 5; maxY += 5;
+                }
+                shapeBounds = new Rect(minX, minY, maxX - minX, maxY - minY);
+            }
             
             if (shapeBounds.Contains(currentPoint))
             {
-                hitShape = child;
-                break;
+                // Refined Hit Test for Polyline
+                if (child is global::Avalonia.Controls.Shapes.Polyline polylineObj && polylineObj.Points != null)
+                {
+                     if (!IsPointNearPolyline(currentPoint, polylineObj, 5 + polylineObj.StrokeThickness / 2))
+                     {
+                         continue; // Point is in bounds but not near stroke
+                     }
+                }
+                
+                return child;
             }
         }
-        
-        // If we're hovering over the selected shape, keep showing ant lines on it
-        // Otherwise, show ant lines on the hovered (unselected) shape
-        if (hitShape == _selectedShape && _selectedShape != null)
-        {
-            // Keep showing ant lines on selected shape
-            if (_hoveredShape != _selectedShape)
-            {
-                ClearHoverOutline();
-                _hoveredShape = _selectedShape;
-            }
-            UpdateHoverOutline();
-        }
-        else if (hitShape != _hoveredShape)
-        {
-            // Hovering over a different shape (or no shape)
-            ClearHoverOutline();
-            _hoveredShape = hitShape;
-            
-            if (_hoveredShape != null)
-            {
-                UpdateHoverOutline();
-            }
-        }
-        else if (_hoveredShape != null)
-        {
-            // Shape is still hovered, update outline position (in case shape moved)
-            UpdateHoverOutline();
-        }
+        return null;
     }
-    
+
     private void ClearHoverOutline()
     {
         var overlay = _view.FindControl<Canvas>("OverlayCanvas");
@@ -788,6 +844,16 @@ public class EditorSelectionController
         {
             overlay?.Children.Remove(_hoverOutlineWhite);
             _hoverOutlineWhite = null;
+        }
+        if (_hoverPolylineBlack != null)
+        {
+            overlay?.Children.Remove(_hoverPolylineBlack);
+            _hoverPolylineBlack = null;
+        }
+        if (_hoverPolylineWhite != null)
+        {
+            overlay?.Children.Remove(_hoverPolylineWhite);
+            _hoverPolylineWhite = null;
         }
         _hoveredShape = null;
     }
@@ -836,6 +902,44 @@ public class EditorSelectionController
         
         if (width <= 0 || height <= 0) return;
         
+        if (width <= 0 || height <= 0) return;
+        
+        // Helper to safely remove generic outline rects if we switched to Polyline mode or vice versa?
+        // Actually UpdateHoverState calls ClearHoverOutline when shape changes, so we start fresh.
+        // But for safety/robustness we can ensure only the correct type exists.
+        
+        if (_hoveredShape is Polyline polyline)
+        {
+             if (_hoverPolylineBlack == null)
+             {
+                 _hoverPolylineBlack = new Polyline
+                 {
+                     Stroke = Brushes.Black,
+                     StrokeThickness = 1,
+                     StrokeDashArray = new global::Avalonia.Collections.AvaloniaList<double> { 3, 3 },
+                     IsHitTestVisible = false
+                 };
+                 overlay.Children.Add(_hoverPolylineBlack);
+             }
+             if (_hoverPolylineWhite == null)
+             {
+                 _hoverPolylineWhite = new Polyline
+                 {
+                     Stroke = Brushes.White,
+                     StrokeThickness = 1,
+                     StrokeDashArray = new global::Avalonia.Collections.AvaloniaList<double> { 3, 3 },
+                     StrokeDashOffset = 3,
+                     IsHitTestVisible = false
+                 };
+                 overlay.Children.Add(_hoverPolylineWhite);
+             }
+             
+             // Sync points
+             _hoverPolylineBlack.Points = polyline.Points;
+             _hoverPolylineWhite.Points = polyline.Points;
+             return;
+        }
+        
         // Create or update the hover outline (two overlapping rectangles for black/white ant pattern)
         if (_hoverOutlineBlack == null)
         {
@@ -876,4 +980,40 @@ public class EditorSelectionController
     }
 
     private static SKPoint ToSKPoint(Point point) => new((float)point.X, (float)point.Y);
+
+    private bool IsPointNearPolyline(Point point, Polyline polyline, double threshold)
+    {
+        if (polyline.Points == null || polyline.Points.Count < 2) return false;
+
+        var thresholdSq = threshold * threshold;
+
+        for (int i = 0; i < polyline.Points.Count - 1; i++)
+        {
+            var p1 = polyline.Points[i];
+            var p2 = polyline.Points[i + 1];
+
+            var l2 = DistanceSquared(p1, p2);
+            if (l2 == 0)
+            {
+                if (DistanceSquared(point, p1) <= thresholdSq) return true;
+                continue;
+            }
+
+            var t = ((point.X - p1.X) * (p2.X - p1.X) + (point.Y - p1.Y) * (p2.Y - p1.Y)) / l2;
+            t = Math.Max(0, Math.Min(1, t));
+
+            var projX = p1.X + t * (p2.X - p1.X);
+            var projY = p1.Y + t * (p2.Y - p1.Y);
+
+            var distSq = (point.X - projX) * (point.X - projX) + (point.Y - projY) * (point.Y - projY);
+            if (distSq <= thresholdSq) return true;
+        }
+
+        return false;
+    }
+
+    private double DistanceSquared(Point p1, Point p2)
+    {
+        return (p1.X - p2.X) * (p1.X - p2.X) + (p1.Y - p2.Y) * (p1.Y - p2.Y);
+    }
 }
