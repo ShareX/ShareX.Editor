@@ -736,4 +736,150 @@ public static class ImageHelpers
 
         return result;
     }
+
+    /// <summary>
+    /// Apply box blur effect to the image
+    /// </summary>
+    public static SKBitmap BoxBlur(SKBitmap source, int radius)
+    {
+        if (source is null) throw new ArgumentNullException(nameof(source));
+        if (radius <= 0) return source.Copy();
+
+        SKBitmap result = new SKBitmap(source.Width, source.Height, source.ColorType, source.AlphaType);
+        using SKCanvas canvas = new SKCanvas(result);
+        using SKPaint paint = new SKPaint
+        {
+            ImageFilter = SKImageFilter.CreateBlur(radius, radius)
+        };
+        canvas.DrawBitmap(source, 0, 0, paint);
+        return result;
+    }
+
+    /// <summary>
+    /// Apply pixelate effect to the image
+    /// </summary>
+    public static SKBitmap Pixelate(SKBitmap source, int size)
+    {
+        if (source is null) throw new ArgumentNullException(nameof(source));
+        if (size <= 1) return source.Copy();
+
+        // Downscale then upscale to create pixelation effect
+        int smallWidth = Math.Max(1, source.Width / size);
+        int smallHeight = Math.Max(1, source.Height / size);
+
+        SKBitmap small = new SKBitmap(smallWidth, smallHeight);
+        using (SKCanvas smallCanvas = new SKCanvas(small))
+        {
+            smallCanvas.DrawBitmap(source, new SKRect(0, 0, smallWidth, smallHeight));
+        }
+
+        SKBitmap result = new SKBitmap(source.Width, source.Height, source.ColorType, source.AlphaType);
+        using (SKCanvas canvas = new SKCanvas(result))
+        {
+            using SKPaint paint = new SKPaint { FilterQuality = SKFilterQuality.None };
+            canvas.DrawBitmap(small, new SKRect(0, 0, source.Width, source.Height), paint);
+        }
+        small.Dispose();
+        return result;
+    }
+
+    /// <summary>
+    /// Apply sharpen effect to the image
+    /// </summary>
+    public static SKBitmap Sharpen(SKBitmap source, float strength)
+    {
+        if (source is null) throw new ArgumentNullException(nameof(source));
+        if (strength <= 0) return source.Copy();
+
+        // Sharpen using unsharp mask: original + (original - blurred) * strength
+        float s = Math.Clamp(strength, 0f, 1f);
+        
+        SKBitmap result = new SKBitmap(source.Width, source.Height, source.ColorType, source.AlphaType);
+        using SKCanvas canvas = new SKCanvas(result);
+        
+        // Draw original
+        canvas.DrawBitmap(source, 0, 0);
+        
+        // Create sharpening convolution kernel
+        float center = 1 + 4 * s;
+        float edge = -s;
+        float[] kernel = new float[]
+        {
+            0, edge, 0,
+            edge, center, edge,
+            0, edge, 0
+        };
+        
+        // Apply convolution
+        using SKImageFilter sharpenFilter = SKImageFilter.CreateMatrixConvolution(
+            new SKSizeI(3, 3),
+            kernel,
+            1f, // gain
+            0f, // bias
+            new SKPointI(1, 1), // kernel offset
+            SKShaderTileMode.Clamp,
+            true // convolve alpha
+        );
+        
+        using SKPaint paint = new SKPaint { ImageFilter = sharpenFilter };
+        result.Dispose();
+        
+        SKBitmap sharpened = new SKBitmap(source.Width, source.Height, source.ColorType, source.AlphaType);
+        using SKCanvas sharpCanvas = new SKCanvas(sharpened);
+        sharpCanvas.DrawBitmap(source, 0, 0, paint);
+        
+        return sharpened;
+    }
+
+    /// <summary>
+    /// Apply rounded corners to the image
+    /// </summary>
+    public static SKBitmap RoundedCorners(SKBitmap source, int radius)
+    {
+        if (source is null) throw new ArgumentNullException(nameof(source));
+        if (radius <= 0) return source.Copy();
+
+        SKBitmap result = new SKBitmap(source.Width, source.Height, source.ColorType, source.AlphaType);
+        using SKCanvas canvas = new SKCanvas(result);
+        canvas.Clear(SKColors.Transparent);
+
+        using SKPath clipPath = new SKPath();
+        clipPath.AddRoundRect(new SKRect(0, 0, source.Width, source.Height), radius, radius);
+        canvas.ClipPath(clipPath, SKClipOperation.Intersect, true);
+        
+        canvas.DrawBitmap(source, 0, 0);
+        return result;
+    }
+
+    /// <summary>
+    /// Apply skew transformation to the image
+    /// </summary>
+    public static SKBitmap AddSkew(SKBitmap source, int horizontally, int vertically)
+    {
+        if (source is null) throw new ArgumentNullException(nameof(source));
+        if (horizontally == 0 && vertically == 0) return source.Copy();
+
+        float skewX = horizontally / 100f;
+        float skewY = vertically / 100f;
+
+        // Calculate new dimensions to fit the skewed image
+        int extraWidth = (int)(Math.Abs(skewX) * source.Height);
+        int extraHeight = (int)(Math.Abs(skewY) * source.Width);
+        int newWidth = source.Width + extraWidth;
+        int newHeight = source.Height + extraHeight;
+
+        SKBitmap result = new SKBitmap(newWidth, newHeight, source.ColorType, source.AlphaType);
+        using SKCanvas canvas = new SKCanvas(result);
+        canvas.Clear(SKColors.Transparent);
+
+        // Translate to center the skewed image
+        float offsetX = skewX < 0 ? extraWidth : 0;
+        float offsetY = skewY < 0 ? extraHeight : 0;
+        
+        canvas.Translate(offsetX, offsetY);
+        canvas.Skew(skewX, skewY);
+        canvas.DrawBitmap(source, 0, 0);
+
+        return result;
+    }
 }
