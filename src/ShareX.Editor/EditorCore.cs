@@ -775,7 +775,10 @@ public class EditorCore : IDisposable
                annotation is TextAnnotation ||
                annotation is SpeechBalloonAnnotation ||
                annotation is NumberAnnotation ||
-               annotation is BaseEffectAnnotation;
+               annotation is BaseEffectAnnotation ||
+               annotation is FreehandAnnotation ||
+               annotation is SmartEraserAnnotation ||
+               annotation is ImageAnnotation;
     }
 
     /// <summary>
