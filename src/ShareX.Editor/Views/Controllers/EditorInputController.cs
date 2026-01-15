@@ -82,6 +82,11 @@ public class EditorInputController
                  hitSource = hitSource.GetVisualParent();
              }
 
+             if (hitTarget == null)
+             {
+                 hitTarget = _selectionController.HitTestShape(canvas, e.GetPosition(canvas));
+             }
+
              if (hitTarget != null)
              {
                  if (_selectionController.SelectedShape == hitTarget)

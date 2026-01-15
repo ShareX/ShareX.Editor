@@ -753,7 +753,7 @@ public class EditorSelectionController
         }
     }
     
-    private Control? HitTestShape(Canvas canvas, Point currentPoint)
+    public Control? HitTestShape(Canvas canvas, Point currentPoint)
     {
         // Iterate through canvas children in reverse (top-most first)
         for (int i = canvas.Children.Count - 1; i >= 0; i--)
