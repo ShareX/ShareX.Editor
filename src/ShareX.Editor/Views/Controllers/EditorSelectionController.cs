@@ -25,6 +25,11 @@ public class EditorSelectionController
     private Point _startPoint; // Used for resizing deltas
     private bool _isDraggingShape;
 
+    // Hover tracking for ant lines
+    private Control? _hoveredShape;
+    private global::Avalonia.Controls.Shapes.Rectangle? _hoverOutlineBlack;
+    private global::Avalonia.Controls.Shapes.Rectangle? _hoverOutlineWhite;
+
     // Store arrow/line endpoints for editing
     private Dictionary<Control, (Point Start, Point End)> _shapeEndpoints = new();
     private Dictionary<Control, Point> _speechBalloonTailPoints = new();
@@ -46,12 +51,16 @@ public class EditorSelectionController
         _isDraggingHandle = false;
         _draggedHandle = null;
         _isDraggingShape = false;
+        ClearHoverOutline();
         UpdateSelectionHandles();
     }
 
     public void SetSelectedShape(Control shape)
     {
         _selectedShape = shape;
+        // Set the hovered shape to the selected shape so ant lines appear
+        _hoveredShape = shape;
+        UpdateHoverOutline();
         UpdateSelectionHandles();
         
         // Auto-enter text edit mode for speech balloon
@@ -188,6 +197,9 @@ public class EditorSelectionController
             e.Handled = true;
             return true;
         }
+
+        // Update hover state when not dragging
+        UpdateHoverState(canvas, currentPoint);
 
         return false;
     }
@@ -401,6 +413,40 @@ public class EditorSelectionController
             return;
         }
 
+        // Handle Polyline (freehand/eraser) movement by translating all points
+        if (_selectedShape is Polyline polyline)
+        {
+            var newPoints = new Points();
+            foreach (var pt in polyline.Points)
+            {
+                newPoints.Add(new Point(pt.X + deltaX, pt.Y + deltaY));
+            }
+            polyline.Points = newPoints;
+            
+            // Also update the annotation's points if present
+            if (polyline.Tag is FreehandAnnotation freehand)
+            {
+                for (int i = 0; i < freehand.Points.Count; i++)
+                {
+                    var oldPt = freehand.Points[i];
+                    freehand.Points[i] = new SKPoint(oldPt.X + (float)deltaX, oldPt.Y + (float)deltaY);
+                }
+            }
+            else if (polyline.Tag is SmartEraserAnnotation eraser)
+            {
+                for (int i = 0; i < eraser.Points.Count; i++)
+                {
+                    var oldPt = eraser.Points[i];
+                    eraser.Points[i] = new SKPoint(oldPt.X + (float)deltaX, oldPt.Y + (float)deltaY);
+                }
+            }
+            
+            polyline.InvalidateVisual();
+            _lastDragPoint = currentPoint;
+            UpdateSelectionHandles();
+            return;
+        }
+
         var left = Canvas.GetLeft(_selectedShape);
         var top = Canvas.GetTop(_selectedShape);
         Canvas.SetLeft(_selectedShape, left + deltaX);
@@ -433,6 +479,7 @@ public class EditorSelectionController
         {
             CreateHandle(line.StartPoint.X, line.StartPoint.Y, "LineStart");
             CreateHandle(line.EndPoint.X, line.EndPoint.Y, "LineEnd");
+            UpdateHoverOutline();
             return;
         }
 
@@ -443,6 +490,7 @@ public class EditorSelectionController
                 CreateHandle(endpoints.Start.X, endpoints.Start.Y, "ArrowStart");
                 CreateHandle(endpoints.End.X, endpoints.End.Y, "ArrowEnd");
             }
+            UpdateHoverOutline();
             return;
         }
 
@@ -476,6 +524,7 @@ public class EditorSelectionController
              var tailX = (double)balloon.TailPoint.X;
              var tailY = (double)balloon.TailPoint.Y;
              CreateHandle(tailX, tailY, "BalloonTail");
+             UpdateHoverOutline();
              return;
         }
 
@@ -505,6 +554,7 @@ public class EditorSelectionController
         CreateHandle(shapeLeft + width / 2, shapeTop + height, "BottomCenter");
         CreateHandle(shapeLeft, shapeTop + height, "BottomLeft");
         CreateHandle(shapeLeft, shapeTop + height / 2, "LeftCenter");
+        UpdateHoverOutline();
     }
 
     private void CreateHandle(double x, double y, string tag)
@@ -636,6 +686,193 @@ public class EditorSelectionController
     public void RegisterArrowEndpoint(Control path, Point start, Point end)
     {
         _shapeEndpoints[path] = (start, end);
+    }
+
+
+    private void UpdateHoverState(Canvas canvas, Point currentPoint)
+    {
+        // Only show hover outlines when Select tool is active
+        if (_view.DataContext is MainViewModel vm && vm.ActiveTool != EditorTool.Select)
+        {
+            ClearHoverOutline();
+            return;
+        }
+        
+        // Find shape under cursor (hit test)
+        Control? hitShape = null;
+        
+        // Iterate through canvas children in reverse (top-most first)
+        for (int i = canvas.Children.Count - 1; i >= 0; i--)
+        {
+            var child = canvas.Children[i] as Control;
+            if (child == null) continue;
+            
+            // Skip non-moveable overlays and text editors
+            if (child.Name == "CropOverlay" || child.Name == "CutOutOverlay") continue;
+            if (child is TextBox) continue;
+            
+            // Check if point is within the bounds of this control
+            var bounds = child.Bounds;
+            var left = Canvas.GetLeft(child);
+            var top = Canvas.GetTop(child);
+            if (double.IsNaN(left)) left = 0;
+            if (double.IsNaN(top)) top = 0;
+            
+            var shapeBounds = new Rect(left, top, bounds.Width, bounds.Height);
+            
+            // Special handling for Line
+            if (child is global::Avalonia.Controls.Shapes.Line line)
+            {
+                var minX = Math.Min(line.StartPoint.X, line.EndPoint.X) - 5;
+                var minY = Math.Min(line.StartPoint.Y, line.EndPoint.Y) - 5;
+                var maxX = Math.Max(line.StartPoint.X, line.EndPoint.X) + 5;
+                var maxY = Math.Max(line.StartPoint.Y, line.EndPoint.Y) + 5;
+                shapeBounds = new Rect(minX, minY, maxX - minX, maxY - minY);
+            }
+            // Special handling for Path (Arrow)
+            else if (child is global::Avalonia.Controls.Shapes.Path && _shapeEndpoints.TryGetValue(child, out var endpoints))
+            {
+                var minX = Math.Min(endpoints.Start.X, endpoints.End.X) - 10;
+                var minY = Math.Min(endpoints.Start.Y, endpoints.End.Y) - 10;
+                var maxX = Math.Max(endpoints.Start.X, endpoints.End.X) + 10;
+                var maxY = Math.Max(endpoints.Start.Y, endpoints.End.Y) + 10;
+                shapeBounds = new Rect(minX, minY, maxX - minX, maxY - minY);
+            }
+            
+            if (shapeBounds.Contains(currentPoint))
+            {
+                hitShape = child;
+                break;
+            }
+        }
+        
+        // If we're hovering over the selected shape, keep showing ant lines on it
+        // Otherwise, show ant lines on the hovered (unselected) shape
+        if (hitShape == _selectedShape && _selectedShape != null)
+        {
+            // Keep showing ant lines on selected shape
+            if (_hoveredShape != _selectedShape)
+            {
+                ClearHoverOutline();
+                _hoveredShape = _selectedShape;
+            }
+            UpdateHoverOutline();
+        }
+        else if (hitShape != _hoveredShape)
+        {
+            // Hovering over a different shape (or no shape)
+            ClearHoverOutline();
+            _hoveredShape = hitShape;
+            
+            if (_hoveredShape != null)
+            {
+                UpdateHoverOutline();
+            }
+        }
+        else if (_hoveredShape != null)
+        {
+            // Shape is still hovered, update outline position (in case shape moved)
+            UpdateHoverOutline();
+        }
+    }
+    
+    private void ClearHoverOutline()
+    {
+        var overlay = _view.FindControl<Canvas>("OverlayCanvas");
+        if (_hoverOutlineBlack != null)
+        {
+            overlay?.Children.Remove(_hoverOutlineBlack);
+            _hoverOutlineBlack = null;
+        }
+        if (_hoverOutlineWhite != null)
+        {
+            overlay?.Children.Remove(_hoverOutlineWhite);
+            _hoverOutlineWhite = null;
+        }
+        _hoveredShape = null;
+    }
+    
+    private void UpdateHoverOutline()
+    {
+        if (_hoveredShape == null) return;
+        
+        var overlay = _view.FindControl<Canvas>("OverlayCanvas");
+        if (overlay == null) return;
+        
+        double left, top, width, height;
+        
+        // Get bounds based on shape type
+        if (_hoveredShape is global::Avalonia.Controls.Shapes.Line line)
+        {
+            left = Math.Min(line.StartPoint.X, line.EndPoint.X);
+            top = Math.Min(line.StartPoint.Y, line.EndPoint.Y);
+            width = Math.Abs(line.EndPoint.X - line.StartPoint.X);
+            height = Math.Abs(line.EndPoint.Y - line.StartPoint.Y);
+            // Add some padding for thin lines
+            if (width < 10) { left -= 5; width += 10; }
+            if (height < 10) { top -= 5; height += 10; }
+        }
+        else if (_hoveredShape is global::Avalonia.Controls.Shapes.Path && _shapeEndpoints.TryGetValue(_hoveredShape, out var endpoints))
+        {
+            left = Math.Min(endpoints.Start.X, endpoints.End.X);
+            top = Math.Min(endpoints.Start.Y, endpoints.End.Y);
+            width = Math.Abs(endpoints.End.X - endpoints.Start.X);
+            height = Math.Abs(endpoints.End.Y - endpoints.Start.Y);
+            // Add some padding for thin lines
+            if (width < 10) { left -= 5; width += 10; }
+            if (height < 10) { top -= 5; height += 10; }
+        }
+        else
+        {
+            left = Canvas.GetLeft(_hoveredShape);
+            top = Canvas.GetTop(_hoveredShape);
+            if (double.IsNaN(left)) left = 0;
+            if (double.IsNaN(top)) top = 0;
+            width = _hoveredShape.Bounds.Width;
+            height = _hoveredShape.Bounds.Height;
+            if (width <= 0) width = _hoveredShape.Width;
+            if (height <= 0) height = _hoveredShape.Height;
+        }
+        
+        if (width <= 0 || height <= 0) return;
+        
+        // Create or update the hover outline (two overlapping rectangles for black/white ant pattern)
+        if (_hoverOutlineBlack == null)
+        {
+            _hoverOutlineBlack = new global::Avalonia.Controls.Shapes.Rectangle
+            {
+                Stroke = Brushes.Black,
+                StrokeThickness = 1,
+                StrokeDashArray = new global::Avalonia.Collections.AvaloniaList<double> { 3, 3 },
+                Fill = null,
+                IsHitTestVisible = false
+            };
+            overlay.Children.Add(_hoverOutlineBlack);
+        }
+        
+        if (_hoverOutlineWhite == null)
+        {
+            _hoverOutlineWhite = new global::Avalonia.Controls.Shapes.Rectangle
+            {
+                Stroke = Brushes.White,
+                StrokeThickness = 1,
+                StrokeDashArray = new global::Avalonia.Collections.AvaloniaList<double> { 3, 3 },
+                StrokeDashOffset = 3, // Offset by dash length to alternate
+                Fill = null,
+                IsHitTestVisible = false
+            };
+            overlay.Children.Add(_hoverOutlineWhite);
+        }
+        
+        Canvas.SetLeft(_hoverOutlineBlack, left - 2);
+        Canvas.SetTop(_hoverOutlineBlack, top - 2);
+        _hoverOutlineBlack.Width = width + 4;
+        _hoverOutlineBlack.Height = height + 4;
+        
+        Canvas.SetLeft(_hoverOutlineWhite, left - 2);
+        Canvas.SetTop(_hoverOutlineWhite, top - 2);
+        _hoverOutlineWhite.Width = width + 4;
+        _hoverOutlineWhite.Height = height + 4;
     }
 
     private static SKPoint ToSKPoint(Point point) => new((float)point.X, (float)point.Y);
