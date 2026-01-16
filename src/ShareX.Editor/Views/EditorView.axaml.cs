@@ -396,8 +396,11 @@ namespace ShareX.Editor.Views
                     canvas.Children.Add(shape);
                 }
             }
-            
+
             RenderCore();
+
+            // 3. Validate state synchronization (ISSUE-001 mitigation)
+            ValidateAnnotationSync();
         }
 
         private Control? CreateControlForAnnotation(Annotation annotation)
@@ -1061,6 +1064,41 @@ namespace ShareX.Editor.Views
             });
 
             return file?.Path.LocalPath;
+        }
+
+        /// <summary>
+        /// Validates that UI annotation state is synchronized with EditorCore state.
+        /// ISSUE-001 mitigation: Detect annotation count mismatches in dual-state architecture.
+        /// </summary>
+        private void ValidateAnnotationSync()
+        {
+            var canvas = this.FindControl<Canvas>("AnnotationCanvas");
+            if (canvas == null) return;
+
+            // Count UI annotations (exclude non-annotation controls like CropOverlay)
+            int uiAnnotationCount = 0;
+            foreach (var child in canvas.Children)
+            {
+                if (child is Control control && control.Tag is Annotation &&
+                    control.Name != "CropOverlay" && control.Name != "CutOutOverlay")
+                {
+                    uiAnnotationCount++;
+                }
+            }
+
+            int coreAnnotationCount = _editorCore.Annotations.Count;
+
+            if (uiAnnotationCount != coreAnnotationCount)
+            {
+                var message = $"[SYNC WARNING] Annotation count mismatch: UI={uiAnnotationCount}, Core={coreAnnotationCount}";
+                System.Diagnostics.Debug.WriteLine(message);
+
+                // Optional: Update status bar for user visibility
+                if (DataContext is MainViewModel vm)
+                {
+                    vm.StatusText = "Warning: Annotation sync issue detected";
+                }
+            }
         }
     }
 }
