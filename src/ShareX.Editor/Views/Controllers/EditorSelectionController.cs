@@ -375,6 +375,32 @@ public class EditorSelectionController
              return;
         }
 
+        if (_selectedShape is ShareX.Editor.Controls.SpotlightControl spotlight && spotlight.Annotation is SpotlightAnnotation sa)
+        {
+             var bounds = sa.GetBounds();
+             var newLeft = bounds.Left;
+             var newTop = bounds.Top;
+             var newWidth = bounds.Width;
+             var newHeight = bounds.Height;
+             
+             float dx = (float)deltaX;
+             float dy = (float)deltaY;
+
+             if (handleTag.Contains("Right")) newWidth = Math.Max(10, newWidth + dx);
+             else if (handleTag.Contains("Left")) { var change = Math.Min(newWidth - 10, dx); newLeft += change; newWidth -= change; }
+
+             if (handleTag.Contains("Bottom")) newHeight = Math.Max(10, newHeight + dy);
+             else if (handleTag.Contains("Top")) { var change = Math.Min(newHeight - 10, dy); newTop += change; newHeight -= change; }
+
+             sa.StartPoint = ToSKPoint(new Point(newLeft, newTop));
+             sa.EndPoint = ToSKPoint(new Point(newLeft + newWidth, newTop + newHeight));
+             spotlight.InvalidateVisual();
+             
+             _startPoint = currentPoint;
+             UpdateSelectionHandles();
+             return;
+        }
+
         if (_selectedShape is global::Avalonia.Controls.Shapes.Rectangle || _selectedShape is global::Avalonia.Controls.Shapes.Ellipse || _selectedShape is Grid)
         {
              double newLeft = left;
@@ -597,7 +623,23 @@ public class EditorSelectionController
             return;
         }
 
-        if (_selectedShape is Grid || _selectedShape is ShareX.Editor.Controls.SpotlightControl)
+        if (_selectedShape is ShareX.Editor.Controls.SpotlightControl spotlightControl && spotlightControl.Annotation is SpotlightAnnotation spotlightAnn)
+        {
+            var bounds = spotlightAnn.GetBounds();
+            CreateHandle(bounds.Left, bounds.Top, "TopLeft");
+            CreateHandle(bounds.Left + bounds.Width / 2, bounds.Top, "TopCenter");
+            CreateHandle(bounds.Right, bounds.Top, "TopRight");
+            CreateHandle(bounds.Right, bounds.Top + bounds.Height / 2, "RightCenter");
+            CreateHandle(bounds.Right, bounds.Bottom, "BottomRight");
+            CreateHandle(bounds.Left + bounds.Width / 2, bounds.Bottom, "BottomCenter");
+            CreateHandle(bounds.Left, bounds.Bottom, "BottomLeft");
+            CreateHandle(bounds.Left, bounds.Top + bounds.Height / 2, "LeftCenter");
+            
+            UpdateHoverOutline();
+            return;
+        }
+
+        if (_selectedShape is Grid)
         {
             UpdateHoverOutline();
             return;
