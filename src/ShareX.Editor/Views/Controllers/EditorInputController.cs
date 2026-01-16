@@ -236,13 +236,15 @@ public class EditorInputController
                 break;
             case EditorTool.Pen:
             case EditorTool.SmartEraser:
-                var polyline = new Polyline
+                var path = new global::Avalonia.Controls.Shapes.Path
                 {
                     Stroke = (vm.ActiveTool == EditorTool.SmartEraser) ? new SolidColorBrush(Color.Parse("#80FF0000")) : brush,
                     StrokeThickness = (vm.ActiveTool == EditorTool.SmartEraser) ? 10 : vm.StrokeWidth,
-                    Points = new Points { _startPoint }
+                    StrokeLineCap = PenLineCap.Round,
+                    StrokeJoin = PenLineJoin.Round
+                    // Data will be set on move
                 };
-                polyline.SetValue(Panel.ZIndexProperty, 1);
+                path.SetValue(Panel.ZIndexProperty, 1);
 
                 if (vm.ActiveTool == EditorTool.SmartEraser)
                 {
@@ -251,21 +253,23 @@ public class EditorInputController
                     var sampledColor = await _view.GetPixelColorFromRenderedCanvas(_startPoint);
 
                     var smartEraser = new SmartEraserAnnotation { StrokeColor = sampledColor ?? "#FFFFFFFF", StrokeWidth = 10, Points = new List<SKPoint> { ToSKPoint(_startPoint) } };
-                    polyline.Tag = smartEraser;
+                    path.Tag = smartEraser;
+                    path.Data = smartEraser.CreateSmoothedGeometry();
 
                     // If we got a valid color, use it as solid color; otherwise fall back to semi-transparent red
                     if (!string.IsNullOrEmpty(sampledColor))
                     {
                         // Update polyline to use solid sampled color
-                        polyline.Stroke = new SolidColorBrush(Color.Parse(sampledColor));
+                        path.Stroke = new SolidColorBrush(Color.Parse(sampledColor));
                     }
                 }
                 else
                 {
                     var freehand = new FreehandAnnotation { StrokeColor = vm.SelectedColor, StrokeWidth = vm.StrokeWidth, Points = new List<SKPoint> { ToSKPoint(_startPoint) } };
-                    polyline.Tag = freehand;
+                    path.Tag = freehand;
+                    path.Data = freehand.CreateSmoothedGeometry();
                 }
-                _currentShape = polyline;
+                _currentShape = path;
                 break;
         }
 
@@ -305,20 +309,15 @@ public class EditorInputController
          var vm = ViewModel;
          if (vm == null) return;
 
-         if (_currentShape is Polyline polyline)
+         if (_currentShape is global::Avalonia.Controls.Shapes.Path freehandPath && (freehandPath.Tag is FreehandAnnotation || freehandPath.Tag is SmartEraserAnnotation))
          {
-             // Freehand drawing: create a new Points collection to force property change and redraw.
-             var updated = new Points();
-             foreach (var p in polyline.Points)
+             var freehand = freehandPath.Tag as FreehandAnnotation;
+             if (freehand != null)
              {
-                 updated.Add(p);
+                 freehand.Points.Add(ToSKPoint(currentPoint));
+                 freehandPath.Data = freehand.CreateSmoothedGeometry();
+                 freehandPath.InvalidateVisual();
              }
-             updated.Add(currentPoint);
-             polyline.Points = updated;
-             polyline.InvalidateVisual();
-             
-             if (polyline.Tag is FreehandAnnotation freehand) freehand.Points.Add(ToSKPoint(currentPoint));
-             else if (polyline.Tag is SmartEraserAnnotation eraser) eraser.Points.Add(ToSKPoint(currentPoint));
              return;
          }
 
@@ -474,9 +473,9 @@ public class EditorInputController
                 {
                      // Restored from ref\EditorView_master.axaml.cs lines 2211-2238
                      // Auto-select newly created shape so resize handles appear immediately,
-                     // but skip selection for freehand pen/eraser strokes (Polyline) which
+                     // but skip selection for freehand pen/eraser strokes (Path) which
                      // are not resizable with our current handle logic.
-                     if (_currentShape is not Polyline)
+                     if (!(_currentShape is global::Avalonia.Controls.Shapes.Path && _currentShape.Tag is FreehandAnnotation))
                      {
                          // Apply final effect for effect tools
                          if (_currentShape.Tag is BaseEffectAnnotation)

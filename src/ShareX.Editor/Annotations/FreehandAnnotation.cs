@@ -33,17 +33,57 @@ public class FreehandAnnotation : Annotation
     /// <summary>
     /// Creates the Avalonia visual for this annotation
     /// </summary>
+    /// <summary>
+    /// Creates the Avalonia visual for this annotation
+    /// </summary>
     public Control CreateVisual()
     {
         var brush = new SolidColorBrush(Color.Parse(StrokeColor));
-        return new Polyline
+        return new global::Avalonia.Controls.Shapes.Path
         {
             Stroke = brush,
             StrokeThickness = StrokeWidth,
             StrokeLineCap = PenLineCap.Round,
             StrokeJoin = PenLineJoin.Round,
+            Data = CreateSmoothedGeometry(),
             Tag = this
         };
+    }
+
+    public Geometry CreateSmoothedGeometry()
+    {
+        if (Points.Count < 2) return new StreamGeometry();
+
+        var geometry = new StreamGeometry();
+        using var context = geometry.Open();
+
+        context.BeginFigure(new Point(Points[0].X, Points[0].Y), false);
+
+        if (Points.Count == 2)
+        {
+            context.LineTo(new Point(Points[1].X, Points[1].Y));
+        }
+        else
+        {
+            var p0 = Points[0];
+            var p1 = Points[1];
+            var mid = new Point((p0.X + p1.X) / 2, (p0.Y + p1.Y) / 2);
+            context.LineTo(mid);
+
+            for (int i = 1; i < Points.Count - 1; i++)
+            {
+                var pControl = new Point(Points[i].X, Points[i].Y);
+                var pNext = Points[i + 1];
+                var nextMid = new Point((pControl.X + pNext.X) / 2, (pControl.Y + pNext.Y) / 2);
+
+                context.QuadraticBezierTo(pControl, nextMid);
+            }
+
+            context.LineTo(new Point(Points[Points.Count - 1].X, Points[Points.Count - 1].Y));
+        }
+        
+        context.EndFigure(false);
+        return geometry;
     }
 
     public override void Render(SKCanvas canvas)
@@ -54,9 +94,29 @@ public class FreehandAnnotation : Annotation
         using var path = new SKPath();
 
         path.MoveTo(Points[0]);
-        for (int i = 1; i < Points.Count; i++)
+
+        if (Points.Count == 2)
         {
-            path.LineTo(Points[i]);
+            path.LineTo(Points[1]);
+        }
+        else
+        {
+            // Smooth curve algorithm (using quadratic bezier curves between midpoints)
+            var p0 = Points[0];
+            var p1 = Points[1];
+            var mid = new SKPoint((p0.X + p1.X) / 2, (p0.Y + p1.Y) / 2);
+            path.LineTo(mid);
+
+            for (int i = 1; i < Points.Count - 1; i++)
+            {
+                var pControl = Points[i];
+                var pNext = Points[i + 1];
+                var nextMid = new SKPoint((pControl.X + pNext.X) / 2, (pControl.Y + pNext.Y) / 2);
+
+                path.QuadTo(pControl, nextMid);
+            }
+
+            path.LineTo(Points[Points.Count - 1]);
         }
 
         canvas.DrawPath(path, paint);
