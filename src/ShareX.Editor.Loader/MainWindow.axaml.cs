@@ -5,6 +5,7 @@ using SkiaSharp;
 using System.IO;
 using System.Reflection;
 using System;
+using System.Threading.Tasks;
 
 namespace ShareX.Editor.Loader
 {
@@ -16,6 +17,14 @@ namespace ShareX.Editor.Loader
             
             // Initialize ViewModel
             var vm = new MainViewModel();
+            
+            // Wire up UploadRequested with a stub handler (standalone mode has no upload capability)
+            vm.UploadRequested += (bitmap) =>
+            {
+                vm.StatusText = "Upload not available in standalone Editor mode. Use XerahS.App for uploads.";
+                return Task.CompletedTask;
+            };
+            
             this.DataContext = vm;
             
             // Load sample image asynchronously

@@ -1,3 +1,4 @@
+using ShareX.Editor.ImageEffects.Filters;
 using Avalonia.Controls;
 using Avalonia.Interactivity;
 using Avalonia.Markup.Xaml;
@@ -28,13 +29,13 @@ namespace ShareX.Editor.Views.Dialogs
         private void RequestPreview()
         {
             int strength = (int)(this.FindControl<Slider>("StrengthSlider")?.Value ?? 50);
-            PreviewRequested?.Invoke(this, new EffectEventArgs(img => new FiltersSharpenImageEffect { Strength = strength }.Apply(img), "Sharpen"));
+            PreviewRequested?.Invoke(this, new EffectEventArgs(img => new SharpenImageEffect { Strength = strength }.Apply(img), "Sharpen"));
         }
 
         private void OnApplyClick(object? sender, RoutedEventArgs e)
         {
             int strength = (int)(this.FindControl<Slider>("StrengthSlider")?.Value ?? 50);
-            ApplyRequested?.Invoke(this, new EffectEventArgs(img => new FiltersSharpenImageEffect { Strength = strength }.Apply(img), "Applied Sharpen"));
+            ApplyRequested?.Invoke(this, new EffectEventArgs(img => new SharpenImageEffect { Strength = strength }.Apply(img), "Applied Sharpen"));
         }
 
         private void OnCancelClick(object? sender, RoutedEventArgs e)
@@ -43,3 +44,4 @@ namespace ShareX.Editor.Views.Dialogs
         }
     }
 }
+

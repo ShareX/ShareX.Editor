@@ -1,3 +1,4 @@
+using ShareX.Editor.ImageEffects.Manipulations;
 using Avalonia.Controls;
 using Avalonia.Interactivity;
 using Avalonia.Markup.Xaml;
@@ -29,14 +30,14 @@ namespace ShareX.Editor.Views.Dialogs
         {
             int horizontal = (int)(this.FindControl<Slider>("HorizontalSlider")?.Value ?? 0);
             int vertical = (int)(this.FindControl<Slider>("VerticalSlider")?.Value ?? 0);
-            PreviewRequested?.Invoke(this, new EffectEventArgs(img => new ManipulationsSkewImageEffect { Horizontally = horizontal, Vertically = vertical }.Apply(img), "Skew"));
+            PreviewRequested?.Invoke(this, new EffectEventArgs(img => new SkewImageEffect { Horizontally = horizontal, Vertically = vertical }.Apply(img), "Skew"));
         }
 
         private void OnApplyClick(object? sender, RoutedEventArgs e)
         {
             int horizontal = (int)(this.FindControl<Slider>("HorizontalSlider")?.Value ?? 0);
             int vertical = (int)(this.FindControl<Slider>("VerticalSlider")?.Value ?? 0);
-            ApplyRequested?.Invoke(this, new EffectEventArgs(img => new ManipulationsSkewImageEffect { Horizontally = horizontal, Vertically = vertical }.Apply(img), "Applied Skew"));
+            ApplyRequested?.Invoke(this, new EffectEventArgs(img => new SkewImageEffect { Horizontally = horizontal, Vertically = vertical }.Apply(img), "Applied Skew"));
         }
 
         private void OnCancelClick(object? sender, RoutedEventArgs e)
@@ -45,3 +46,4 @@ namespace ShareX.Editor.Views.Dialogs
         }
     }
 }
+

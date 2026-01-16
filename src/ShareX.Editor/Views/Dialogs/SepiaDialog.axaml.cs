@@ -1,3 +1,4 @@
+using ShareX.Editor.ImageEffects.Adjustments;
 using Avalonia.Controls;
 using Avalonia.Interactivity;
 using Avalonia.Markup.Xaml;
@@ -28,13 +29,13 @@ namespace ShareX.Editor.Views.Dialogs
         private void RequestPreview()
         {
             float strength = (float)(this.FindControl<Slider>("StrengthSlider")?.Value ?? 100);
-            PreviewRequested?.Invoke(this, new EffectEventArgs(img => new AdjustmentsSepiaImageEffect { Strength = strength }.Apply(img), "Sepia"));
+            PreviewRequested?.Invoke(this, new EffectEventArgs(img => new SepiaImageEffect { Strength = strength }.Apply(img), "Sepia"));
         }
 
         private void OnApplyClick(object? sender, RoutedEventArgs e)
         {
             float strength = (float)(this.FindControl<Slider>("StrengthSlider")?.Value ?? 100);
-            ApplyRequested?.Invoke(this, new EffectEventArgs(img => new AdjustmentsSepiaImageEffect { Strength = strength }.Apply(img), "Applied Sepia"));
+            ApplyRequested?.Invoke(this, new EffectEventArgs(img => new SepiaImageEffect { Strength = strength }.Apply(img), "Applied Sepia"));
         }
 
         private void OnCancelClick(object? sender, RoutedEventArgs e)
@@ -43,3 +44,4 @@ namespace ShareX.Editor.Views.Dialogs
         }
     }
 }
+

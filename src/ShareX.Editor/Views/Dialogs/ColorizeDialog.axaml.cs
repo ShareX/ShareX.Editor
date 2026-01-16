@@ -1,3 +1,4 @@
+using ShareX.Editor.ImageEffects.Adjustments;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Interactivity;
@@ -80,7 +81,7 @@ namespace ShareX.Editor.Views.Dialogs
              var color = GetCurrentColor();
              float strength = GetStrength();
 
-             PreviewRequested?.Invoke(this, new EffectEventArgs(img => new AdjustmentsColorizeImageEffect { Color = color, Strength = strength }.Apply(img), $"Colorize: Hue {GetHue():0}, Strength {strength:0}%"));
+             PreviewRequested?.Invoke(this, new EffectEventArgs(img => new ColorizeImageEffect { Color = color, Strength = strength }.Apply(img), $"Colorize: Hue {GetHue():0}, Strength {strength:0}%"));
         }
 
         private float GetHue()
@@ -94,7 +95,7 @@ namespace ShareX.Editor.Views.Dialogs
             var color = GetCurrentColor();
             float strength = GetStrength();
             
-            ApplyRequested?.Invoke(this, new EffectEventArgs(img => new AdjustmentsColorizeImageEffect { Color = color, Strength = strength }.Apply(img), "Applied Colorize"));
+            ApplyRequested?.Invoke(this, new EffectEventArgs(img => new ColorizeImageEffect { Color = color, Strength = strength }.Apply(img), "Applied Colorize"));
         }
 
         private void OnCancelClick(object? sender, RoutedEventArgs e)
@@ -103,3 +104,4 @@ namespace ShareX.Editor.Views.Dialogs
         }
     }
 }
+

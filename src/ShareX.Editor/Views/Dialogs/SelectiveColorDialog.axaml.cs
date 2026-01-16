@@ -3,6 +3,7 @@ using Avalonia.Interactivity;
 using Avalonia.Markup.Xaml;
 using ShareX.Editor.Helpers;
 using ShareX.Editor.ImageEffects;
+using ShareX.Editor.ImageEffects.Adjustments;
 using SkiaSharp;
 
 namespace ShareX.Editor.Views.Dialogs
@@ -90,7 +91,7 @@ namespace ShareX.Editor.Views.Dialogs
         private SKBitmap ApplyAllAdjustments(SKBitmap source)
         {
             // Create the effect and apply it
-            var effect = new AdjustmentsSelectiveColorImageEffect
+            var effect = new SelectiveColorImageEffect
             {
                 Adjustments = new Dictionary<SelectiveColorRange, SelectiveColorAdjustment>(_adjustments)
             };

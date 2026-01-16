@@ -1,3 +1,5 @@
+using ShareX.Editor.ImageEffects.Manipulations;
+using ShareX.Editor.ImageEffects.Adjustments;
 #region License Information (GPL v3)
 
 /*
@@ -973,6 +975,8 @@ namespace ShareX.Editor.ViewModels
         [RelayCommand]
         private async Task Upload()
         {
+            DebugHelper.WriteLine("Upload() called - starting upload flow");
+            
             // Get flattened image with annotations
             Bitmap? snapshot = null;
             if (SnapshotRequested != null)
@@ -984,8 +988,11 @@ namespace ShareX.Editor.ViewModels
             if (imageToUpload == null)
             {
                 StatusText = "No image to upload";
+                DebugHelper.WriteLine("Upload: No image to upload");
                 return;
             }
+
+            DebugHelper.WriteLine($"Upload: UploadRequested is {(UploadRequested != null ? "subscribed" : "NULL")}");
 
             if (UploadRequested != null)
             {
@@ -993,6 +1000,7 @@ namespace ShareX.Editor.ViewModels
                 {
                     StatusText = "Uploading...";
                     ExportState = "Uploading";
+                    DebugHelper.WriteLine("Upload: About to invoke UploadRequested event");
                     await UploadRequested.Invoke(imageToUpload);
                     DebugHelper.WriteLine("Upload: Image passed to host for upload.");
                 }
@@ -1006,6 +1014,7 @@ namespace ShareX.Editor.ViewModels
             else
             {
                 StatusText = "Upload not available";
+                DebugHelper.WriteLine("Upload: UploadRequested is null - no subscriber");
             }
         }
 
@@ -1250,25 +1259,25 @@ namespace ShareX.Editor.ViewModels
         [RelayCommand]
         private void InvertColors()
         {
-            ApplyOneShotEffect(img => new AdjustmentsInvertImageEffect().Apply(img), "Inverted colors");
+            ApplyOneShotEffect(img => new InvertImageEffect().Apply(img), "Inverted colors");
         }
 
         [RelayCommand]
         private void BlackAndWhite()
         {
-            ApplyOneShotEffect(img => new AdjustmentsBlackAndWhiteImageEffect().Apply(img), "Applied Black & White filter");
+            ApplyOneShotEffect(img => new BlackAndWhiteImageEffect().Apply(img), "Applied Black & White filter");
         }
 
         [RelayCommand]
         private void Sepia()
         {
-            ApplyOneShotEffect(img => new AdjustmentsSepiaImageEffect().Apply(img), "Applied Sepia filter");
+            ApplyOneShotEffect(img => new SepiaImageEffect().Apply(img), "Applied Sepia filter");
         }
 
         [RelayCommand]
         private void Polaroid()
         {
-            ApplyOneShotEffect(img => new AdjustmentsPolaroidImageEffect().Apply(img), "Applied Polaroid filter");
+            ApplyOneShotEffect(img => new PolaroidImageEffect().Apply(img), "Applied Polaroid filter");
         }
 
         private void ApplyOneShotEffect(Func<SkiaSharp.SKBitmap, SkiaSharp.SKBitmap> effect, string statusMessage)
@@ -1475,7 +1484,7 @@ namespace ShareX.Editor.ViewModels
             if (!IsRotateCustomAngleDialogOpen || _rotateCustomAngleOriginalBitmap == null) return;
 
             float angle = (float)Math.Clamp(RotateAngleDegrees, -180, 180);
-            var effect = ManipulationsRotateImageEffect.Custom(angle, RotateAutoResize);
+            var effect = RotateImageEffect.Custom(angle, RotateAutoResize);
 
             var result = effect.Apply(_rotateCustomAngleOriginalBitmap);
             
@@ -1493,7 +1502,7 @@ namespace ShareX.Editor.ViewModels
             _imageUndoStack.Push(_rotateCustomAngleOriginalBitmap.Copy());
             _imageRedoStack.Clear();
 
-            var effect = ManipulationsRotateImageEffect.Custom(angle, RotateAutoResize);
+            var effect = RotateImageEffect.Custom(angle, RotateAutoResize);
             var result = effect.Apply(_rotateCustomAngleOriginalBitmap);
             
             UpdatePreview(result, clearAnnotations: true);
@@ -1528,5 +1537,6 @@ namespace ShareX.Editor.ViewModels
         }
     }
 }
+
 
 

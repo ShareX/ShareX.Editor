@@ -1,3 +1,5 @@
+using ShareX.Editor.ImageEffects.Manipulations;
+using ShareX.Editor.ImageEffects.Filters;
 #region License Information (GPL v3)
 
 /*
@@ -181,7 +183,7 @@ public static class ImageHelpers
     public static SKBitmap Resize(SKBitmap source, int width, int height, bool maintainAspectRatio = false, SKFilterQuality quality = SKFilterQuality.High)
     {
         // Quality ignored in Effect currently or hardcoded to High
-        return new ShareX.Editor.ImageEffects.ManipulationsResizeImageEffect(width, height, maintainAspectRatio).Apply(source);
+        return new ResizeImageEffect(width, height, maintainAspectRatio).Apply(source);
     }
 
     /// <summary>
@@ -189,7 +191,7 @@ public static class ImageHelpers
     /// </summary>
     public static SKBitmap Rotate90Clockwise(SKBitmap source)
     {
-        return ShareX.Editor.ImageEffects.ManipulationsRotateImageEffect.Clockwise90.Apply(source);
+        return RotateImageEffect.Clockwise90.Apply(source);
     }
 
     /// <summary>
@@ -197,7 +199,7 @@ public static class ImageHelpers
     /// </summary>
     public static SKBitmap Rotate90CounterClockwise(SKBitmap source)
     {
-        return ShareX.Editor.ImageEffects.ManipulationsRotateImageEffect.CounterClockwise90.Apply(source);
+        return RotateImageEffect.CounterClockwise90.Apply(source);
     }
 
     /// <summary>
@@ -205,7 +207,7 @@ public static class ImageHelpers
     /// </summary>
     public static SKBitmap Rotate180(SKBitmap source)
     {
-        return ShareX.Editor.ImageEffects.ManipulationsRotateImageEffect.Rotate180.Apply(source);
+        return RotateImageEffect.Rotate180.Apply(source);
     }
 
     /// <summary>
@@ -216,7 +218,7 @@ public static class ImageHelpers
     /// </summary>
     public static SKBitmap FlipHorizontal(SKBitmap source)
     {
-        return ShareX.Editor.ImageEffects.ManipulationsFlipImageEffect.Horizontal.Apply(source);
+        return FlipImageEffect.Horizontal.Apply(source);
     }
 
     /// <summary>
@@ -227,7 +229,7 @@ public static class ImageHelpers
     /// </summary>
     public static SKBitmap FlipVertical(SKBitmap source)
     {
-        return ShareX.Editor.ImageEffects.ManipulationsFlipImageEffect.Vertical.Apply(source);
+        return FlipImageEffect.Vertical.Apply(source);
     }
 
     /// <summary>
@@ -270,7 +272,7 @@ public static class ImageHelpers
     /// <returns>Cropped bitmap</returns>
     public static SKBitmap AutoCrop(SKBitmap source, SKColor color, int tolerance = 0)
     {
-        return new ShareX.Editor.ImageEffects.ManipulationsAutoCropImageEffect(color, tolerance).Apply(source);
+        return new AutoCropImageEffect(color, tolerance).Apply(source);
     }
 
     internal static bool ColorsMatch(SKColor c1, SKColor c2, int tolerance)
@@ -290,37 +292,39 @@ public static class ImageHelpers
 
     public static SKBitmap ApplyBorder(SKBitmap source, BorderType type, int size, DashStyle dashStyle, SKColor color)
     {
-        return new ShareX.Editor.ImageEffects.FiltersBorderImageEffect(type, size, dashStyle, color).Apply(source);
+        return new BorderImageEffect(type, size, dashStyle, color).Apply(source);
     }
 
     public static SKBitmap ApplyOutline(SKBitmap source, int size, int padding, SKColor color)
     {
-        return new ShareX.Editor.ImageEffects.FiltersOutlineImageEffect(size, padding, color).Apply(source);
+        return new OutlineImageEffect(size, padding, color).Apply(source);
     }
 
     public static SKBitmap ApplyShadow(SKBitmap source, float opacity, int size, float darkness, SKColor color, int offsetX, int offsetY, bool autoResize)
     {
-        return new ShareX.Editor.ImageEffects.FiltersShadowImageEffect(opacity, size, darkness, color, offsetX, offsetY, autoResize).Apply(source);
+        return new ShadowImageEffect(opacity, size, darkness, color, offsetX, offsetY, autoResize).Apply(source);
     }
 
     public static SKBitmap ApplyGlow(SKBitmap source, int size, float strength, SKColor color, int offsetX, int offsetY)
     {
-        return new ShareX.Editor.ImageEffects.FiltersGlowImageEffect(size, strength, color, offsetX, offsetY).Apply(source);
+        return new GlowImageEffect(size, strength, color, offsetX, offsetY).Apply(source);
     }
 
     public static SKBitmap ApplyReflection(SKBitmap source, int percentage, int maxAlpha, int minAlpha, int offset, bool skew, int skewSize)
     {
-        return new ShareX.Editor.ImageEffects.FiltersReflectionImageEffect(percentage, maxAlpha, minAlpha, offset, skew, skewSize).Apply(source);
+        return new ReflectionImageEffect(percentage, maxAlpha, minAlpha, offset, skew, skewSize).Apply(source);
     }
 
     public static SKBitmap ApplyTornEdge(SKBitmap source, int depth, int range, bool top, bool right, bool bottom, bool left, bool curved)
     {
-        return new ShareX.Editor.ImageEffects.FiltersTornEdgeImageEffect(depth, range, top, right, bottom, left, curved).Apply(source);
+        return new TornEdgeImageEffect(depth, range, top, right, bottom, left, curved).Apply(source);
     }
 
     public static SKBitmap ApplySlice(SKBitmap source, int minHeight, int maxHeight, int minShift, int maxShift)
     {
-        return new ShareX.Editor.ImageEffects.FiltersSliceImageEffect(minHeight, maxHeight, minShift, maxShift).Apply(source);
+        return new SliceImageEffect(minHeight, maxHeight, minShift, maxShift).Apply(source);
     }
 
 }
+
+

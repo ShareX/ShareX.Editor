@@ -1,3 +1,4 @@
+using ShareX.Editor.ImageEffects.Filters;
 using Avalonia.Controls;
 using Avalonia.Interactivity;
 using Avalonia.Markup.Xaml;
@@ -28,13 +29,13 @@ namespace ShareX.Editor.Views.Dialogs
         private void RequestPreview()
         {
             int size = (int)(this.FindControl<Slider>("SizeSlider")?.Value ?? 10);
-            PreviewRequested?.Invoke(this, new EffectEventArgs(img => new FiltersPixelateImageEffect { Size = size }.Apply(img), "Pixelate"));
+            PreviewRequested?.Invoke(this, new EffectEventArgs(img => new PixelateImageEffect { Size = size }.Apply(img), "Pixelate"));
         }
 
         private void OnApplyClick(object? sender, RoutedEventArgs e)
         {
             int size = (int)(this.FindControl<Slider>("SizeSlider")?.Value ?? 10);
-            ApplyRequested?.Invoke(this, new EffectEventArgs(img => new FiltersPixelateImageEffect { Size = size }.Apply(img), "Applied Pixelate"));
+            ApplyRequested?.Invoke(this, new EffectEventArgs(img => new PixelateImageEffect { Size = size }.Apply(img), "Applied Pixelate"));
         }
 
         private void OnCancelClick(object? sender, RoutedEventArgs e)
@@ -43,3 +44,4 @@ namespace ShareX.Editor.Views.Dialogs
         }
     }
 }
+

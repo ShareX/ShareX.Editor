@@ -1,5 +1,8 @@
 using System.Collections.Generic;
 using System.Linq;
+using ShareX.Editor.ImageEffects.Adjustments;
+using ShareX.Editor.ImageEffects.Filters;
+using ShareX.Editor.ImageEffects.Manipulations;
 
 namespace ShareX.Editor.ImageEffects;
 
@@ -12,40 +15,40 @@ public static class ImageEffectRegistry
         var effects = new List<ImageEffect>
         {
             // Manipulations - Rotate
-            ManipulationsRotateImageEffect.Clockwise90,
-            ManipulationsRotateImageEffect.CounterClockwise90,
-            ManipulationsRotateImageEffect.Rotate180,
+            RotateImageEffect.Clockwise90,
+            RotateImageEffect.CounterClockwise90,
+            RotateImageEffect.Rotate180,
             
             // Manipulations - Flip
-            ManipulationsFlipImageEffect.Horizontal,
-            ManipulationsFlipImageEffect.Vertical,
+            FlipImageEffect.Horizontal,
+            FlipImageEffect.Vertical,
             
             // Manipulations - Resize (parameterized)
-            new ManipulationsResizeImageEffect(), 
-            new ManipulationsAutoCropImageEffect(),
+            new ResizeImageEffect(), 
+            new AutoCropImageEffect(),
             
             // Adjustments
-            new AdjustmentsBrightnessImageEffect(),
-            new AdjustmentsContrastImageEffect(),
-            new AdjustmentsHueImageEffect(),
-            new AdjustmentsSaturationImageEffect(),
-            new AdjustmentsGammaImageEffect(),
-            new AdjustmentsAlphaImageEffect(),
-            new AdjustmentsColorizeImageEffect(),
-            new AdjustmentsSelectiveColorImageEffect(),
-            new AdjustmentsReplaceColorImageEffect(),
+            new BrightnessImageEffect(),
+            new ContrastImageEffect(),
+            new HueImageEffect(),
+            new SaturationImageEffect(),
+            new GammaImageEffect(),
+            new AlphaImageEffect(),
+            new ColorizeImageEffect(),
+            new SelectiveColorImageEffect(),
+            new ReplaceColorImageEffect(),
             
             // Filters (parameterless)
-            new FiltersBlurImageEffect(),
-            new FiltersPixelateImageEffect(),
-            new FiltersSharpenImageEffect(),
+            new BlurImageEffect(),
+            new PixelateImageEffect(),
+            new SharpenImageEffect(),
             
             // Adjustments - Color Filters
-            new AdjustmentsInvertImageEffect(),
-            new AdjustmentsGrayscaleImageEffect(),
-            new AdjustmentsBlackAndWhiteImageEffect(),
-            new AdjustmentsSepiaImageEffect(),
-            new AdjustmentsPolaroidImageEffect()
+            new InvertImageEffect(),
+            new GrayscaleImageEffect(),
+            new BlackAndWhiteImageEffect(),
+            new SepiaImageEffect(),
+            new PolaroidImageEffect()
         };
 
         Effects = effects.AsReadOnly();

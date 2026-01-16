@@ -1,3 +1,4 @@
+#pragma warning disable CS0618 // FileDialogFilter is obsolete
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Markup.Xaml;
