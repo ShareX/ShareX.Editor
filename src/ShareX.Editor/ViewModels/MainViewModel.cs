@@ -1523,12 +1523,12 @@ namespace ShareX.Editor.ViewModels
             if (_rotateCustomAngleOriginalBitmap != null)
             {
                 // Restore original
-                // We just need to reload the original bitmap into the view/core.
-                // We don't push to undo stack.
+                // UpdatePreview takes ownership of the bitmap, so we transfer ownership without disposing
                 UpdatePreview(_rotateCustomAngleOriginalBitmap, clearAnnotations: false);
-                
-                _rotateCustomAngleOriginalBitmap.Dispose();
-                _rotateCustomAngleOriginalBitmap = null;
+
+                // ISSUE-026 fix: Don't dispose - UpdatePreview took ownership (sets _currentSourceImage = bitmap)
+                // Disposing here would cause use-after-free when _currentSourceImage is accessed later
+                _rotateCustomAngleOriginalBitmap = null; // Transfer ownership without disposal
             }
 
             IsRotateCustomAngleDialogOpen = false;
