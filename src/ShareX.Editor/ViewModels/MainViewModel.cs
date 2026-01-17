@@ -171,9 +171,6 @@ namespace ShareX.Editor.ViewModels
         private string _appVersion;
 
         [ObservableProperty]
-        private string _statusText = "Ready";
-
-        [ObservableProperty]
         private string _selectedColor = "#EF4444";
 
         // Add a brush version for the dropdown control
@@ -346,9 +343,6 @@ namespace ShareX.Editor.ViewModels
         {
             TargetOutputAspectRatio = ParseAspectRatio(value);
             UpdateCanvasProperties();
-            StatusText = TargetOutputAspectRatio.HasValue
-                ? $"Output ratio set to {value}"
-                : "Output ratio auto";
         }
 
         partial void OnPreviewPaddingChanged(double value)
@@ -424,7 +418,6 @@ namespace ShareX.Editor.ViewModels
                     try
                     {
                         UpdatePreview(_originalSourceImage);
-                        StatusText = "Smart Padding: Restored original image";
                     }
                     finally
                     {
@@ -485,9 +478,6 @@ namespace ShareX.Editor.ViewModels
                     PreviewImage = BitmapConversionHelpers.ToAvaloniBitmap(_originalSourceImage);
                     ImageDimensions = $"{_originalSourceImage.Width} x {_originalSourceImage.Height}";
 
-                    if (!AreBackgroundEffectsActive) StatusText = "Background effects hidden";
-                    else StatusText = "Smart Padding: No content to crop";
-
                     return;
                 }
 
@@ -515,11 +505,9 @@ namespace ShareX.Editor.ViewModels
                 _currentSourceImage = cropped;
                 PreviewImage = BitmapConversionHelpers.ToAvaloniBitmap(cropped);
                 ImageDimensions = $"{cropped.Width} x {cropped.Height}";
-                StatusText = $"Smart Padding: Cropped to {cropWidth}x{cropHeight}";
             }
             catch (Exception ex)
             {
-                StatusText = $"Smart Padding error: {ex.Message}";
                 DebugHelper.WriteLine($"Smart padding crop failed: {ex.Message}");
             }
             finally
@@ -533,7 +521,6 @@ namespace ShareX.Editor.ViewModels
         {
             // Clone to avoid accidental brush sharing between controls
             CanvasBackground = CopyBrush(preset.Brush);
-            StatusText = $"Gradient set to {preset.Name}";
         }
 
         private void UpdateCanvasProperties()
@@ -697,8 +684,6 @@ namespace ShareX.Editor.ViewModels
                 Zoom = clamped;
                 return;
             }
-
-            StatusText = $"Zoom {clamped:P0}";
         }
 
         // Static color palette for annotation toolbar
@@ -743,7 +728,6 @@ namespace ShareX.Editor.ViewModels
                     var copy = _currentSourceImage.Copy();
                     if (copy == null)
                     {
-                        StatusText = "Error: Out of memory - unable to save redo state";
                         // Continue with undo despite redo stack failure
                     }
                     else
@@ -755,13 +739,11 @@ namespace ShareX.Editor.ViewModels
                 // Restore previous image state
                 var previousImage = _imageUndoStack.Pop();
                 UpdatePreview(previousImage, clearAnnotations: false);
-                StatusText = "Undid image operation";
                 return;
             }
 
             // Otherwise delegate to annotation undo
             UndoRequested?.Invoke(this, EventArgs.Empty);
-            StatusText = "Undo requested";
         }
 
         [RelayCommand(CanExecute = nameof(CanRedo))]
@@ -778,7 +760,6 @@ namespace ShareX.Editor.ViewModels
                     var copy = _currentSourceImage.Copy();
                     if (copy == null)
                     {
-                        StatusText = "Error: Out of memory - unable to save undo state";
                         // Continue with redo despite undo stack failure
                     }
                     else
@@ -793,14 +774,12 @@ namespace ShareX.Editor.ViewModels
 
             // Otherwise delegate to annotation redo
             RedoRequested?.Invoke(this, EventArgs.Empty);
-            StatusText = "Redo requested";
         }
 
         [RelayCommand]
         private void DeleteSelected()
         {
             DeleteRequested?.Invoke(this, EventArgs.Empty);
-            StatusText = "Delete requested";
         }
 
         [RelayCommand]
@@ -808,14 +787,12 @@ namespace ShareX.Editor.ViewModels
         {
             ClearAnnotationsRequested?.Invoke(this, EventArgs.Empty);
             ResetNumberCounter();
-            StatusText = "Annotations cleared";
         }
 
         [RelayCommand]
         private void ToggleSettingsPanel()
         {
             IsSettingsPanelOpen = !IsSettingsPanelOpen;
-            StatusText = IsSettingsPanelOpen ? "Background panel opened" : "Background panel closed";
         }
 
         [RelayCommand]
@@ -860,7 +837,6 @@ namespace ShareX.Editor.ViewModels
 
             // HasPreviewImage = false; // Handled by OnPreviewImageChanged
             ImageDimensions = "No image";
-            StatusText = "Ready";
             ResetNumberCounter();
 
             // Clear annotations as well
@@ -890,7 +866,6 @@ namespace ShareX.Editor.ViewModels
             var imageToUse = snapshot ?? PreviewImage;
             if (imageToUse == null)
             {
-                StatusText = "No image to copy";
                 return;
             }
 
@@ -899,16 +874,12 @@ namespace ShareX.Editor.ViewModels
                 try
                 {
                     await CopyRequested.Invoke(imageToUse);
-                    StatusText = snapshot != null
-                        ? "Image with annotations copied to clipboard"
-                        : "Image copied to clipboard";
                     ExportState = "Copied";
                     DebugHelper.WriteLine("Clipboard copy: Image copied to clipboard.");
                 }
                 catch (Exception ex)
                 {
                     var errorMessage = $"Failed to copy image to clipboard.\n\nError: {ex.Message}";
-                    StatusText = $"Copy failed: {ex.Message}";
                     DebugHelper.WriteLine($"Clipboard copy failed: {ex.Message}");
 
                     // Show error dialog
@@ -917,10 +888,6 @@ namespace ShareX.Editor.ViewModels
                         await ShowErrorDialog.Invoke("Copy Failed", errorMessage);
                     }
                 }
-            }
-            else
-            {
-                StatusText = "Clipboard not available";
             }
         }
 
@@ -954,13 +921,11 @@ namespace ShareX.Editor.ViewModels
                     ImageHelpers.SaveBitmap(_currentSourceImage, path);
                 }
 
-                StatusText = $"Saved to {filename}";
                 ExportState = "Saved";
                 DebugHelper.WriteLine($"File saved: {path}");
             }
             catch (Exception ex)
             {
-                StatusText = $"Save failed: {ex.Message}";
                 DebugHelper.WriteLine($"File save failed: {ex.Message}");
             }
             await Task.CompletedTask;
@@ -971,7 +936,6 @@ namespace ShareX.Editor.ViewModels
         {
             if (SaveAsRequested == null)
             {
-                StatusText = "SaveAs dialog not available";
                 return;
             }
 
@@ -979,7 +943,6 @@ namespace ShareX.Editor.ViewModels
             var path = await SaveAsRequested.Invoke();
             if (string.IsNullOrEmpty(path))
             {
-                StatusText = "Save cancelled";
                 return;
             }
 
@@ -993,7 +956,6 @@ namespace ShareX.Editor.ViewModels
             var imageToSave = snapshot ?? PreviewImage;
             if (imageToSave == null)
             {
-                StatusText = "No image to save";
                 return;
             }
 
@@ -1005,14 +967,12 @@ namespace ShareX.Editor.ViewModels
                 imageToSave.Save(path);
 
                 var filename = System.IO.Path.GetFileName(path);
-                StatusText = $"Saved to {filename}";
                 ExportState = "Saved";
                 LastSavedPath = path;
                 DebugHelper.WriteLine($"File saved (Save As): {path}");
             }
             catch (Exception ex)
             {
-                StatusText = $"Save failed: {ex.Message}";
                 DebugHelper.WriteLine($"File save failed (Save As): {ex.Message}");
             }
         }
@@ -1032,7 +992,6 @@ namespace ShareX.Editor.ViewModels
             var imageToUpload = snapshot ?? PreviewImage;
             if (imageToUpload == null)
             {
-                StatusText = "No image to upload";
                 DebugHelper.WriteLine("Upload: No image to upload");
                 return;
             }
@@ -1043,7 +1002,6 @@ namespace ShareX.Editor.ViewModels
             {
                 try
                 {
-                    StatusText = "Uploading...";
                     ExportState = "Uploading";
                     DebugHelper.WriteLine("Upload: About to invoke UploadRequested event");
                     await UploadRequested.Invoke(imageToUpload);
@@ -1051,14 +1009,12 @@ namespace ShareX.Editor.ViewModels
                 }
                 catch (Exception ex)
                 {
-                    StatusText = $"Upload failed: {ex.Message}";
                     ExportState = "";
                     DebugHelper.WriteLine($"Upload failed: {ex.Message}");
                 }
             }
             else
             {
-                StatusText = "Upload not available";
                 DebugHelper.WriteLine("Upload: UploadRequested is null - no subscriber");
             }
         }
@@ -1108,7 +1064,6 @@ namespace ShareX.Editor.ViewModels
             // Convert SKBitmap to Avalonia Bitmap
             PreviewImage = BitmapConversionHelpers.ToAvaloniBitmap(image);
             ImageDimensions = $"{image.Width} x {image.Height}";
-            StatusText = $"Image: {image.Width} × {image.Height}";
 
             // Reset view state for the new image
             Zoom = 1.0;
@@ -1136,7 +1091,6 @@ namespace ShareX.Editor.ViewModels
             var undoCopy = _currentSourceImage.Copy();
             if (undoCopy == null)
             {
-                StatusText = "Error: Out of memory - unable to save undo state";
                 return; // Can't proceed without undo capability for destructive operation
             }
             _imageUndoStack.Push(undoCopy);
@@ -1169,7 +1123,6 @@ namespace ShareX.Editor.ViewModels
             var undoCopy = _currentSourceImage.Copy();
             if (undoCopy == null)
             {
-                StatusText = "Error: Out of memory - unable to save undo state";
                 return; // Can't proceed without undo capability for destructive operation
             }
             _imageUndoStack.Push(undoCopy);
@@ -1196,10 +1149,6 @@ namespace ShareX.Editor.ViewModels
             var result = ImageHelpers.CutOut(_currentSourceImage, startPos, endPos, isVertical);
             // Don't clear annotations - they are adjusted in EditorCore
             UpdatePreview(result, clearAnnotations: false);
-
-            StatusText = isVertical
-                ? $"Cut out vertical section ({endPos - startPos}px wide)"
-                : $"Cut out horizontal section ({endPos - startPos}px tall)";
         }
 
         // --- Edit Menu Commands ---
@@ -1213,7 +1162,6 @@ namespace ShareX.Editor.ViewModels
             var undoCopy = _currentSourceImage.Copy();
             if (undoCopy == null)
             {
-                StatusText = "Error: Out of memory - unable to save undo state";
                 return;
             }
             _imageUndoStack.Push(undoCopy);
@@ -1222,7 +1170,6 @@ namespace ShareX.Editor.ViewModels
             var rotated = ImageHelpers.Rotate90Clockwise(_currentSourceImage);
             UpdatePreview(rotated, clearAnnotations: true);
             UpdateUndoRedoProperties();
-            StatusText = "Rotated 90° clockwise";
         }
 
         [RelayCommand]
@@ -1234,7 +1181,6 @@ namespace ShareX.Editor.ViewModels
             var undoCopy = _currentSourceImage.Copy();
             if (undoCopy == null)
             {
-                StatusText = "Error: Out of memory - unable to save undo state";
                 return;
             }
             _imageUndoStack.Push(undoCopy);
@@ -1243,7 +1189,6 @@ namespace ShareX.Editor.ViewModels
             var rotated = ImageHelpers.Rotate90CounterClockwise(_currentSourceImage);
             UpdatePreview(rotated, clearAnnotations: true);
             UpdateUndoRedoProperties();
-            StatusText = "Rotated 90° counter-clockwise";
         }
 
         [RelayCommand]
@@ -1255,7 +1200,6 @@ namespace ShareX.Editor.ViewModels
             var undoCopy = _currentSourceImage.Copy();
             if (undoCopy == null)
             {
-                StatusText = "Error: Out of memory - unable to save undo state";
                 return;
             }
             _imageUndoStack.Push(undoCopy);
@@ -1264,7 +1208,6 @@ namespace ShareX.Editor.ViewModels
             var rotated = ImageHelpers.Rotate180(_currentSourceImage);
             UpdatePreview(rotated, clearAnnotations: true);
             UpdateUndoRedoProperties();
-            StatusText = "Rotated 180°";
         }
 
         [RelayCommand]
@@ -1276,7 +1219,6 @@ namespace ShareX.Editor.ViewModels
             var undoCopy = _currentSourceImage.Copy();
             if (undoCopy == null)
             {
-                StatusText = "Error: Out of memory - unable to save undo state";
                 return;
             }
             _imageUndoStack.Push(undoCopy);
@@ -1285,7 +1227,6 @@ namespace ShareX.Editor.ViewModels
             var flipped = ImageHelpers.FlipHorizontal(_currentSourceImage);
             UpdatePreview(flipped, clearAnnotations: true);
             UpdateUndoRedoProperties();
-            StatusText = "Flipped horizontally";
         }
 
         [RelayCommand]
@@ -1297,7 +1238,6 @@ namespace ShareX.Editor.ViewModels
             var undoCopy = _currentSourceImage.Copy();
             if (undoCopy == null)
             {
-                StatusText = "Error: Out of memory - unable to save undo state";
                 return;
             }
             _imageUndoStack.Push(undoCopy);
@@ -1306,7 +1246,6 @@ namespace ShareX.Editor.ViewModels
             var flipped = ImageHelpers.FlipVertical(_currentSourceImage);
             UpdatePreview(flipped, clearAnnotations: true);
             UpdateUndoRedoProperties();
-            StatusText = "Flipped vertically";
         }
 
         [RelayCommand]
@@ -1325,7 +1264,6 @@ namespace ShareX.Editor.ViewModels
                 var undoCopy = _currentSourceImage.Copy();
                 if (undoCopy == null)
                 {
-                    StatusText = "Error: Out of memory - unable to save undo state";
                     return;
                 }
                 _imageUndoStack.Push(undoCopy);
@@ -1333,11 +1271,6 @@ namespace ShareX.Editor.ViewModels
 
                 UpdatePreview(cropped, clearAnnotations: true);
                 UpdateUndoRedoProperties();
-                StatusText = $"Auto-cropped to {cropped.Width}x{cropped.Height}";
-            }
-            else
-            {
-                StatusText = "Nothing to auto-crop";
             }
         }
 
@@ -1353,7 +1286,6 @@ namespace ShareX.Editor.ViewModels
             var undoCopy = _currentSourceImage.Copy();
             if (undoCopy == null)
             {
-                StatusText = "Error: Out of memory - unable to save undo state";
                 return;
             }
             _imageUndoStack.Push(undoCopy);
@@ -1364,7 +1296,6 @@ namespace ShareX.Editor.ViewModels
             {
                 UpdatePreview(resized, clearAnnotations: true);
                 UpdateUndoRedoProperties();
-                StatusText = $"Resized to {newWidth}x{newHeight}";
             }
         }
 
@@ -1379,7 +1310,6 @@ namespace ShareX.Editor.ViewModels
             var undoCopy = _currentSourceImage.Copy();
             if (undoCopy == null)
             {
-                StatusText = "Error: Out of memory - unable to save undo state";
                 return;
             }
             _imageUndoStack.Push(undoCopy);
@@ -1388,10 +1318,6 @@ namespace ShareX.Editor.ViewModels
             var resized = ImageHelpers.ResizeCanvas(_currentSourceImage, left, top, right, bottom, backgroundColor);
             UpdatePreview(resized, clearAnnotations: true);
             UpdateUndoRedoProperties();
-
-            int newWidth = _currentSourceImage.Width + left + right;
-            int newHeight = _currentSourceImage.Height + top + bottom;
-            StatusText = $"Canvas resized to {newWidth}x{newHeight}";
         }
 
         // --- Effects Menu Commands ---
@@ -1428,7 +1354,6 @@ namespace ShareX.Editor.ViewModels
             var undoCopy = _currentSourceImage.Copy();
             if (undoCopy == null)
             {
-                StatusText = "Error: Out of memory - unable to save undo state";
                 return;
             }
             _imageUndoStack.Push(undoCopy);
@@ -1437,7 +1362,6 @@ namespace ShareX.Editor.ViewModels
             var result = effect(_currentSourceImage);
             UpdatePreview(result, clearAnnotations: true);
             UpdateUndoRedoProperties();
-            StatusText = statusMessage;
         }
 
         // --- Effect Live Preview Logic ---
@@ -1464,7 +1388,6 @@ namespace ShareX.Editor.ViewModels
             if (copy == null)
             {
                 System.Diagnostics.Debug.WriteLine("[MEMORY WARNING] StartEffectPreview: Failed to create backup");
-                StatusText = "Warning: Effect preview may not be cancellable (low memory)";
                 // Continue without backup - preview will still work but cancel might fail
             }
             _preEffectImage = copy;
@@ -1501,7 +1424,6 @@ namespace ShareX.Editor.ViewModels
             var undoCopy = _currentSourceImage.Copy();
             if (undoCopy == null)
             {
-                StatusText = "Error: Out of memory - unable to save undo state";
                 return;
             }
             _imageUndoStack.Push(undoCopy);
@@ -1509,7 +1431,6 @@ namespace ShareX.Editor.ViewModels
 
             UpdatePreview(result, clearAnnotations: true);
             UpdateUndoRedoProperties();
-            StatusText = statusMessage;
 
             _preEffectImage?.Dispose();
             _preEffectImage = null;
@@ -1618,7 +1539,6 @@ namespace ShareX.Editor.ViewModels
                  var copy = current.Copy();
                  if (copy == null)
                  {
-                     StatusText = "Error: Out of memory - unable to open rotate dialog";
                      return;
                  }
                  _rotateCustomAngleOriginalBitmap = copy;
@@ -1661,7 +1581,6 @@ namespace ShareX.Editor.ViewModels
             var undoCopy = _rotateCustomAngleOriginalBitmap.Copy();
             if (undoCopy == null)
             {
-                StatusText = "Error: Out of memory - unable to save undo state";
                 return;
             }
             _imageUndoStack.Push(undoCopy);
@@ -1672,7 +1591,6 @@ namespace ShareX.Editor.ViewModels
             
             UpdatePreview(result, clearAnnotations: true);
             UpdateUndoRedoProperties();
-            StatusText = $"Rotated {angle:0}°";
 
             IsRotateCustomAngleDialogOpen = false;
             IsModalOpen = false;

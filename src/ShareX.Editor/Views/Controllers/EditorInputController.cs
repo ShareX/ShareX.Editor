@@ -62,7 +62,6 @@ public class EditorInputController
         {
             CancelActiveRegionDrawing(canvas);
             e.Pointer.Capture(null);
-            vm.StatusText = "Selection cancelled";
             e.Handled = true;
             return;
         }
@@ -98,7 +97,6 @@ public class EditorInputController
                  (hitTarget.Tag as IDisposable)?.Dispose();
 
                  canvas.Children.Remove(hitTarget);
-                 vm.StatusText = "Shape deleted";
                  e.Handled = true;
                  return;
              }
@@ -330,7 +328,6 @@ public class EditorInputController
              {
                  CancelActiveRegionDrawing(canvas);
                  e.Pointer.Capture(null);
-                 vm.StatusText = "Selection cancelled";
                  return;
              }
              
@@ -620,7 +617,6 @@ public class EditorInputController
         var physH = (int)(h * scaling);
 
         vm.CropImage(physX, physY, physW, physH);
-        vm.StatusText = "Image cropped";
 
         cropOverlay.IsVisible = false;
         _currentShape = null; // Ensure we clear current shape

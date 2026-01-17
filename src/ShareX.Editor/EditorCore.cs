@@ -49,10 +49,6 @@ public class EditorCore : IDisposable
     /// </summary>
     public event Action? InvalidateRequested;
 
-    /// <summary>
-    /// Raised when the status text should be updated
-    /// </summary>
-    public event Action<string>? StatusTextChanged;
     public event Action? ImageChanged;
     public event Action<Annotation>? EditAnnotationRequested;
 
@@ -207,7 +203,6 @@ public class EditorCore : IDisposable
                 _annotations.Remove(hitAnnotation);
                 if (_selectedAnnotation == hitAnnotation)
                     _selectedAnnotation = null;
-                StatusTextChanged?.Invoke("Annotation deleted");
                 InvalidateRequested?.Invoke();
             }
             return;
@@ -459,7 +454,6 @@ public class EditorCore : IDisposable
             effect.UpdateEffect(SourceImage);
         }
 
-        StatusTextChanged?.Invoke($"{ActiveTool} created");
         InvalidateRequested?.Invoke();
     }
 
@@ -983,7 +977,6 @@ public class EditorCore : IDisposable
         SourceImage = croppedBitmap;
         CanvasSize = new SKSize(width, height);
 
-        StatusTextChanged?.Invoke("Image cropped");
         ImageChanged?.Invoke();
         InvalidateRequested?.Invoke();
     }
@@ -1017,14 +1010,12 @@ public class EditorCore : IDisposable
 
             if (cutWidth <= 0)
             {
-                StatusTextChanged?.Invoke("Invalid cut area");
                 return;
             }
 
             int newWidth = SourceImage.Width - cutWidth;
             if (newWidth <= 0)
             {
-                StatusTextChanged?.Invoke("Cannot cut entire image");
                 return;
             }
 
@@ -1072,14 +1063,12 @@ public class EditorCore : IDisposable
 
             if (cutHeight <= 0)
             {
-                StatusTextChanged?.Invoke("Invalid cut area");
                 return;
             }
 
             int newHeight = SourceImage.Height - cutHeight;
             if (newHeight <= 0)
             {
-                StatusTextChanged?.Invoke("Cannot cut entire image");
                 return;
             }
 
@@ -1115,7 +1104,6 @@ public class EditorCore : IDisposable
         // Remove cutout annotation
         _annotations.Remove(cutOutAnnotation);
 
-        StatusTextChanged?.Invoke("Image cut out");
         ImageChanged?.Invoke();
         InvalidateRequested?.Invoke();
     }

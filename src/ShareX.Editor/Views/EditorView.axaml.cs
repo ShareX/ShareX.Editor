@@ -700,7 +700,6 @@ namespace ShareX.Editor.Views
                     var physH = (int)(rect.Height * scaling);
 
                     vm.CropImage(physX, physY, physW, physH);
-                    vm.StatusText = "Image cropped";
                 }
                 cropOverlay.IsVisible = false;
             }
@@ -1081,12 +1080,6 @@ namespace ShareX.Editor.Views
             {
                 var message = $"[SYNC WARNING] Annotation count mismatch: UI={uiAnnotationCount}, Core={coreAnnotationCount}";
                 System.Diagnostics.Debug.WriteLine(message);
-
-                // Optional: Update status bar for user visibility
-                if (DataContext is MainViewModel vm)
-                {
-                    vm.StatusText = "Warning: Annotation sync issue detected";
-                }
             }
         }
     }

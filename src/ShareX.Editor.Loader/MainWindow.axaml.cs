@@ -21,7 +21,6 @@ namespace ShareX.Editor.Loader
             // Wire up UploadRequested with a stub handler (standalone mode has no upload capability)
             vm.UploadRequested += (bitmap) =>
             {
-                vm.StatusText = "Upload not available in standalone Editor mode. Use XerahS.App for uploads.";
                 return Task.CompletedTask;
             };
             

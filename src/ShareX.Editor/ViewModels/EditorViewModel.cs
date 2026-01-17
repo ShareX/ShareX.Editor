@@ -152,9 +152,6 @@ public partial class EditorViewModel : ObservableObject
     private double _zoom = 1.0;
 
     [ObservableProperty]
-    private string _statusText = "Ready";
-
-    [ObservableProperty]
     private string _selectedColor = "#EF4444";
 
     [ObservableProperty]
@@ -206,7 +203,6 @@ public partial class EditorViewModel : ObservableObject
     private void ApplyGradientPreset(GradientPreset preset)
     {
         CanvasBackground = CopyBrush(preset.Brush);
-        StatusText = $"Gradient set to {preset.Name}";
     }
 
     [RelayCommand]

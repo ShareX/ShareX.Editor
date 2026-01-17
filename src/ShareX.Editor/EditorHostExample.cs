@@ -57,7 +57,6 @@ namespace ShareX.Editor;
  *            _canvas.MouseUp += OnMouseUp;
  *    
  *            _editor.InvalidateRequested += () => _canvas.Invalidate();
- *            _editor.StatusTextChanged += text => Text = $"Editor - {text}";
  *        }
  *    
  *        public void LoadImage(string path) => _editor.LoadImage(path);
