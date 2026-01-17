@@ -360,28 +360,35 @@ public class EditorInputController
 
              const double directionThreshold = 15;
 
-             // Reset direction if user moves back close to start point
-             if (deltaX < directionThreshold && deltaY < directionThreshold)
-             {
-                 _cutOutDirection = null;
-                 _currentShape.IsVisible = false;
-                 return;
-             }
+             // ISSUE-014 fix: Always show overlay to provide immediate visual feedback
+             _currentShape.IsVisible = true;
 
              // Determine direction based on current movement
              bool currentIsVertical = deltaX > deltaY;
 
-             // Update direction (can change if user changes drag direction)
+             // Below threshold: show preview feedback (small indicator at start point)
+             if (deltaX < directionThreshold && deltaY < directionThreshold)
+             {
+                 _cutOutDirection = null;
+
+                 // Show small preview square at start point (30x30px) to indicate tool is active
+                 const double previewSize = 30;
+                 Canvas.SetLeft(_currentShape, _startPoint.X - previewSize / 2);
+                 Canvas.SetTop(_currentShape, _startPoint.Y - previewSize / 2);
+                 _currentShape.Width = previewSize;
+                 _currentShape.Height = previewSize;
+                 return;
+             }
+
+             // Update direction once threshold exceeded (can change if user changes drag direction)
              if (deltaX > directionThreshold || deltaY > directionThreshold)
              {
                  _cutOutDirection = currentIsVertical;
              }
 
-             // Show and position the cut-out overlay rectangle
+             // Show and position the cut-out overlay rectangle in determined direction
              if (_cutOutDirection.HasValue)
              {
-                 _currentShape.IsVisible = true;
-
                  if (_cutOutDirection.Value)
                  {
                      // Vertical cut - show full-height rectangle between start and current X

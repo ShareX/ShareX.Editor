@@ -693,6 +693,7 @@ public class EditorCore : IDisposable
 
     /// <summary>
     /// Restore editor state from a memento
+    /// ISSUE-010 fix: Restores selection state along with annotations
     /// </summary>
     internal void RestoreState(EditorMemento memento)
     {
@@ -710,8 +711,15 @@ public class EditorCore : IDisposable
             CanvasSize = memento.CanvasSize;
         }
 
-        // Clear current selection as it may no longer be valid
-        _selectedAnnotation = null;
+        // ISSUE-010 fix: Restore selection state if memento captured a selected annotation
+        if (memento.SelectedAnnotationId.HasValue)
+        {
+            _selectedAnnotation = _annotations.FirstOrDefault(a => a.Id == memento.SelectedAnnotationId.Value);
+        }
+        else
+        {
+            _selectedAnnotation = null;
+        }
 
         // Trigger redraw
         InvalidateRequested?.Invoke();

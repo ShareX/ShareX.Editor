@@ -50,16 +50,23 @@ internal class EditorMemento : IDisposable
     public SKBitmap? Canvas { get; private set; }
 
     /// <summary>
+    /// ISSUE-010 fix: ID of the selected annotation at this state (for undo/redo selection restoration)
+    /// </summary>
+    public Guid? SelectedAnnotationId { get; private set; }
+
+    /// <summary>
     /// Create a new memento
     /// </summary>
     /// <param name="annotations">Annotation list to duplicate</param>
     /// <param name="canvasSize">Canvas size</param>
     /// <param name="canvas">Optional canvas bitmap for destructive operations</param>
-    public EditorMemento(List<Annotation> annotations, SKSize canvasSize, SKBitmap? canvas = null)
+    /// <param name="selectedAnnotationId">Optional selected annotation ID for selection restoration</param>
+    public EditorMemento(List<Annotation> annotations, SKSize canvasSize, SKBitmap? canvas = null, Guid? selectedAnnotationId = null)
     {
         Annotations = annotations;
         CanvasSize = canvasSize;
         Canvas = canvas;
+        SelectedAnnotationId = selectedAnnotationId;
     }
 
     public void Dispose()

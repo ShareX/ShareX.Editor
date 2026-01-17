@@ -106,21 +106,25 @@ internal class EditorHistory : IDisposable
 
     /// <summary>
     /// Create a memento with full canvas bitmap (for destructive operations like crop/cutout)
+    /// ISSUE-010 fix: Captures selected annotation ID for restoration
     /// </summary>
     private EditorMemento GetMementoFromCanvas()
     {
         List<Annotation> annotations = _editorCore.GetAnnotationsSnapshot();
         SKBitmap? canvas = _editorCore.SourceImage?.Copy();
-        return new EditorMemento(annotations, _editorCore.CanvasSize, canvas);
+        Guid? selectedId = _editorCore.SelectedAnnotation?.Id;
+        return new EditorMemento(annotations, _editorCore.CanvasSize, canvas, selectedId);
     }
 
     /// <summary>
     /// Create a memento with only annotations (for non-destructive annotation operations)
+    /// ISSUE-010 fix: Captures selected annotation ID for restoration
     /// </summary>
     private EditorMemento GetMementoFromAnnotations(Annotation? excludeAnnotation = null)
     {
         List<Annotation> annotations = _editorCore.GetAnnotationsSnapshot(excludeAnnotation);
-        return new EditorMemento(annotations, _editorCore.CanvasSize);
+        Guid? selectedId = _editorCore.SelectedAnnotation?.Id;
+        return new EditorMemento(annotations, _editorCore.CanvasSize, null, selectedId);
     }
 
     /// <summary>

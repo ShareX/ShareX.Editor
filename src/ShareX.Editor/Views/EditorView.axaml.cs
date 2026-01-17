@@ -176,8 +176,25 @@ namespace ShareX.Editor.Views
                 else if (e.PropertyName == nameof(MainViewModel.ActiveTool))
                 {
                     _selectionController.ClearSelection();
+                    UpdateCursorForTool(); // ISSUE-018 fix: Update cursor feedback for active tool
                 }
             }
+        }
+
+        /// <summary>
+        /// ISSUE-018 fix: Updates the canvas cursor based on the active tool
+        /// </summary>
+        private void UpdateCursorForTool()
+        {
+            var canvas = this.FindControl<Canvas>("AnnotationCanvas");
+            if (canvas == null || DataContext is not MainViewModel vm) return;
+
+            canvas.Cursor = vm.ActiveTool switch
+            {
+                EditorTool.Select => new Cursor(StandardCursorType.Arrow),
+                EditorTool.Crop or EditorTool.CutOut => new Cursor(StandardCursorType.Cross),
+                _ => new Cursor(StandardCursorType.Cross) // Drawing tools (Rectangle, Ellipse, Pen, etc.)
+            };
         }
 
         // --- Public/Internal Methods for Controllers ---
