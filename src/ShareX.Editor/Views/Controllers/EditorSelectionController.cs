@@ -979,6 +979,15 @@ public class EditorSelectionController
                      }
                 }
                 
+                // Refined Hit Test for Ellipse - check if point is inside the ellipse shape
+                if (child is global::Avalonia.Controls.Shapes.Ellipse ellipseObj)
+                {
+                    if (!IsPointInsideEllipse(currentPoint, shapeBounds))
+                    {
+                        continue; // Point is in bounding rectangle but not inside the ellipse
+                    }
+                }
+                
                 return child;
             }
         }
@@ -1237,5 +1246,63 @@ public class EditorSelectionController
 
         var distSq = (point.X - projX) * (point.X - projX) + (point.Y - projY) * (point.Y - projY);
         return distSq <= thresholdSq;
+    }
+    
+    /// <summary>
+    /// Check if a point is within a threshold distance of an ellipse stroke (perimeter).
+    /// </summary>
+    private bool IsPointNearEllipseStroke(Point point, Rect ellipseBounds, double threshold)
+    {
+        // Get ellipse center and radii
+        var centerX = ellipseBounds.X + ellipseBounds.Width / 2;
+        var centerY = ellipseBounds.Y + ellipseBounds.Height / 2;
+        var radiusX = ellipseBounds.Width / 2;
+        var radiusY = ellipseBounds.Height / 2;
+        
+        if (radiusX <= 0 || radiusY <= 0) return false;
+        
+        // Normalize point relative to center
+        var dx = point.X - centerX;
+        var dy = point.Y - centerY;
+        
+        // Calculate the normalized distance from center (1.0 = on ellipse perimeter)
+        var normalizedDist = (dx * dx) / (radiusX * radiusX) + (dy * dy) / (radiusY * radiusY);
+        
+        // For a point on the ellipse, normalizedDist = 1
+        // We need to convert threshold to normalized units
+        // Use the average radius for approximation
+        var avgRadius = (radiusX + radiusY) / 2;
+        var normalizedThreshold = threshold / avgRadius;
+        
+        // Check if point is near the ellipse perimeter (between inner and outer threshold)
+        var lowerBound = 1 - normalizedThreshold;
+        var upperBound = 1 + normalizedThreshold;
+        
+        // Ensure lower bound doesn't go negative
+        if (lowerBound < 0) lowerBound = 0;
+        
+        return normalizedDist >= lowerBound * lowerBound && normalizedDist <= upperBound * upperBound;
+    }
+    
+    /// <summary>
+    /// Check if a point is inside an ellipse.
+    /// </summary>
+    private bool IsPointInsideEllipse(Point point, Rect ellipseBounds)
+    {
+        // Get ellipse center and radii
+        var centerX = ellipseBounds.X + ellipseBounds.Width / 2;
+        var centerY = ellipseBounds.Y + ellipseBounds.Height / 2;
+        var radiusX = ellipseBounds.Width / 2;
+        var radiusY = ellipseBounds.Height / 2;
+        
+        if (radiusX <= 0 || radiusY <= 0) return false;
+        
+        // Normalize point relative to center
+        var dx = point.X - centerX;
+        var dy = point.Y - centerY;
+        
+        // Point is inside ellipse if (dx/rx)^2 + (dy/ry)^2 <= 1
+        var normalizedDist = (dx * dx) / (radiusX * radiusX) + (dy * dy) / (radiusY * radiusY);
+        return normalizedDist <= 1.0;
     }
 }
