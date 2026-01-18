@@ -919,10 +919,13 @@ namespace ShareX.Editor.ViewModels
             }
 
             _appliedImageEffects.Clear();
+            OnPropertyChanged(nameof(HasAppliedEffects));
+            OnPropertyChanged(nameof(HasAppliedEffects));
 
             // HasPreviewImage = false; // Handled by OnPreviewImageChanged
             ImageDimensions = "No image";
             ResetNumberCounter();
+            OnPropertyChanged(nameof(HasAppliedEffects));
 
             // Clear annotations as well
             ClearAnnotationsRequested?.Invoke(this, EventArgs.Empty);
@@ -1214,6 +1217,7 @@ namespace ShareX.Editor.ViewModels
 
             _appliedImageEffects.Clear();
             _appliedImageEffects.AddRange(effects);
+            OnPropertyChanged(nameof(HasAppliedEffects));
 
             DebugHelper.WriteLine($"Preset loaded: {presetName}");
         }
@@ -1402,6 +1406,7 @@ namespace ShareX.Editor.ViewModels
         private readonly Stack<SkiaSharp.SKBitmap> _imageRedoStack = new();
 
         private readonly List<ImageEffectBase> _appliedImageEffects = new();
+        public bool HasAppliedEffects => _appliedImageEffects.Count > 0;
 
         /// <summary>
         /// Updates the preview image. **TAKES OWNERSHIP** of the bitmap parameter.
@@ -1898,6 +1903,7 @@ namespace ShareX.Editor.ViewModels
             }
 
             _appliedImageEffects.Add(effect);
+            OnPropertyChanged(nameof(HasAppliedEffects));
         }
 
         // --- Rotate Custom Angle Feature ---
