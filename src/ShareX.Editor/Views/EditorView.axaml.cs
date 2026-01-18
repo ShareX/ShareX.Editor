@@ -49,6 +49,7 @@ namespace ShareX.Editor.Views
         private readonly EditorZoomController _zoomController;
         private readonly EditorSelectionController _selectionController;
         private readonly EditorInputController _inputController;
+        private MainViewModel? _boundViewModel;
 
         internal EditorCore EditorCore => _editorCore;
         // SIP0018: Hybrid Rendering
@@ -95,6 +96,13 @@ namespace ShareX.Editor.Views
             // Capture wheel events in tunneling phase so ScrollViewer doesn't scroll when using Ctrl+wheel zoom.
             AddHandler(PointerWheelChangedEvent, OnPreviewPointerWheelChanged, RoutingStrategies.Tunnel | RoutingStrategies.Bubble, true);
         }
+
+        protected override void OnDataContextChanged(EventArgs e)
+        {
+            base.OnDataContextChanged(e);
+            DetachViewModel(_boundViewModel);
+            AttachViewModel(DataContext as MainViewModel);
+        }
         
         private void OnSelectionChanged(bool hasSelection)
         {
@@ -119,54 +127,67 @@ namespace ShareX.Editor.Views
         protected override void OnLoaded(RoutedEventArgs e)
         {
             base.OnLoaded(e);
-
-            if (DataContext is MainViewModel vm)
-            {
-                vm.UndoRequested += (s, args) => PerformUndo();
-                vm.RedoRequested += (s, args) => PerformRedo();
-                vm.DeleteRequested += (s, args) => PerformDelete();
-                vm.ClearAnnotationsRequested += (s, args) => ClearAllAnnotations();
-                vm.SnapshotRequested += () =>
-                {
-                    var skBitmap = GetSnapshot();
-                    var snapshot = skBitmap != null ? BitmapConversionHelpers.ToAvaloniBitmap(skBitmap) : null;
-                    return Task.FromResult<Avalonia.Media.Imaging.Bitmap?>(snapshot);
-                };
-
-                // Original code subscribed to vm.PropertyChanged
-                vm.PropertyChanged += OnViewModelPropertyChanged;
-
-                // Initialize zoom
-                _zoomController.InitLastZoom(vm.Zoom);
-
-                // Wire up View interactions
-                vm.CopyRequested += OnCopyRequested;
-                vm.SaveAsRequested += OnSaveAsRequested;
-                vm.SavePresetRequested += OnSavePresetRequested;
-                vm.LoadPresetRequested += OnLoadPresetRequested;
-                
-                // Initial load
-                if (vm.PreviewImage != null)
-                {
-                    LoadImageFromViewModel(vm);
-                }
-            }
+            AttachViewModel(DataContext as MainViewModel);
         }
 
         protected override void OnUnloaded(RoutedEventArgs e)
         {
             base.OnUnloaded(e);
-
-            if (DataContext is MainViewModel vm)
-            {
-                vm.PropertyChanged -= OnViewModelPropertyChanged;
-                vm.CopyRequested -= OnCopyRequested;
-                vm.SaveAsRequested -= OnSaveAsRequested;
-                vm.SavePresetRequested -= OnSavePresetRequested;
-                vm.LoadPresetRequested -= OnLoadPresetRequested;
-            }
+            DetachViewModel(_boundViewModel);
 
             _selectionController.RequestUpdateEffect -= OnRequestUpdateEffect;
+        }
+
+        private void AttachViewModel(MainViewModel? vm)
+        {
+            if (vm == null || ReferenceEquals(_boundViewModel, vm))
+            {
+                return;
+            }
+
+            _boundViewModel = vm;
+            vm.UndoRequested += (s, args) => PerformUndo();
+            vm.RedoRequested += (s, args) => PerformRedo();
+            vm.DeleteRequested += (s, args) => PerformDelete();
+            vm.ClearAnnotationsRequested += (s, args) => ClearAllAnnotations();
+            vm.SnapshotRequested += () =>
+            {
+                var skBitmap = GetSnapshot();
+                var snapshot = skBitmap != null ? BitmapConversionHelpers.ToAvaloniBitmap(skBitmap) : null;
+                return Task.FromResult<Avalonia.Media.Imaging.Bitmap?>(snapshot);
+            };
+
+            vm.PropertyChanged += OnViewModelPropertyChanged;
+
+            _zoomController.InitLastZoom(vm.Zoom);
+
+            vm.CopyRequested += OnCopyRequested;
+            vm.SaveAsRequested += OnSaveAsRequested;
+            vm.SavePresetRequested += OnSavePresetRequested;
+            vm.LoadPresetRequested += OnLoadPresetRequested;
+            vm.ShowErrorDialog += OnShowErrorDialog;
+
+            if (vm.PreviewImage != null)
+            {
+                LoadImageFromViewModel(vm);
+            }
+        }
+
+        private void DetachViewModel(MainViewModel? vm)
+        {
+            if (vm == null)
+            {
+                _boundViewModel = null;
+                return;
+            }
+
+            vm.PropertyChanged -= OnViewModelPropertyChanged;
+            vm.CopyRequested -= OnCopyRequested;
+            vm.SaveAsRequested -= OnSaveAsRequested;
+            vm.SavePresetRequested -= OnSavePresetRequested;
+            vm.LoadPresetRequested -= OnLoadPresetRequested;
+            vm.ShowErrorDialog -= OnShowErrorDialog;
+            _boundViewModel = null;
         }
 
         private void OnViewModelPropertyChanged(object? sender, PropertyChangedEventArgs e)
@@ -1153,6 +1174,22 @@ namespace ShareX.Editor.Views
             });
 
             return files.Count > 0 ? files[0].Path.LocalPath : null;
+        }
+
+        private Task OnShowErrorDialog(string title, string message)
+        {
+            if (DataContext is not MainViewModel vm)
+            {
+                return Task.CompletedTask;
+            }
+
+            vm.ModalContent = new MessageDialog
+            {
+                Title = title,
+                Message = message
+            };
+            vm.IsModalOpen = true;
+            return Task.CompletedTask;
         }
 
         /// <summary>

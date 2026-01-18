@@ -1,0 +1,20 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="ShareX.Editor.Views.Dialogs.MessageDialog">
+    <Border Background="#2E2E2E" BorderBrush="#1F1F1F" BorderThickness="1" CornerRadius="6" Padding="16">
+        <StackPanel Spacing="12" Width="360">
+            <TextBlock Text="{Binding Title, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                       FontSize="16"
+                       FontWeight="SemiBold"
+                       Foreground="#E7E9EA"/>
+            <TextBlock Text="{Binding Message, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                       TextWrapping="Wrap"
+                       Foreground="#C9CDD1"/>
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8">
+                <Button Classes="editor-button"
+                        Command="{Binding CloseModalCommand}"
+                        Content="OK"/>
+            </StackPanel>
+        </StackPanel>
+    </Border>
+</UserControl>
