@@ -35,7 +35,8 @@ namespace ShareX.Editor.Views.Dialogs
 
              if (amount <= 0) amount = 0.1f;
 
-             PreviewRequested?.Invoke(this, new EffectEventArgs(img => new GammaImageEffect { Amount = amount }.Apply(img), $"Gamma: {amount:0.0}"));
+             var effect = new GammaImageEffect { Amount = amount };
+             PreviewRequested?.Invoke(this, new EffectEventArgs(img => effect.Apply(img), $"Gamma: {amount:0.0}"));
         }
 
         private void OnApplyClick(object? sender, RoutedEventArgs e)
@@ -45,7 +46,8 @@ namespace ShareX.Editor.Views.Dialogs
             
             if (amount <= 0) amount = 0.1f;
             
-            ApplyRequested?.Invoke(this, new EffectEventArgs(img => new GammaImageEffect { Amount = amount }.Apply(img), $"Applied gamma correction {amount:0.0}"));
+            var effect = new GammaImageEffect { Amount = amount };
+            ApplyRequested?.Invoke(this, new EffectEventArgs(img => effect.Apply(img), $"Applied gamma correction {amount:0.0}", effect));
         }
 
         private void OnCancelClick(object? sender, RoutedEventArgs e)

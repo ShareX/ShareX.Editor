@@ -4,6 +4,7 @@ using Avalonia.Interactivity;
 using Avalonia.Markup.Xaml;
 using Avalonia.Media;
 using ShareX.Editor.Helpers;
+using ShareX.Editor.ImageEffects.Filters;
 using SkiaSharp;
 
 namespace ShareX.Editor.Views.Dialogs;
@@ -97,9 +98,10 @@ public partial class BorderDialog : UserControl, IEffectDialog
         var type = GetBorderType();
         var size = GetSize();
         var dashStyle = GetDashStyle();
-        
+
+        var effect = new BorderImageEffect(type, size, dashStyle, _color);
         PreviewRequested?.Invoke(this, new EffectEventArgs(
-            img => ImageHelpers.ApplyBorder(img, type, size, dashStyle, _color),
+            img => effect.Apply(img),
             "Border applied"));
     }
 
@@ -108,10 +110,12 @@ public partial class BorderDialog : UserControl, IEffectDialog
         var type = GetBorderType();
         var size = GetSize();
         var dashStyle = GetDashStyle();
-        
+
+        var effect = new BorderImageEffect(type, size, dashStyle, _color);
         ApplyRequested?.Invoke(this, new EffectEventArgs(
-            img => ImageHelpers.ApplyBorder(img, type, size, dashStyle, _color),
-            "Border applied"));
+            img => effect.Apply(img),
+            "Border applied",
+            effect));
     }
 
     private void OnCancelClick(object? sender, RoutedEventArgs e)

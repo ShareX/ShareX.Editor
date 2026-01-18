@@ -25,6 +25,8 @@ namespace ShareX.Editor.Views
 
             // Hook up ViewModel events
             _viewModel.SaveAsRequested += OnSaveAsRequested;
+            _viewModel.SavePresetRequested += OnSavePresetRequested;
+            _viewModel.LoadPresetRequested += OnLoadPresetRequested;
             
             // If the window is closed, we might want to clean up
             this.Closed += OnClosed;
@@ -53,6 +55,8 @@ namespace ShareX.Editor.Views
             if (_viewModel != null)
             {
                 _viewModel.SaveAsRequested -= OnSaveAsRequested;
+                _viewModel.SavePresetRequested -= OnSavePresetRequested;
+                _viewModel.LoadPresetRequested -= OnLoadPresetRequested;
             }
         }
 
@@ -171,6 +175,52 @@ namespace ShareX.Editor.Views
             });
 
             return file?.Path.LocalPath;
+        }
+
+        private async Task<string?> OnSavePresetRequested()
+        {
+            var storageProvider = StorageProvider;
+            if (storageProvider == null) return null;
+
+            var file = await storageProvider.SaveFilePickerAsync(new Avalonia.Platform.Storage.FilePickerSaveOptions
+            {
+                Title = "Save Image Effects Preset",
+                DefaultExtension = "xsie",
+                FileTypeChoices = new[]
+                {
+                    new Avalonia.Platform.Storage.FilePickerFileType("XerahS Image Effects")
+                    {
+                        Patterns = new[] { "*.xsie" }
+                    },
+                    new Avalonia.Platform.Storage.FilePickerFileType("ShareX Image Effects")
+                    {
+                        Patterns = new[] { "*.sxie" }
+                    }
+                }
+            });
+
+            return file?.Path.LocalPath;
+        }
+
+        private async Task<string?> OnLoadPresetRequested()
+        {
+            var storageProvider = StorageProvider;
+            if (storageProvider == null) return null;
+
+            var files = await storageProvider.OpenFilePickerAsync(new Avalonia.Platform.Storage.FilePickerOpenOptions
+            {
+                Title = "Load Image Effects Preset",
+                AllowMultiple = false,
+                FileTypeFilter = new[]
+                {
+                    new Avalonia.Platform.Storage.FilePickerFileType("Image Effects Preset")
+                    {
+                        Patterns = new[] { "*.xsie", "*.sxie" }
+                    }
+                }
+            });
+
+            return files.Count > 0 ? files[0].Path.LocalPath : null;
         }
     }
 }

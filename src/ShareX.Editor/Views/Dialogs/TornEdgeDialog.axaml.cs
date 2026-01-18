@@ -3,6 +3,7 @@ using Avalonia.Controls.Primitives;
 using Avalonia.Interactivity;
 using Avalonia.Markup.Xaml;
 using ShareX.Editor.Helpers;
+using ShareX.Editor.ImageEffects.Filters;
 
 namespace ShareX.Editor.Views.Dialogs;
 
@@ -70,16 +71,19 @@ public partial class TornEdgeDialog : UserControl, IEffectDialog
 
     private void RaisePreview()
     {
+        var effect = new TornEdgeImageEffect(GetDepth(), GetRange(), GetTop(), GetRight(), GetBottom(), GetLeft(), GetCurved());
         PreviewRequested?.Invoke(this, new EffectEventArgs(
-            img => ImageHelpers.ApplyTornEdge(img, GetDepth(), GetRange(), GetTop(), GetRight(), GetBottom(), GetLeft(), GetCurved()),
+            img => effect.Apply(img),
             "Torn edge applied"));
     }
 
     private void OnApplyClick(object? sender, RoutedEventArgs e)
     {
+        var effect = new TornEdgeImageEffect(GetDepth(), GetRange(), GetTop(), GetRight(), GetBottom(), GetLeft(), GetCurved());
         ApplyRequested?.Invoke(this, new EffectEventArgs(
-            img => ImageHelpers.ApplyTornEdge(img, GetDepth(), GetRange(), GetTop(), GetRight(), GetBottom(), GetLeft(), GetCurved()),
-            "Torn edge applied"));
+            img => effect.Apply(img),
+            "Torn edge applied",
+            effect));
     }
 
     private void OnCancelClick(object? sender, RoutedEventArgs e)

@@ -30,14 +30,16 @@ namespace ShareX.Editor.Views.Dialogs
         {
             int horizontal = (int)(this.FindControl<Slider>("HorizontalSlider")?.Value ?? 0);
             int vertical = (int)(this.FindControl<Slider>("VerticalSlider")?.Value ?? 0);
-            PreviewRequested?.Invoke(this, new EffectEventArgs(img => new SkewImageEffect { Horizontally = horizontal, Vertically = vertical }.Apply(img), "Skew"));
+            var effect = new SkewImageEffect { Horizontally = horizontal, Vertically = vertical };
+            PreviewRequested?.Invoke(this, new EffectEventArgs(img => effect.Apply(img), "Skew"));
         }
 
         private void OnApplyClick(object? sender, RoutedEventArgs e)
         {
             int horizontal = (int)(this.FindControl<Slider>("HorizontalSlider")?.Value ?? 0);
             int vertical = (int)(this.FindControl<Slider>("VerticalSlider")?.Value ?? 0);
-            ApplyRequested?.Invoke(this, new EffectEventArgs(img => new SkewImageEffect { Horizontally = horizontal, Vertically = vertical }.Apply(img), "Applied Skew"));
+            var effect = new SkewImageEffect { Horizontally = horizontal, Vertically = vertical };
+            ApplyRequested?.Invoke(this, new EffectEventArgs(img => effect.Apply(img), "Applied Skew", effect));
         }
 
         private void OnCancelClick(object? sender, RoutedEventArgs e)

@@ -31,8 +31,9 @@ namespace ShareX.Editor.Views.Dialogs
             float rotateX = (float)(this.FindControl<Slider>("XAxisSlider")?.Value ?? 0);
             float rotateY = (float)(this.FindControl<Slider>("YAxisSlider")?.Value ?? 0);
             float rotateZ = (float)(this.FindControl<Slider>("ZAxisSlider")?.Value ?? 0);
+            var effect = new Rotate3DImageEffect { RotateX = rotateX, RotateY = rotateY, RotateZ = rotateZ };
             PreviewRequested?.Invoke(this, new EffectEventArgs(
-                img => new Rotate3DImageEffect { RotateX = rotateX, RotateY = rotateY, RotateZ = rotateZ }.Apply(img), 
+                img => effect.Apply(img), 
                 "Rotate 3D"));
         }
 
@@ -41,9 +42,11 @@ namespace ShareX.Editor.Views.Dialogs
             float rotateX = (float)(this.FindControl<Slider>("XAxisSlider")?.Value ?? 0);
             float rotateY = (float)(this.FindControl<Slider>("YAxisSlider")?.Value ?? 0);
             float rotateZ = (float)(this.FindControl<Slider>("ZAxisSlider")?.Value ?? 0);
+            var effect = new Rotate3DImageEffect { RotateX = rotateX, RotateY = rotateY, RotateZ = rotateZ };
             ApplyRequested?.Invoke(this, new EffectEventArgs(
-                img => new Rotate3DImageEffect { RotateX = rotateX, RotateY = rotateY, RotateZ = rotateZ }.Apply(img), 
-                "Applied Rotate 3D"));
+                img => effect.Apply(img), 
+                "Applied Rotate 3D",
+                effect));
         }
 
         private void OnCancelClick(object? sender, RoutedEventArgs e)

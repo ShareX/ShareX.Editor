@@ -29,13 +29,15 @@ namespace ShareX.Editor.Views.Dialogs
         private void RequestPreview()
         {
             float strength = (float)(this.FindControl<Slider>("StrengthSlider")?.Value ?? 100);
-            PreviewRequested?.Invoke(this, new EffectEventArgs(img => new SepiaImageEffect { Strength = strength }.Apply(img), "Sepia"));
+            var effect = new SepiaImageEffect { Strength = strength };
+            PreviewRequested?.Invoke(this, new EffectEventArgs(img => effect.Apply(img), "Sepia"));
         }
 
         private void OnApplyClick(object? sender, RoutedEventArgs e)
         {
             float strength = (float)(this.FindControl<Slider>("StrengthSlider")?.Value ?? 100);
-            ApplyRequested?.Invoke(this, new EffectEventArgs(img => new SepiaImageEffect { Strength = strength }.Apply(img), "Applied Sepia"));
+            var effect = new SepiaImageEffect { Strength = strength };
+            ApplyRequested?.Invoke(this, new EffectEventArgs(img => effect.Apply(img), "Applied Sepia", effect));
         }
 
         private void OnCancelClick(object? sender, RoutedEventArgs e)

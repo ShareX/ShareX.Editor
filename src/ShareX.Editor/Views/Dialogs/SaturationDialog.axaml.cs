@@ -33,7 +33,8 @@ namespace ShareX.Editor.Views.Dialogs
              var slider = this.FindControl<Slider>("AmountSlider");
              float amount = (float)(slider?.Value ?? 0);
 
-             PreviewRequested?.Invoke(this, new EffectEventArgs(img => new SaturationImageEffect { Amount = amount }.Apply(img), $"Saturation: {amount:0}"));
+             var effect = new SaturationImageEffect { Amount = amount };
+             PreviewRequested?.Invoke(this, new EffectEventArgs(img => effect.Apply(img), $"Saturation: {amount:0}"));
         }
 
         private void OnApplyClick(object? sender, RoutedEventArgs e)
@@ -41,7 +42,8 @@ namespace ShareX.Editor.Views.Dialogs
             var slider = this.FindControl<Slider>("AmountSlider");
             float amount = (float)(slider?.Value ?? 0);
             
-            ApplyRequested?.Invoke(this, new EffectEventArgs(img => new SaturationImageEffect { Amount = amount }.Apply(img), $"Adjusted saturation by {amount:0}"));
+            var effect = new SaturationImageEffect { Amount = amount };
+            ApplyRequested?.Invoke(this, new EffectEventArgs(img => effect.Apply(img), $"Adjusted saturation by {amount:0}", effect));
         }
 
         private void OnCancelClick(object? sender, RoutedEventArgs e)

@@ -29,13 +29,15 @@ namespace ShareX.Editor.Views.Dialogs
         private void RequestPreview()
         {
             int strength = (int)(this.FindControl<Slider>("StrengthSlider")?.Value ?? 50);
-            PreviewRequested?.Invoke(this, new EffectEventArgs(img => new SharpenImageEffect { Strength = strength }.Apply(img), "Sharpen"));
+            var effect = new SharpenImageEffect { Strength = strength };
+            PreviewRequested?.Invoke(this, new EffectEventArgs(img => effect.Apply(img), "Sharpen"));
         }
 
         private void OnApplyClick(object? sender, RoutedEventArgs e)
         {
             int strength = (int)(this.FindControl<Slider>("StrengthSlider")?.Value ?? 50);
-            ApplyRequested?.Invoke(this, new EffectEventArgs(img => new SharpenImageEffect { Strength = strength }.Apply(img), "Applied Sharpen"));
+            var effect = new SharpenImageEffect { Strength = strength };
+            ApplyRequested?.Invoke(this, new EffectEventArgs(img => effect.Apply(img), "Applied Sharpen", effect));
         }
 
         private void OnCancelClick(object? sender, RoutedEventArgs e)

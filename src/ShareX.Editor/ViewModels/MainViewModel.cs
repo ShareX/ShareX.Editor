@@ -29,6 +29,7 @@ using Avalonia;
 using Avalonia.Media;
 using Avalonia.Media.Imaging;
 using ShareX.Editor.ImageEffects;
+using ImageEffectBase = ShareX.Editor.ImageEffects.ImageEffect;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using ShareX.Editor.Annotations;
@@ -364,6 +365,10 @@ namespace ShareX.Editor.ViewModels
 
         // Event for View to show SaveAs dialog and return selected path
         public event Func<Task<string?>>? SaveAsRequested;
+
+        // Event for View to show preset save/load dialogs and return selected path
+        public event Func<Task<string?>>? SavePresetRequested;
+        public event Func<Task<string?>>? LoadPresetRequested;
 
         [ObservableProperty]
         private string? _lastSavedPath;
@@ -913,6 +918,8 @@ namespace ShareX.Editor.ViewModels
                 _imageRedoStack.Pop()?.Dispose();
             }
 
+            _appliedImageEffects.Clear();
+
             // HasPreviewImage = false; // Handled by OnPreviewImageChanged
             ImageDimensions = "No image";
             ResetNumberCounter();
@@ -1056,6 +1063,296 @@ namespace ShareX.Editor.ViewModels
         }
 
         [RelayCommand]
+        private async Task SavePreset()
+        {
+            if (_appliedImageEffects.Count == 0)
+            {
+                await NotifyPresetErrorAsync("Save Preset Failed", "No image effects have been applied yet.");
+                return;
+            }
+
+            if (SavePresetRequested == null)
+            {
+                return;
+            }
+
+            var path = await SavePresetRequested.Invoke();
+            if (string.IsNullOrWhiteSpace(path))
+            {
+                return;
+            }
+
+            var extension = System.IO.Path.GetExtension(path).ToLowerInvariant();
+            var presetName = System.IO.Path.GetFileNameWithoutExtension(path);
+
+            try
+            {
+                if (extension == ".sxie")
+                {
+                    var result = LegacyImageEffectExporter.ExportSxieFile(path, presetName, _appliedImageEffects);
+                    if (!result.Success)
+                    {
+                        await NotifyPresetErrorAsync("Save Preset Failed", result.ErrorMessage ?? "Legacy export failed.");
+                    }
+                }
+                else
+                {
+                    if (extension != ".xsie")
+                    {
+                        path = $"{path}.xsie";
+                    }
+
+                    ImageEffectPresetSerializer.SaveXsieFile(path, presetName, _appliedImageEffects);
+                }
+            }
+            catch (Exception ex)
+            {
+                DebugHelper.WriteException(ex, "Save preset failed");
+                await NotifyPresetErrorAsync("Save Preset Failed", ex.Message);
+            }
+        }
+
+        [RelayCommand]
+        private async Task LoadPreset()
+        {
+            if (LoadPresetRequested == null)
+            {
+                return;
+            }
+
+            var path = await LoadPresetRequested.Invoke();
+            if (string.IsNullOrWhiteSpace(path))
+            {
+                return;
+            }
+
+            var extension = System.IO.Path.GetExtension(path).ToLowerInvariant();
+            try
+            {
+                if (extension == ".sxie")
+                {
+                    var legacyPreset = LegacyImageEffectImporter.ImportSxieFile(path);
+                    if (legacyPreset == null || !legacyPreset.Success)
+                    {
+                        await NotifyPresetErrorAsync("Load Preset Failed", legacyPreset?.ErrorMessage ?? "Legacy preset import failed.");
+                        return;
+                    }
+
+                    var effects = legacyPreset.MappedEffects
+                        .Select(CreateEffectFromMapped)
+                        .Where(effect => effect != null)
+                        .Cast<ImageEffectBase>()
+                        .ToList();
+
+                    ApplyPresetEffects(effects, legacyPreset.PresetName);
+                }
+                else
+                {
+                    var preset = ImageEffectPresetSerializer.LoadXsieFile(path);
+                    if (preset == null)
+                    {
+                        await NotifyPresetErrorAsync("Load Preset Failed", "Preset file could not be read.");
+                        return;
+                    }
+
+                    ApplyPresetEffects(preset.Effects, preset.Name ?? "Preset");
+                }
+            }
+            catch (Exception ex)
+            {
+                DebugHelper.WriteException(ex, "Load preset failed");
+                await NotifyPresetErrorAsync("Load Preset Failed", ex.Message);
+            }
+        }
+
+        private async Task NotifyPresetErrorAsync(string title, string message)
+        {
+            if (ShowErrorDialog != null)
+            {
+                await ShowErrorDialog.Invoke(title, message);
+            }
+            else
+            {
+                DebugHelper.WriteLine($"{title}: {message}");
+            }
+        }
+
+        private void ApplyPresetEffects(IReadOnlyList<ImageEffectBase> effects, string presetName)
+        {
+            if (_currentSourceImage == null || effects.Count == 0)
+            {
+                return;
+            }
+
+            var result = _currentSourceImage.Copy();
+            if (result == null)
+            {
+                return;
+            }
+
+            // ISSUE-025 fix: Check for null after Copy()
+            var undoCopy = _currentSourceImage.Copy();
+            if (undoCopy == null)
+            {
+                result.Dispose();
+                return;
+            }
+            _imageUndoStack.Push(undoCopy);
+            _imageRedoStack.Clear();
+            foreach (var effect in effects)
+            {
+                var processed = effect.Apply(result);
+                if (!ReferenceEquals(processed, result))
+                {
+                    result.Dispose();
+                    result = processed;
+                }
+            }
+
+            UpdatePreview(result, clearAnnotations: true);
+            UpdateUndoRedoProperties();
+
+            _appliedImageEffects.Clear();
+            _appliedImageEffects.AddRange(effects);
+
+            DebugHelper.WriteLine($"Preset loaded: {presetName}");
+        }
+
+        private static ImageEffectBase? CreateEffectFromMapped(MappedEffect mapped)
+        {
+            if (string.IsNullOrWhiteSpace(mapped.TargetTypeName))
+            {
+                return null;
+            }
+
+            if (mapped.TargetTypeName == nameof(RotateImageEffect))
+            {
+                if (mapped.Properties.TryGetValue("Angle", out var angleValue))
+                {
+                    var angle = ReadSingle(angleValue, 0f);
+                    return RotateImageEffect.Custom(angle);
+                }
+            }
+
+            if (mapped.TargetTypeName == nameof(FlipImageEffect))
+            {
+                bool horizontal = mapped.Properties.TryGetValue("Horizontal", out var horizontalValue) && Convert.ToBoolean(horizontalValue);
+                bool vertical = mapped.Properties.TryGetValue("Vertical", out var verticalValue) && Convert.ToBoolean(verticalValue);
+
+                if (vertical && !horizontal)
+                {
+                    return FlipImageEffect.Vertical;
+                }
+
+                return FlipImageEffect.Horizontal;
+            }
+
+            if (mapped.TargetTypeName == nameof(ResizeImageEffect))
+            {
+                int width = mapped.Properties.TryGetValue("_width", out var widthValue) ? ReadInt(widthValue, 0) : 0;
+                int height = mapped.Properties.TryGetValue("_height", out var heightValue) ? ReadInt(heightValue, 0) : 0;
+                return new ResizeImageEffect(width, height);
+            }
+
+            var assembly = typeof(ImageEffectBase).Assembly;
+            var type = assembly.GetTypes().FirstOrDefault(t => t.Name.Equals(mapped.TargetTypeName, StringComparison.Ordinal));
+            if (type == null)
+            {
+                return null;
+            }
+
+            if (Activator.CreateInstance(type) is not ImageEffectBase effect)
+            {
+                return null;
+            }
+
+            ApplyMappedProperties(effect, mapped.Properties);
+            return effect;
+        }
+
+        private static void ApplyMappedProperties(ImageEffectBase effect, Dictionary<string, object?> properties)
+        {
+            var type = effect.GetType();
+
+            foreach (var pair in properties)
+            {
+                var property = type.GetProperty(pair.Key);
+                if (property == null || !property.CanWrite)
+                {
+                    continue;
+                }
+
+                var converted = ConvertPropertyValue(pair.Value, property.PropertyType);
+                property.SetValue(effect, converted);
+            }
+        }
+
+        private static object? ConvertPropertyValue(object? value, Type targetType)
+        {
+            if (value == null)
+            {
+                return null;
+            }
+
+            if (targetType.IsInstanceOfType(value))
+            {
+                return value;
+            }
+
+            if (value is Newtonsoft.Json.Linq.JToken token)
+            {
+                return token.ToObject(targetType);
+            }
+
+            if (targetType == typeof(SkiaSharp.SKColor) && value is SkiaSharp.SKColor color)
+            {
+                return color;
+            }
+
+            if (targetType.IsEnum)
+            {
+                if (value is string text)
+                {
+                    return Enum.Parse(targetType, text, ignoreCase: true);
+                }
+
+                return Enum.ToObject(targetType, value);
+            }
+
+            return Convert.ChangeType(value, targetType);
+        }
+
+        private static float ReadSingle(object? value, float fallback)
+        {
+            if (value == null)
+            {
+                return fallback;
+            }
+
+            if (value is Newtonsoft.Json.Linq.JToken token)
+            {
+                return token.ToObject<float>();
+            }
+
+            return Convert.ToSingle(value);
+        }
+
+        private static int ReadInt(object? value, int fallback)
+        {
+            if (value == null)
+            {
+                return fallback;
+            }
+
+            if (value is Newtonsoft.Json.Linq.JToken token)
+            {
+                return token.ToObject<int>();
+            }
+
+            return Convert.ToInt32(value);
+        }
+
+        [RelayCommand]
         private async Task Upload()
         {
             DebugHelper.WriteLine("Upload() called - starting upload flow");
@@ -1103,6 +1400,8 @@ namespace ShareX.Editor.ViewModels
         // Image undo/redo stacks for crop/cutout operations
         private readonly Stack<SkiaSharp.SKBitmap> _imageUndoStack = new();
         private readonly Stack<SkiaSharp.SKBitmap> _imageRedoStack = new();
+
+        private readonly List<ImageEffectBase> _appliedImageEffects = new();
 
         /// <summary>
         /// Updates the preview image. **TAKES OWNERSHIP** of the bitmap parameter.
@@ -1403,30 +1702,30 @@ namespace ShareX.Editor.ViewModels
         [RelayCommand]
         private void InvertColors()
         {
-            ApplyOneShotEffect(img => new InvertImageEffect().Apply(img), "Inverted colors");
+            ApplyOneShotEffect(new InvertImageEffect(), "Inverted colors");
         }
 
         [RelayCommand]
         private void BlackAndWhite()
         {
-            ApplyOneShotEffect(img => new BlackAndWhiteImageEffect().Apply(img), "Applied Black & White filter");
+            ApplyOneShotEffect(new BlackAndWhiteImageEffect(), "Applied Black & White filter");
         }
 
         [RelayCommand]
         private void Sepia()
         {
-            ApplyOneShotEffect(img => new SepiaImageEffect().Apply(img), "Applied Sepia filter");
+            ApplyOneShotEffect(new SepiaImageEffect(), "Applied Sepia filter");
         }
 
         [RelayCommand]
         private void Polaroid()
         {
-            ApplyOneShotEffect(img => new PolaroidImageEffect().Apply(img), "Applied Polaroid filter");
+            ApplyOneShotEffect(new PolaroidImageEffect(), "Applied Polaroid filter");
         }
 
-        private void ApplyOneShotEffect(Func<SkiaSharp.SKBitmap, SkiaSharp.SKBitmap> effect, string statusMessage)
+        private void ApplyOneShotEffect(ImageEffectBase effect, string statusMessage)
         {
-            if (_currentSourceImage == null) return;
+            if (effect == null || _currentSourceImage == null) return;
 
             // ISSUE-025 fix: Check for null after Copy()
             var undoCopy = _currentSourceImage.Copy();
@@ -1437,9 +1736,10 @@ namespace ShareX.Editor.ViewModels
             _imageUndoStack.Push(undoCopy);
             _imageRedoStack.Clear();
 
-            var result = effect(_currentSourceImage);
+            var result = effect.Apply(_currentSourceImage);
             UpdatePreview(result, clearAnnotations: true);
             UpdateUndoRedoProperties();
+            RecordAppliedEffect(effect);
         }
 
         // --- Effect Live Preview Logic ---
@@ -1494,7 +1794,7 @@ namespace ShareX.Editor.ViewModels
         /// <summary>
         /// ISSUE-028 fix: Common logic for committing effects and cleaning up preview state.
         /// </summary>
-        private void CommitEffectAndCleanup(SkiaSharp.SKBitmap result, string statusMessage)
+        private void CommitEffectAndCleanup(SkiaSharp.SKBitmap result, string statusMessage, ImageEffectBase? effectInstance)
         {
             if (_currentSourceImage == null) return;
 
@@ -1509,6 +1809,7 @@ namespace ShareX.Editor.ViewModels
 
             UpdatePreview(result, clearAnnotations: true);
             UpdateUndoRedoProperties();
+            RecordAppliedEffect(effectInstance);
 
             _preEffectImage?.Dispose();
             _preEffectImage = null;
@@ -1525,7 +1826,7 @@ namespace ShareX.Editor.ViewModels
         public void ApplyEffect(SkiaSharp.SKBitmap result, string statusMessage)
         {
             if (_preEffectImage == null) return; // Should have been started
-            CommitEffectAndCleanup(result, statusMessage);
+            CommitEffectAndCleanup(result, statusMessage, null);
         }
 
         /// <summary>
@@ -1581,12 +1882,22 @@ namespace ShareX.Editor.ViewModels
         /// <summary>
         /// Applies the effect to the source image and commits to undo stack.
         /// </summary>
-        public void ApplyEffect(Func<SkiaSharp.SKBitmap, SkiaSharp.SKBitmap> effect, string statusMessage)
+        public void ApplyEffect(Func<SkiaSharp.SKBitmap, SkiaSharp.SKBitmap> effect, string statusMessage, ImageEffectBase? effectInstance)
         {
             if (_preEffectImage == null) return;
 
             var result = effect(_preEffectImage);
-            CommitEffectAndCleanup(result, statusMessage);
+            CommitEffectAndCleanup(result, statusMessage, effectInstance);
+        }
+
+        private void RecordAppliedEffect(ImageEffectBase? effect)
+        {
+            if (effect == null)
+            {
+                return;
+            }
+
+            _appliedImageEffects.Add(effect);
         }
 
         // --- Rotate Custom Angle Feature ---
@@ -1669,6 +1980,7 @@ namespace ShareX.Editor.ViewModels
             
             UpdatePreview(result, clearAnnotations: true);
             UpdateUndoRedoProperties();
+            RecordAppliedEffect(effect);
 
             IsRotateCustomAngleDialogOpen = false;
             IsModalOpen = false;

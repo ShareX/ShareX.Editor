@@ -29,13 +29,15 @@ namespace ShareX.Editor.Views.Dialogs
         private void RequestPreview()
         {
             int size = (int)(this.FindControl<Slider>("SizeSlider")?.Value ?? 10);
-            PreviewRequested?.Invoke(this, new EffectEventArgs(img => new PixelateImageEffect { Size = size }.Apply(img), "Pixelate"));
+            var effect = new PixelateImageEffect { Size = size };
+            PreviewRequested?.Invoke(this, new EffectEventArgs(img => effect.Apply(img), "Pixelate"));
         }
 
         private void OnApplyClick(object? sender, RoutedEventArgs e)
         {
             int size = (int)(this.FindControl<Slider>("SizeSlider")?.Value ?? 10);
-            ApplyRequested?.Invoke(this, new EffectEventArgs(img => new PixelateImageEffect { Size = size }.Apply(img), "Applied Pixelate"));
+            var effect = new PixelateImageEffect { Size = size };
+            ApplyRequested?.Invoke(this, new EffectEventArgs(img => effect.Apply(img), "Applied Pixelate", effect));
         }
 
         private void OnCancelClick(object? sender, RoutedEventArgs e)

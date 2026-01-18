@@ -4,6 +4,7 @@ using Avalonia.Interactivity;
 using Avalonia.Markup.Xaml;
 using Avalonia.Media;
 using ShareX.Editor.Helpers;
+using ShareX.Editor.ImageEffects.Filters;
 using SkiaSharp;
 
 namespace ShareX.Editor.Views.Dialogs;
@@ -74,9 +75,10 @@ public partial class OutlineDialog : UserControl, IEffectDialog
     {
         var size = GetSize();
         var padding = GetPadding();
-        
+
+        var effect = new OutlineImageEffect(size, padding, _color);
         PreviewRequested?.Invoke(this, new EffectEventArgs(
-            img => ImageHelpers.ApplyOutline(img, size, padding, _color),
+            img => effect.Apply(img),
             "Outline applied"));
     }
 
@@ -84,10 +86,12 @@ public partial class OutlineDialog : UserControl, IEffectDialog
     {
         var size = GetSize();
         var padding = GetPadding();
-        
+
+        var effect = new OutlineImageEffect(size, padding, _color);
         ApplyRequested?.Invoke(this, new EffectEventArgs(
-            img => ImageHelpers.ApplyOutline(img, size, padding, _color),
-            "Outline applied"));
+            img => effect.Apply(img),
+            "Outline applied",
+            effect));
     }
 
     private void OnCancelClick(object? sender, RoutedEventArgs e)

@@ -4,6 +4,7 @@ using Avalonia.Interactivity;
 using Avalonia.Markup.Xaml;
 using Avalonia.Media;
 using ShareX.Editor.Helpers;
+using ShareX.Editor.ImageEffects.Filters;
 using SkiaSharp;
 
 namespace ShareX.Editor.Views.Dialogs;
@@ -78,16 +79,19 @@ public partial class GlowDialog : UserControl, IEffectDialog
 
     private void RaisePreview()
     {
+        var effect = new GlowImageEffect(GetSize(), GetStrength(), _color, GetOffsetX(), GetOffsetY());
         PreviewRequested?.Invoke(this, new EffectEventArgs(
-            img => ImageHelpers.ApplyGlow(img, GetSize(), GetStrength(), _color, GetOffsetX(), GetOffsetY()),
+            img => effect.Apply(img),
             "Glow applied"));
     }
 
     private void OnApplyClick(object? sender, RoutedEventArgs e)
     {
+        var effect = new GlowImageEffect(GetSize(), GetStrength(), _color, GetOffsetX(), GetOffsetY());
         ApplyRequested?.Invoke(this, new EffectEventArgs(
-            img => ImageHelpers.ApplyGlow(img, GetSize(), GetStrength(), _color, GetOffsetX(), GetOffsetY()),
-            "Glow applied"));
+            img => effect.Apply(img),
+            "Glow applied",
+            effect));
     }
 
     private void OnCancelClick(object? sender, RoutedEventArgs e)

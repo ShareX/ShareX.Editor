@@ -47,15 +47,17 @@ namespace ShareX.Editor.Views.Dialogs
              var slider = this.FindControl<Slider>("AmountSlider");
              float amount = (float)(slider?.Value ?? 0);
 
-             PreviewRequested?.Invoke(this, new EffectEventArgs(img => new BrightnessImageEffect { Amount = amount }.Apply(img), $"Brightness: {amount:0}"));
+             var effect = new BrightnessImageEffect { Amount = amount };
+             PreviewRequested?.Invoke(this, new EffectEventArgs(img => effect.Apply(img), $"Brightness: {amount:0}"));
         }
 
         private void OnApplyClick(object? sender, RoutedEventArgs e)
         {
             var slider = this.FindControl<Slider>("AmountSlider");
             float amount = (float)(slider?.Value ?? 0);
-            
-            ApplyRequested?.Invoke(this, new EffectEventArgs(img => new BrightnessImageEffect { Amount = amount }.Apply(img), $"Adjusted brightness by {amount:0}"));
+
+            var effect = new BrightnessImageEffect { Amount = amount };
+            ApplyRequested?.Invoke(this, new EffectEventArgs(img => effect.Apply(img), $"Adjusted brightness by {amount:0}", effect));
         }
 
         private void OnCancelClick(object? sender, RoutedEventArgs e)
@@ -68,11 +70,13 @@ namespace ShareX.Editor.Views.Dialogs
     {
         public Func<SKBitmap, SKBitmap> EffectOperation { get; }
         public string StatusMessage { get; }
+        public ShareX.Editor.ImageEffects.ImageEffect? EffectInstance { get; }
 
-        public EffectEventArgs(Func<SKBitmap, SKBitmap> operation, string statusMessage)
+        public EffectEventArgs(Func<SKBitmap, SKBitmap> operation, string statusMessage, ShareX.Editor.ImageEffects.ImageEffect? effectInstance = null)
         {
             EffectOperation = operation;
             StatusMessage = statusMessage;
+            EffectInstance = effectInstance;
         }
     }
 }

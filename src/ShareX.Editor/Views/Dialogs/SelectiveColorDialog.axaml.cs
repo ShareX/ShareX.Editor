@@ -85,22 +85,22 @@ namespace ShareX.Editor.Views.Dialogs
 
         private void RequestPreview()
         {
-            PreviewRequested?.Invoke(this, new EffectEventArgs(img => ApplyAllAdjustments(img), "Selective Color Adjustment"));
+            var effect = CreateEffect();
+            PreviewRequested?.Invoke(this, new EffectEventArgs(img => effect.Apply(img), "Selective Color Adjustment"));
         }
 
-        private SKBitmap ApplyAllAdjustments(SKBitmap source)
+        private SelectiveColorImageEffect CreateEffect()
         {
-            // Create the effect and apply it
-            var effect = new SelectiveColorImageEffect
+            return new SelectiveColorImageEffect
             {
                 Adjustments = new Dictionary<SelectiveColorRange, SelectiveColorAdjustment>(_adjustments)
             };
-            return effect.Apply(source);
         }
 
         private void OnApplyClick(object? sender, RoutedEventArgs e)
         {
-            ApplyRequested?.Invoke(this, new EffectEventArgs(img => ApplyAllAdjustments(img), "Applied Selective Color"));
+            var effect = CreateEffect();
+            ApplyRequested?.Invoke(this, new EffectEventArgs(img => effect.Apply(img), "Applied Selective Color", effect));
         }
 
         private void OnCancelClick(object? sender, RoutedEventArgs e)

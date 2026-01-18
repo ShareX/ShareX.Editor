@@ -4,6 +4,7 @@ using Avalonia.Interactivity;
 using Avalonia.Markup.Xaml;
 using Avalonia.Media;
 using ShareX.Editor.Helpers;
+using ShareX.Editor.ImageEffects.Filters;
 using SkiaSharp;
 
 namespace ShareX.Editor.Views.Dialogs;
@@ -89,16 +90,19 @@ public partial class ShadowDialog : UserControl, IEffectDialog
 
     private void RaisePreview()
     {
+        var effect = new ShadowImageEffect(GetOpacity(), GetSize(), GetDarkness(), _color, GetOffsetX(), GetOffsetY(), GetAutoResize());
         PreviewRequested?.Invoke(this, new EffectEventArgs(
-            img => ImageHelpers.ApplyShadow(img, GetOpacity(), GetSize(), GetDarkness(), _color, GetOffsetX(), GetOffsetY(), GetAutoResize()),
+            img => effect.Apply(img),
             "Shadow applied"));
     }
 
     private void OnApplyClick(object? sender, RoutedEventArgs e)
     {
+        var effect = new ShadowImageEffect(GetOpacity(), GetSize(), GetDarkness(), _color, GetOffsetX(), GetOffsetY(), GetAutoResize());
         ApplyRequested?.Invoke(this, new EffectEventArgs(
-            img => ImageHelpers.ApplyShadow(img, GetOpacity(), GetSize(), GetDarkness(), _color, GetOffsetX(), GetOffsetY(), GetAutoResize()),
-            "Shadow applied"));
+            img => effect.Apply(img),
+            "Shadow applied",
+            effect));
     }
 
     private void OnCancelClick(object? sender, RoutedEventArgs e)

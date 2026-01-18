@@ -3,6 +3,7 @@ using Avalonia.Controls.Primitives;
 using Avalonia.Interactivity;
 using Avalonia.Markup.Xaml;
 using ShareX.Editor.Helpers;
+using ShareX.Editor.ImageEffects.Filters;
 
 namespace ShareX.Editor.Views.Dialogs;
 
@@ -67,16 +68,19 @@ public partial class ReflectionDialog : UserControl, IEffectDialog
 
     private void RaisePreview()
     {
+        var effect = new ReflectionImageEffect(GetPercentage(), GetMaxAlpha(), GetMinAlpha(), GetOffset(), GetSkew(), GetSkewSize());
         PreviewRequested?.Invoke(this, new EffectEventArgs(
-            img => ImageHelpers.ApplyReflection(img, GetPercentage(), GetMaxAlpha(), GetMinAlpha(), GetOffset(), GetSkew(), GetSkewSize()),
+            img => effect.Apply(img),
             "Reflection applied"));
     }
 
     private void OnApplyClick(object? sender, RoutedEventArgs e)
     {
+        var effect = new ReflectionImageEffect(GetPercentage(), GetMaxAlpha(), GetMinAlpha(), GetOffset(), GetSkew(), GetSkewSize());
         ApplyRequested?.Invoke(this, new EffectEventArgs(
-            img => ImageHelpers.ApplyReflection(img, GetPercentage(), GetMaxAlpha(), GetMinAlpha(), GetOffset(), GetSkew(), GetSkewSize()),
-            "Reflection applied"));
+            img => effect.Apply(img),
+            "Reflection applied",
+            effect));
     }
 
     private void OnCancelClick(object? sender, RoutedEventArgs e)

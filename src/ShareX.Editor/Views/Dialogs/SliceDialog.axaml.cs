@@ -3,6 +3,7 @@ using Avalonia.Controls.Primitives;
 using Avalonia.Interactivity;
 using Avalonia.Markup.Xaml;
 using ShareX.Editor.Helpers;
+using ShareX.Editor.ImageEffects.Filters;
 
 namespace ShareX.Editor.Views.Dialogs;
 
@@ -56,16 +57,19 @@ public partial class SliceDialog : UserControl, IEffectDialog
 
     private void RaisePreview()
     {
+        var effect = new SliceImageEffect(GetMinHeight(), GetMaxHeight(), GetMinShift(), GetMaxShift());
         PreviewRequested?.Invoke(this, new EffectEventArgs(
-            img => ImageHelpers.ApplySlice(img, GetMinHeight(), GetMaxHeight(), GetMinShift(), GetMaxShift()),
+            img => effect.Apply(img),
             "Slice applied"));
     }
 
     private void OnApplyClick(object? sender, RoutedEventArgs e)
     {
+        var effect = new SliceImageEffect(GetMinHeight(), GetMaxHeight(), GetMinShift(), GetMaxShift());
         ApplyRequested?.Invoke(this, new EffectEventArgs(
-            img => ImageHelpers.ApplySlice(img, GetMinHeight(), GetMaxHeight(), GetMinShift(), GetMaxShift()),
-            "Slice applied"));
+            img => effect.Apply(img),
+            "Slice applied",
+            effect));
     }
 
     private void OnCancelClick(object? sender, RoutedEventArgs e)

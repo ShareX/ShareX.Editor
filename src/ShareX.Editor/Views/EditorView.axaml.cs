@@ -142,6 +142,8 @@ namespace ShareX.Editor.Views
                 // Wire up View interactions
                 vm.CopyRequested += OnCopyRequested;
                 vm.SaveAsRequested += OnSaveAsRequested;
+                vm.SavePresetRequested += OnSavePresetRequested;
+                vm.LoadPresetRequested += OnLoadPresetRequested;
                 
                 // Initial load
                 if (vm.PreviewImage != null)
@@ -160,6 +162,8 @@ namespace ShareX.Editor.Views
                 vm.PropertyChanged -= OnViewModelPropertyChanged;
                 vm.CopyRequested -= OnCopyRequested;
                 vm.SaveAsRequested -= OnSaveAsRequested;
+                vm.SavePresetRequested -= OnSavePresetRequested;
+                vm.LoadPresetRequested -= OnLoadPresetRequested;
             }
 
             _selectionController.RequestUpdateEffect -= OnRequestUpdateEffect;
@@ -1053,7 +1057,7 @@ namespace ShareX.Editor.Views
             dialog.PreviewRequested += (s, e) => vm.PreviewEffect(e.EffectOperation);
             dialog.ApplyRequested += (s, e) => 
             { 
-                vm.ApplyEffect(e.EffectOperation, e.StatusMessage); 
+                vm.ApplyEffect(e.EffectOperation, e.StatusMessage, e.EffectInstance); 
                 vm.CloseEffectsPanelCommand.Execute(null);
             };
             dialog.CancelRequested += (s, e) => 
@@ -1112,6 +1116,43 @@ namespace ShareX.Editor.Views
             });
 
             return file?.Path.LocalPath;
+        }
+
+        private async Task<string?> OnSavePresetRequested()
+        {
+            var topLevel = TopLevel.GetTopLevel(this);
+            if (topLevel?.StorageProvider == null) return null;
+
+            var file = await topLevel.StorageProvider.SaveFilePickerAsync(new Avalonia.Platform.Storage.FilePickerSaveOptions
+            {
+                Title = "Save Image Effects Preset",
+                DefaultExtension = "xsie",
+                FileTypeChoices = new[]
+                {
+                    new Avalonia.Platform.Storage.FilePickerFileType("XerahS Image Effects") { Patterns = new[] { "*.xsie" } },
+                    new Avalonia.Platform.Storage.FilePickerFileType("ShareX Image Effects") { Patterns = new[] { "*.sxie" } }
+                }
+            });
+
+            return file?.Path.LocalPath;
+        }
+
+        private async Task<string?> OnLoadPresetRequested()
+        {
+            var topLevel = TopLevel.GetTopLevel(this);
+            if (topLevel?.StorageProvider == null) return null;
+
+            var files = await topLevel.StorageProvider.OpenFilePickerAsync(new Avalonia.Platform.Storage.FilePickerOpenOptions
+            {
+                Title = "Load Image Effects Preset",
+                AllowMultiple = false,
+                FileTypeFilter = new[]
+                {
+                    new Avalonia.Platform.Storage.FilePickerFileType("Image Effects Preset") { Patterns = new[] { "*.xsie", "*.sxie" } }
+                }
+            });
+
+            return files.Count > 0 ? files[0].Path.LocalPath : null;
         }
 
         /// <summary>

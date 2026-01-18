@@ -648,6 +648,14 @@
                         </StackPanel>
                     </Button>
 
+                    <Button Classes="editor-button" Command="{Binding SavePresetCommand}" Height="40" Padding="16,0">
+                        <TextBlock Text="Save Preset" FontSize="14"/>
+                    </Button>
+
+                    <Button Classes="editor-button" Command="{Binding LoadPresetCommand}" Height="40" Padding="16,0">
+                        <TextBlock Text="Load Preset" FontSize="14"/>
+                    </Button>
+
                     <Button Classes="editor-button" Command="{Binding UploadCommand}" Height="40" Padding="16,0">
                         <StackPanel Orientation="Horizontal" Spacing="8">
                             <TextBlock Text="&#xf093;" FontSize="16" FontFamily="{StaticResource FontAwesome}" FontWeight="Black"/>
