@@ -1549,9 +1549,11 @@ namespace ShareX.Editor.ViewModels
             _imageUndoStack.Push(undoCopy);
             _imageRedoStack.Clear();
 
-            var rotated = ImageHelpers.Rotate90Clockwise(_currentSourceImage);
+            var effect = RotateImageEffect.Clockwise90;
+            var rotated = effect.Apply(_currentSourceImage);
             UpdatePreview(rotated, clearAnnotations: true);
             UpdateUndoRedoProperties();
+            RecordAppliedEffect(effect);
         }
 
         [RelayCommand]
@@ -1568,9 +1570,11 @@ namespace ShareX.Editor.ViewModels
             _imageUndoStack.Push(undoCopy);
             _imageRedoStack.Clear();
 
-            var rotated = ImageHelpers.Rotate90CounterClockwise(_currentSourceImage);
+            var effect = RotateImageEffect.CounterClockwise90;
+            var rotated = effect.Apply(_currentSourceImage);
             UpdatePreview(rotated, clearAnnotations: true);
             UpdateUndoRedoProperties();
+            RecordAppliedEffect(effect);
         }
 
         [RelayCommand]
@@ -1587,9 +1591,11 @@ namespace ShareX.Editor.ViewModels
             _imageUndoStack.Push(undoCopy);
             _imageRedoStack.Clear();
 
-            var rotated = ImageHelpers.Rotate180(_currentSourceImage);
+            var effect = RotateImageEffect.Rotate180;
+            var rotated = effect.Apply(_currentSourceImage);
             UpdatePreview(rotated, clearAnnotations: true);
             UpdateUndoRedoProperties();
+            RecordAppliedEffect(effect);
         }
 
         [RelayCommand]
@@ -1606,9 +1612,11 @@ namespace ShareX.Editor.ViewModels
             _imageUndoStack.Push(undoCopy);
             _imageRedoStack.Clear();
 
-            var flipped = ImageHelpers.FlipHorizontal(_currentSourceImage);
+            var effect = FlipImageEffect.Horizontal;
+            var flipped = effect.Apply(_currentSourceImage);
             UpdatePreview(flipped, clearAnnotations: true);
             UpdateUndoRedoProperties();
+            RecordAppliedEffect(effect);
         }
 
         [RelayCommand]
@@ -1625,9 +1633,11 @@ namespace ShareX.Editor.ViewModels
             _imageUndoStack.Push(undoCopy);
             _imageRedoStack.Clear();
 
-            var flipped = ImageHelpers.FlipVertical(_currentSourceImage);
+            var effect = FlipImageEffect.Vertical;
+            var flipped = effect.Apply(_currentSourceImage);
             UpdatePreview(flipped, clearAnnotations: true);
             UpdateUndoRedoProperties();
+            RecordAppliedEffect(effect);
         }
 
         [RelayCommand]
@@ -1637,7 +1647,8 @@ namespace ShareX.Editor.ViewModels
 
             var topLeftColor = _currentSourceImage.GetPixel(0, 0);
 
-            var cropped = ImageHelpers.AutoCrop(_currentSourceImage, topLeftColor, tolerance: 10);
+            var effect = new AutoCropImageEffect(topLeftColor, tolerance: 10);
+            var cropped = effect.Apply(_currentSourceImage);
 
             if (cropped != null && cropped.Width > 0 && cropped.Height > 0 &&
                 (cropped.Width != _currentSourceImage.Width || cropped.Height != _currentSourceImage.Height))
@@ -1653,6 +1664,7 @@ namespace ShareX.Editor.ViewModels
 
                 UpdatePreview(cropped, clearAnnotations: true);
                 UpdateUndoRedoProperties();
+                RecordAppliedEffect(effect);
             }
         }
 
@@ -1673,11 +1685,13 @@ namespace ShareX.Editor.ViewModels
             _imageUndoStack.Push(undoCopy);
             _imageRedoStack.Clear();
 
-            var resized = ImageHelpers.Resize(_currentSourceImage, newWidth, newHeight, maintainAspectRatio: false, quality);
+            var effect = new ResizeImageEffect(newWidth, newHeight, maintainAspectRatio: false, quality);
+            var resized = effect.Apply(_currentSourceImage);
             if (resized != null)
             {
                 UpdatePreview(resized, clearAnnotations: true);
                 UpdateUndoRedoProperties();
+                RecordAppliedEffect(effect);
             }
         }
 

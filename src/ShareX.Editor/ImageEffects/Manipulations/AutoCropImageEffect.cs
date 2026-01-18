@@ -5,11 +5,23 @@ namespace ShareX.Editor.ImageEffects.Manipulations;
 
 public class AutoCropImageEffect : ImageEffect
 {
-    private readonly SKColor _color;
-    private readonly int _tolerance;
+    private SKColor _color;
+    private int _tolerance;
     
     public override string Name => "Auto crop image";
     public override ImageEffectCategory Category => ImageEffectCategory.Manipulations;
+
+    public SKColor Color
+    {
+        get => _color;
+        set => _color = value;
+    }
+
+    public int Tolerance
+    {
+        get => _tolerance;
+        set => _tolerance = value;
+    }
 
     public AutoCropImageEffect(SKColor color, int tolerance = 0)
     {
@@ -19,6 +31,7 @@ public class AutoCropImageEffect : ImageEffect
 
     public AutoCropImageEffect()
     {
+        _color = SKColors.Transparent;
     }
 
     public override SKBitmap Apply(SKBitmap source)

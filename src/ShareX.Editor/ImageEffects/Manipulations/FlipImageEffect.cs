@@ -7,16 +7,32 @@ public class FlipImageEffect : ImageEffect
 {
     public enum FlipDirection { Horizontal, Vertical }
 
-    private readonly FlipDirection _direction;
-    private readonly string _name;
+    private FlipDirection _direction;
+    private string _name;
 
     public override string Name => _name;
     public override ImageEffectCategory Category => ImageEffectCategory.Manipulations;
+
+    public FlipDirection Direction
+    {
+        get => _direction;
+        set
+        {
+            _direction = value;
+            _name = _direction == FlipDirection.Horizontal ? "Flip horizontal" : "Flip vertical";
+        }
+    }
 
     public FlipImageEffect(FlipDirection direction, string name)
     {
         _direction = direction;
         _name = name;
+    }
+
+    public FlipImageEffect()
+    {
+        _direction = FlipDirection.Horizontal;
+        _name = "Flip horizontal";
     }
 
     public override SKBitmap Apply(SKBitmap source)

@@ -5,20 +5,46 @@ namespace ShareX.Editor.ImageEffects.Manipulations;
 
 public class ResizeImageEffect : ImageEffect
 {
-    private readonly int _width;
-    private readonly int _height;
-    private readonly bool _maintainAspectRatio;
-    private readonly string _name;
+    private int _width;
+    private int _height;
+    private bool _maintainAspectRatio;
+    private SKFilterQuality _filterQuality = SKFilterQuality.High;
+    private string _name;
 
     public override string Name => _name;
     public override ImageEffectCategory Category => ImageEffectCategory.Manipulations;
     public override bool HasParameters => true;
 
-    public ResizeImageEffect(int width, int height, bool maintainAspectRatio = false)
+    public int Width
+    {
+        get => _width;
+        set => _width = value;
+    }
+
+    public int Height
+    {
+        get => _height;
+        set => _height = value;
+    }
+
+    public bool MaintainAspectRatio
+    {
+        get => _maintainAspectRatio;
+        set => _maintainAspectRatio = value;
+    }
+
+    public SKFilterQuality FilterQuality
+    {
+        get => _filterQuality;
+        set => _filterQuality = value;
+    }
+
+    public ResizeImageEffect(int width, int height, bool maintainAspectRatio = false, SKFilterQuality filterQuality = SKFilterQuality.High)
     {
         _width = width;
         _height = height;
         _maintainAspectRatio = maintainAspectRatio;
+        _filterQuality = filterQuality;
         _name = "Resize image";
     }
     
@@ -53,7 +79,7 @@ public class ResizeImageEffect : ImageEffect
         }
         
         SKImageInfo info = new SKImageInfo(width, height, source.ColorType, source.AlphaType, source.ColorSpace);
-        return source.Resize(info, SKFilterQuality.High);
+        return source.Resize(info, _filterQuality);
     }
 }
 

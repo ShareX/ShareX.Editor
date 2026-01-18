@@ -1,3 +1,4 @@
+using Newtonsoft.Json;
 using SkiaSharp;
 using ShareX.Editor.Helpers;
 
@@ -5,18 +6,47 @@ namespace ShareX.Editor.ImageEffects.Manipulations;
 
 public class RotateImageEffect : ImageEffect
 {
-    private readonly float _angle;
-    private readonly string _name;
-    private readonly bool _autoResize;
+    private float _angle;
+    private string _name;
+    private bool _autoResize;
 
+    [JsonIgnore]
     public override string Name => _name;
     public override ImageEffectCategory Category => ImageEffectCategory.Manipulations;
+
+    [JsonProperty("Name")]
+    public string SerializedName
+    {
+        get => _name;
+        set => _name = string.IsNullOrWhiteSpace(value) ? "Rotate custom angle" : value;
+    }
+
+    public float Angle
+    {
+        get => _angle;
+        set
+        {
+            _angle = value;
+        }
+    }
+
+    public bool AutoResize
+    {
+        get => _autoResize;
+        set => _autoResize = value;
+    }
 
     public RotateImageEffect(float angle, string name, bool autoResize = true)
     {
         _angle = angle;
         _name = name;
         _autoResize = autoResize;
+    }
+
+    public RotateImageEffect()
+    {
+        _autoResize = true;
+        _name = "Rotate custom angle";
     }
 
     public override SKBitmap Apply(SKBitmap source)
