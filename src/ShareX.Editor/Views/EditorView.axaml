@@ -660,7 +660,7 @@
                             IsVisible="{Binding HasAppliedEffects}"
                             Height="40"
                             Padding="16,0">
-                        <TextBlock Text="Save Preset" FontSize="14"/>
+                        <TextBlock Text="Save Preset..." FontSize="14"/>
                     </Button>
 
                     <Button Classes="editor-button"
@@ -668,7 +668,7 @@
                             IsVisible="{Binding HasAppliedEffects}"
                             Height="40"
                             Padding="16,0">
-                        <TextBlock Text="Load Preset" FontSize="14"/>
+                        <TextBlock Text="Load Preset..." FontSize="14"/>
                     </Button>
                 </StackPanel>
 
