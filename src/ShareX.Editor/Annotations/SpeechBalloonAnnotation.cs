@@ -68,22 +68,9 @@ public class SpeechBalloonAnnotation : Annotation
             TailPoint = new SKPoint(rect.Right, rect.Bottom + 20);
         }
 
-        // When rendering in a control, translate to render relative to (0,0)
-        // Check if we need to translate by looking at the rect position
-        bool needsTranslation = rect.Left != 0 || rect.Top != 0;
-
+        // Use absolute coordinates for rendering
         SKRect renderRect = rect;
         SKPoint renderTailPoint = TailPoint;
-
-        if (needsTranslation)
-        {
-            // Translate to relative coordinates
-            renderRect = new SKRect(0, 0, rect.Width, rect.Height);
-            renderTailPoint = new SKPoint(
-                TailPoint.X - rect.Left,
-                TailPoint.Y - rect.Top
-            );
-        }
 
         using var path = new SKPath();
 

@@ -838,6 +838,8 @@ public class EditorCore : IDisposable
     {
         if (SourceImage == null) return null;
 
+        Console.WriteLine($"[GetSnapshot] Starting snapshot - Image: {SourceImage.Width}x{SourceImage.Height}, Annotations: {_annotations.Count}");
+
         var bitmap = new SKBitmap(SourceImage.Width, SourceImage.Height);
         using var canvas = new SKCanvas(bitmap);
 
@@ -845,9 +847,12 @@ public class EditorCore : IDisposable
         canvas.DrawBitmap(SourceImage, 0, 0);
         foreach (var annotation in _annotations)
         {
+            var bounds = annotation.GetBounds();
+            Console.WriteLine($"[GetSnapshot] Rendering {annotation.GetType().Name}: Bounds=({bounds.Left:F0},{bounds.Top:F0},{bounds.Right:F0},{bounds.Bottom:F0})");
             annotation.Render(canvas);
         }
 
+        Console.WriteLine($"[GetSnapshot] Snapshot complete");
         return bitmap;
     }
 
