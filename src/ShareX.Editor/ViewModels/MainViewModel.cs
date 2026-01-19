@@ -1,4 +1,4 @@
-using ShareX.Editor.ImageEffects.Manipulations;
+﻿using ShareX.Editor.ImageEffects.Manipulations;
 using ShareX.Editor.ImageEffects.Adjustments;
 #region License Information (GPL v3)
 
@@ -158,8 +158,8 @@ namespace ShareX.Editor.ViewModels
 
         /// <summary>
         /// ISSUE-022 fix: Recursion guard flag for smart padding event chain.
-        /// Prevents infinite loop: UseSmartPadding property change → ApplySmartPaddingCrop →
-        /// UpdatePreview → PreviewImage changed → ApplySmartPaddingCrop (again).
+        /// Prevents infinite loop: UseSmartPadding property change â†’ ApplySmartPaddingCrop â†’
+        /// UpdatePreview â†’ PreviewImage changed â†’ ApplySmartPaddingCrop (again).
         /// Set to true during ApplySmartPaddingCrop execution to break the cycle.
         /// </summary>
         private bool _isApplyingSmartPadding = false;
@@ -282,6 +282,45 @@ namespace ShareX.Editor.ViewModels
         {
             CanUndo = _isCoreUndoAvailable || _imageUndoStack.Count > 0;
             CanRedo = _isCoreRedoAvailable || _imageRedoStack.Count > 0;
+        }
+
+        private void PushImageUndoSnapshot(SkiaSharp.SKBitmap undoCopy)
+        {
+            _imageUndoStack.Push(undoCopy);
+            _effectsUndoStack.Push(new List<ImageEffectBase>(_appliedImageEffects));
+            _imageRedoStack.Clear();
+            _effectsRedoStack.Clear();
+        }
+
+        private void RestoreAppliedEffectsFromUndo()
+        {
+            if (_effectsUndoStack.Count == 0)
+            {
+                return;
+            }
+
+            _effectsRedoStack.Push(new List<ImageEffectBase>(_appliedImageEffects));
+            var effects = _effectsUndoStack.Pop();
+            SetAppliedEffects(effects);
+        }
+
+        private void RestoreAppliedEffectsFromRedo()
+        {
+            if (_effectsRedoStack.Count == 0)
+            {
+                return;
+            }
+
+            _effectsUndoStack.Push(new List<ImageEffectBase>(_appliedImageEffects));
+            var effects = _effectsRedoStack.Pop();
+            SetAppliedEffects(effects);
+        }
+
+        private void SetAppliedEffects(IEnumerable<ImageEffectBase> effects)
+        {
+            _appliedImageEffects.Clear();
+            _appliedImageEffects.AddRange(effects);
+            OnPropertyChanged(nameof(HasAppliedEffects));
         }
 
         [ObservableProperty]
@@ -463,10 +502,10 @@ namespace ShareX.Editor.ViewModels
         /// This method is part of a complex event chain that requires recursion prevention:
         /// </para>
         /// <list type="number">
-        /// <item>User toggles UseSmartPadding property → OnPropertyChanged fires</item>
+        /// <item>User toggles UseSmartPadding property â†’ OnPropertyChanged fires</item>
         /// <item>Property change triggers this method via partial method hook</item>
         /// <item>Method modifies PreviewImage (via UpdatePreview or direct assignment)</item>
-        /// <item>PreviewImage change would trigger this method again → infinite loop</item>
+        /// <item>PreviewImage change would trigger this method again â†’ infinite loop</item>
         /// </list>
         /// <para>
         /// Solution: <c>_isApplyingSmartPadding</c> flag prevents re-entry during execution.
@@ -822,6 +861,7 @@ namespace ShareX.Editor.ViewModels
                 // Restore previous image state
                 var previousImage = _imageUndoStack.Pop();
                 UpdatePreview(previousImage, clearAnnotations: false);
+                RestoreAppliedEffectsFromUndo();
                 return;
             }
 
@@ -851,6 +891,7 @@ namespace ShareX.Editor.ViewModels
                     }
                 }
                 UpdatePreview(next, clearAnnotations: true);
+                RestoreAppliedEffectsFromRedo();
                 UpdateUndoRedoProperties();
                 return;
             }
@@ -919,6 +960,8 @@ namespace ShareX.Editor.ViewModels
             }
 
             _appliedImageEffects.Clear();
+            _effectsUndoStack.Clear();
+            _effectsRedoStack.Clear();
             OnPropertyChanged(nameof(HasAppliedEffects));
             OnPropertyChanged(nameof(HasAppliedEffects));
 
@@ -1200,8 +1243,7 @@ namespace ShareX.Editor.ViewModels
                 result.Dispose();
                 return;
             }
-            _imageUndoStack.Push(undoCopy);
-            _imageRedoStack.Clear();
+            PushImageUndoSnapshot(undoCopy);
             foreach (var effect in effects)
             {
                 var processed = effect.Apply(result);
@@ -1215,9 +1257,7 @@ namespace ShareX.Editor.ViewModels
             UpdatePreview(result, clearAnnotations: true);
             UpdateUndoRedoProperties();
 
-            _appliedImageEffects.Clear();
-            _appliedImageEffects.AddRange(effects);
-            OnPropertyChanged(nameof(HasAppliedEffects));
+            SetAppliedEffects(effects);
 
             DebugHelper.WriteLine($"Preset loaded: {presetName}");
         }
@@ -1404,6 +1444,8 @@ namespace ShareX.Editor.ViewModels
         // Image undo/redo stacks for crop/cutout operations
         private readonly Stack<SkiaSharp.SKBitmap> _imageUndoStack = new();
         private readonly Stack<SkiaSharp.SKBitmap> _imageRedoStack = new();
+        private readonly Stack<List<ImageEffectBase>> _effectsUndoStack = new();
+        private readonly Stack<List<ImageEffectBase>> _effectsRedoStack = new();
 
         private readonly List<ImageEffectBase> _appliedImageEffects = new();
         public bool HasAppliedEffects => _appliedImageEffects.Count > 0;
@@ -1475,8 +1517,7 @@ namespace ShareX.Editor.ViewModels
             {
                 return; // Can't proceed without undo capability for destructive operation
             }
-            _imageUndoStack.Push(undoCopy);
-            _imageRedoStack.Clear();
+            PushImageUndoSnapshot(undoCopy);
 
             var cropped = ImageHelpers.Crop(_currentSourceImage, rect.Left, rect.Top, rect.Width, rect.Height);
             // Don't clear annotations - they are adjusted in EditorCore
@@ -1507,8 +1548,7 @@ namespace ShareX.Editor.ViewModels
             {
                 return; // Can't proceed without undo capability for destructive operation
             }
-            _imageUndoStack.Push(undoCopy);
-            _imageRedoStack.Clear();
+            PushImageUndoSnapshot(undoCopy);
             
             // ... (CutOut logic omitted for brevity in diff, assuming calling UpdateUndoRedoProperties after invalidation or here?)
             // Actually CutOutImage calls UpdatePreview implicitly? No, it uses ViewModel.CutOutImage which calls this.
@@ -1525,8 +1565,6 @@ namespace ShareX.Editor.ViewModels
             // Note: CutOut logic in Controller calls ViewModel.CutOutImage.
             // I will update CutOutImage if I can see it. I saw lines 983-1000.
             // I will just apply to Crop and Undo/Redo first.
-
-            _imageRedoStack.Clear();
 
             var result = ImageHelpers.CutOut(_currentSourceImage, startPos, endPos, isVertical);
             // Don't clear annotations - they are adjusted in EditorCore
@@ -1546,8 +1584,7 @@ namespace ShareX.Editor.ViewModels
             {
                 return;
             }
-            _imageUndoStack.Push(undoCopy);
-            _imageRedoStack.Clear();
+            PushImageUndoSnapshot(undoCopy);
 
             var effect = RotateImageEffect.Clockwise90;
             var rotated = effect.Apply(_currentSourceImage);
@@ -1567,8 +1604,7 @@ namespace ShareX.Editor.ViewModels
             {
                 return;
             }
-            _imageUndoStack.Push(undoCopy);
-            _imageRedoStack.Clear();
+            PushImageUndoSnapshot(undoCopy);
 
             var effect = RotateImageEffect.CounterClockwise90;
             var rotated = effect.Apply(_currentSourceImage);
@@ -1588,8 +1624,7 @@ namespace ShareX.Editor.ViewModels
             {
                 return;
             }
-            _imageUndoStack.Push(undoCopy);
-            _imageRedoStack.Clear();
+            PushImageUndoSnapshot(undoCopy);
 
             var effect = RotateImageEffect.Rotate180;
             var rotated = effect.Apply(_currentSourceImage);
@@ -1609,8 +1644,7 @@ namespace ShareX.Editor.ViewModels
             {
                 return;
             }
-            _imageUndoStack.Push(undoCopy);
-            _imageRedoStack.Clear();
+            PushImageUndoSnapshot(undoCopy);
 
             var effect = FlipImageEffect.Horizontal;
             var flipped = effect.Apply(_currentSourceImage);
@@ -1630,8 +1664,7 @@ namespace ShareX.Editor.ViewModels
             {
                 return;
             }
-            _imageUndoStack.Push(undoCopy);
-            _imageRedoStack.Clear();
+            PushImageUndoSnapshot(undoCopy);
 
             var effect = FlipImageEffect.Vertical;
             var flipped = effect.Apply(_currentSourceImage);
@@ -1659,8 +1692,7 @@ namespace ShareX.Editor.ViewModels
                 {
                     return;
                 }
-                _imageUndoStack.Push(undoCopy);
-                _imageRedoStack.Clear();
+                PushImageUndoSnapshot(undoCopy);
 
                 UpdatePreview(cropped, clearAnnotations: true);
                 UpdateUndoRedoProperties();
@@ -1682,8 +1714,7 @@ namespace ShareX.Editor.ViewModels
             {
                 return;
             }
-            _imageUndoStack.Push(undoCopy);
-            _imageRedoStack.Clear();
+            PushImageUndoSnapshot(undoCopy);
 
             var effect = new ResizeImageEffect(newWidth, newHeight, maintainAspectRatio: false, quality);
             var resized = effect.Apply(_currentSourceImage);
@@ -1708,8 +1739,7 @@ namespace ShareX.Editor.ViewModels
             {
                 return;
             }
-            _imageUndoStack.Push(undoCopy);
-            _imageRedoStack.Clear();
+            PushImageUndoSnapshot(undoCopy);
 
             var resized = ImageHelpers.ResizeCanvas(_currentSourceImage, left, top, right, bottom, backgroundColor);
             UpdatePreview(resized, clearAnnotations: true);
@@ -1752,8 +1782,7 @@ namespace ShareX.Editor.ViewModels
             {
                 return;
             }
-            _imageUndoStack.Push(undoCopy);
-            _imageRedoStack.Clear();
+            PushImageUndoSnapshot(undoCopy);
 
             var result = effect.Apply(_currentSourceImage);
             UpdatePreview(result, clearAnnotations: true);
@@ -1823,8 +1852,7 @@ namespace ShareX.Editor.ViewModels
             {
                 return;
             }
-            _imageUndoStack.Push(undoCopy);
-            _imageRedoStack.Clear();
+            PushImageUndoSnapshot(undoCopy);
 
             UpdatePreview(result, clearAnnotations: true);
             UpdateUndoRedoProperties();
@@ -1992,8 +2020,7 @@ namespace ShareX.Editor.ViewModels
             {
                 return;
             }
-            _imageUndoStack.Push(undoCopy);
-            _imageRedoStack.Clear();
+            PushImageUndoSnapshot(undoCopy);
 
             var effect = RotateImageEffect.Custom(angle, RotateAutoResize);
             var result = effect.Apply(_rotateCustomAngleOriginalBitmap);
@@ -2030,6 +2057,7 @@ namespace ShareX.Editor.ViewModels
         }
     }
 }
+
 
 
 

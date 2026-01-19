@@ -53,6 +53,8 @@ namespace ShareX.Editor.Controls
         public event EventHandler? BlurRequested;
         public event EventHandler? PixelateRequested;
         public event EventHandler? SharpenRequested;
+        public event EventHandler? ImportPresetRequested;
+        public event EventHandler? ExportPresetRequested;
 
         public EffectsMenuDropdown()
         {
@@ -110,5 +112,7 @@ namespace ShareX.Editor.Controls
         private void OnBlurClick(object? sender, RoutedEventArgs e) => Raise(BlurRequested);
         private void OnPixelateClick(object? sender, RoutedEventArgs e) => Raise(PixelateRequested);
         private void OnSharpenClick(object? sender, RoutedEventArgs e) => Raise(SharpenRequested);
+        private void OnImportPresetClick(object? sender, RoutedEventArgs e) => Raise(ImportPresetRequested);
+        private void OnExportPresetClick(object? sender, RoutedEventArgs e) => Raise(ExportPresetRequested);
     }
 }

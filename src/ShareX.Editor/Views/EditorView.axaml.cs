@@ -1064,6 +1064,8 @@ namespace ShareX.Editor.Views
         private void OnBlurRequested(object? sender, EventArgs e) => ShowEffectDialog(new BlurDialog());
         private void OnPixelateRequested(object? sender, EventArgs e) => ShowEffectDialog(new PixelateDialog());
         private void OnSharpenRequested(object? sender, EventArgs e) => ShowEffectDialog(new SharpenDialog());
+        private void OnImportPresetRequested(object? sender, EventArgs e) { if (DataContext is MainViewModel vm) vm.LoadPresetCommand.Execute(null); }
+        private void OnExportPresetRequested(object? sender, EventArgs e) { if (DataContext is MainViewModel vm) vm.SavePresetCommand.Execute(null); }
 
 
         private void ShowEffectDialog<T>(T dialog) where T : UserControl, IEffectDialog
