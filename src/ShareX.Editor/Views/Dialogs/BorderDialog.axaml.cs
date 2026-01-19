@@ -1,3 +1,4 @@
+using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
 using Avalonia.Interactivity;
@@ -11,6 +12,15 @@ namespace ShareX.Editor.Views.Dialogs;
 
 public partial class BorderDialog : UserControl, IEffectDialog
 {
+    public static readonly StyledProperty<Color> SelectedColorProperty =
+        AvaloniaProperty.Register<BorderDialog, Color>(nameof(SelectedColor));
+
+    public Color SelectedColor
+    {
+        get => GetValue(SelectedColorProperty);
+        set => SetValue(SelectedColorProperty, value);
+    }
+
     public event EventHandler<EffectEventArgs>? PreviewRequested;
     public event EventHandler<EffectEventArgs>? ApplyRequested;
     public event EventHandler? CancelRequested;
@@ -22,8 +32,8 @@ public partial class BorderDialog : UserControl, IEffectDialog
     private ComboBox? _typeComboBox;
     private ComboBox? _dashStyleComboBox;
     private Slider? _sizeSlider;
-    private TextBox? _colorTextBox;
-    private Border? _colorPreview;
+    private ColorPicker? _colorPicker;
+
 
     public BorderDialog()
     {
@@ -33,8 +43,8 @@ public partial class BorderDialog : UserControl, IEffectDialog
         _typeComboBox = this.FindControl<ComboBox>("TypeComboBox");
         _dashStyleComboBox = this.FindControl<ComboBox>("DashStyleComboBox");
         _sizeSlider = this.FindControl<Slider>("SizeSlider");
-        _colorTextBox = this.FindControl<TextBox>("ColorTextBox");
-        _colorPreview = this.FindControl<Border>("ColorPreview");
+        _colorPicker = this.FindControl<ColorPicker>("ColorPickerControl");
+
         
         Loaded += OnLoaded;
     }
@@ -47,6 +57,7 @@ public partial class BorderDialog : UserControl, IEffectDialog
     private void OnLoaded(object? sender, RoutedEventArgs e)
     {
         _isLoaded = true;
+        SelectedColor = new Color(_color.Alpha, _color.Red, _color.Green, _color.Blue);
         RaisePreview();
     }
 
@@ -78,20 +89,12 @@ public partial class BorderDialog : UserControl, IEffectDialog
         if (_isLoaded) RaisePreview();
     }
 
-    private void OnColorTextChanged(object? sender, TextChangedEventArgs e)
+    private void OnColorChanged(object? sender, ColorChangedEventArgs e)
     {
-        if (_colorTextBox != null && _colorPreview != null)
-        {
-            try
-            {
-                var color = Color.Parse(_colorTextBox.Text ?? "#000000");
-                _colorPreview.Background = new SolidColorBrush(color);
-                _color = new SKColor(color.R, color.G, color.B, color.A);
-                if (_isLoaded) RaisePreview();
-            }
-            catch { }
-        }
+        _color = new SKColor(e.NewColor.R, e.NewColor.G, e.NewColor.B, e.NewColor.A);
+        if (_isLoaded) RaisePreview();
     }
+
 
     private void RaisePreview()
     {
