@@ -127,6 +127,10 @@ namespace ShareX.Editor.Views
         protected override void OnLoaded(RoutedEventArgs e)
         {
             base.OnLoaded(e);
+            
+            UpdateToolbarScrollPadding();
+            UpdateSidebarScrollPadding();
+            
             AttachViewModel(DataContext as MainViewModel);
         }
 
@@ -189,7 +193,6 @@ namespace ShareX.Editor.Views
             vm.ShowErrorDialog -= OnShowErrorDialog;
             _boundViewModel = null;
         }
-
         private void OnViewModelPropertyChanged(object? sender, PropertyChangedEventArgs e)
         {
             if (sender is MainViewModel vm)
@@ -802,12 +805,30 @@ namespace ShareX.Editor.Views
 
         private void OnSidebarScrollChanged(object? sender, ScrollChangedEventArgs e)
         {
-            // TODO: Restore sidebar scrollbar overlay logic
+            UpdateSidebarScrollPadding();
+        }
+
+        private void UpdateToolbarScrollPadding()
+        {
+            var toolbarScrollViewer = this.FindControl<ScrollViewer>("ToolbarScrollViewer");
+            if (toolbarScrollViewer == null) return;
+
+            var hasHorizontalOverflow = toolbarScrollViewer.Extent.Width - toolbarScrollViewer.Viewport.Width > 0.5;
+            toolbarScrollViewer.Padding = hasHorizontalOverflow ? new Thickness(0, 0, 0, 8) : new Thickness(0);
+        }
+
+        private void UpdateSidebarScrollPadding()
+        {
+            var sidebarScrollViewer = this.FindControl<ScrollViewer>("SidebarScrollViewer");
+            if (sidebarScrollViewer == null) return;
+
+            var hasVerticalOverflow = sidebarScrollViewer.Extent.Height - sidebarScrollViewer.Viewport.Height > 0.5;
+            sidebarScrollViewer.Padding = hasVerticalOverflow ? new Thickness(0, 0, 8, 0) : new Thickness(0);
         }
 
         private void OnToolbarScrollChanged(object? sender, ScrollChangedEventArgs e)
         {
-            // TODO: Restore toolbar scrollbar overlay logic
+            UpdateToolbarScrollPadding();
         }
 
         // --- Restored from ref\3babd33_EditorView.axaml.cs lines 767-829 ---
