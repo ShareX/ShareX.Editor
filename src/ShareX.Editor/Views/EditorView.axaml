@@ -342,7 +342,7 @@
 
                     <!-- Redo Button -->
                     <Button Classes="editor-button" Width="40" Height="40"
-                            Command="{Binding RedoCommand}" ToolTip.Tip="Redo (Ctrl+Shift+Z)"
+                            Command="{Binding RedoCommand}" ToolTip.Tip="Redo (Ctrl+Y)"
                             FontFamily="{StaticResource FontAwesome}" FontWeight="Black" FontSize="16" Content="{StaticResource IconRedo}"/>
 
                     <!-- Separator -->

@@ -123,11 +123,107 @@ public class EditorCore : IDisposable
     #region Image Effects
 
     private readonly List<ImageEffect> _effects = new();
+    private SKBitmap? _effectsCache;
+    private bool _effectsCacheDirty = true;
+    private ImageEffect? _previewEffect;
 
     /// <summary>
     /// All image effects currently configured
     /// </summary>
     public IReadOnlyList<ImageEffect> Effects => _effects;
+
+    /// <summary>
+    /// Gets the composited image with all enabled effects applied.
+    /// Uses a cached bitmap that is only recomputed when effects or source change.
+    /// Includes the temporary preview effect if one is set.
+    /// </summary>
+    internal SKBitmap? GetCompositedImage()
+    {
+        if (SourceImage == null) return null;
+
+        var enabledEffects = _effects.Where(e => e.IsEnabled).ToList();
+        if (_previewEffect != null) enabledEffects.Add(_previewEffect);
+        if (enabledEffects.Count == 0) return SourceImage;
+
+        if (!_effectsCacheDirty && _effectsCache != null) return _effectsCache;
+
+        _effectsCache?.Dispose();
+        _effectsCache = SourceImage.Copy();
+
+        foreach (var effect in enabledEffects)
+        {
+            var processed = effect.Apply(_effectsCache);
+            if (processed != _effectsCache)
+            {
+                _effectsCache.Dispose();
+                _effectsCache = processed;
+            }
+        }
+
+        _effectsCacheDirty = false;
+        return _effectsCache;
+    }
+
+    private void InvalidateEffectsCache()
+    {
+        _effectsCacheDirty = true;
+        _effectsCache?.Dispose();
+        _effectsCache = null;
+    }
+
+    /// <summary>
+    /// Set a temporary preview effect for real-time visual feedback.
+    /// This effect is composited onto the canvas but not committed to the undo stack.
+    /// </summary>
+    public void SetPreviewEffect(ImageEffect? effect)
+    {
+        _previewEffect = effect;
+        InvalidateEffectsCache();
+        InvalidateRequested?.Invoke();
+    }
+
+    /// <summary>
+    /// Set a temporary preview effect from a function.
+    /// Used by effect dialogs that provide a Func&lt;SKBitmap, SKBitmap&gt; for preview.
+    /// </summary>
+    public void SetPreviewEffect(Func<SKBitmap, SKBitmap> applyFunc)
+    {
+        SetPreviewEffect(new FuncImageEffect(applyFunc));
+    }
+
+    /// <summary>
+    /// Clear the temporary preview effect without committing.
+    /// </summary>
+    public void ClearPreviewEffect()
+    {
+        if (_previewEffect == null) return;
+        _previewEffect = null;
+        InvalidateEffectsCache();
+        InvalidateRequested?.Invoke();
+    }
+
+    /// <summary>
+    /// Commit the preview effect to the effects list with proper undo support.
+    /// </summary>
+    public void CommitPreviewEffect()
+    {
+        if (_previewEffect == null) return;
+        var effect = _previewEffect;
+        _previewEffect = null;
+        AddEffect(effect);
+    }
+
+    /// <summary>
+    /// Internal wrapper that adapts a Func&lt;SKBitmap, SKBitmap&gt; to an ImageEffect for preview.
+    /// </summary>
+    private sealed class FuncImageEffect : ImageEffect
+    {
+        private readonly Func<SKBitmap, SKBitmap> _applyFunc;
+        public override string Name => "Preview";
+        public override ImageEffectCategory Category => ImageEffectCategory.Adjustments;
+        public FuncImageEffect(Func<SKBitmap, SKBitmap> applyFunc) => _applyFunc = applyFunc;
+        public override SKBitmap Apply(SKBitmap source) => _applyFunc(source);
+    }
 
     #endregion
 
@@ -202,6 +298,7 @@ public class EditorCore : IDisposable
     {
         _annotations.Clear();
         _effects.Clear();
+        InvalidateEffectsCache();
         _history?.Dispose();
         _history = new EditorHistory(this);
         _currentAnnotation = null;
@@ -737,8 +834,10 @@ public class EditorCore : IDisposable
     {
         _history.CreateEffectsMemento();
         _effects.Add(effect);
+        InvalidateEffectsCache();
         HistoryChanged?.Invoke();
         EffectsChanged?.Invoke();
+        InvalidateRequested?.Invoke();
     }
 
     /// <summary>
@@ -748,8 +847,10 @@ public class EditorCore : IDisposable
     {
         _history.CreateEffectsMemento();
         _effects.Remove(effect);
+        InvalidateEffectsCache();
         HistoryChanged?.Invoke();
         EffectsChanged?.Invoke();
+        InvalidateRequested?.Invoke();
     }
 
     /// <summary>
@@ -759,8 +860,10 @@ public class EditorCore : IDisposable
     {
         _history.CreateEffectsMemento();
         effect.IsEnabled = !effect.IsEnabled;
+        InvalidateEffectsCache();
         HistoryChanged?.Invoke();
         EffectsChanged?.Invoke();
+        InvalidateRequested?.Invoke();
     }
 
     /// <summary>
@@ -771,8 +874,10 @@ public class EditorCore : IDisposable
         _history.CreateEffectsMemento();
         _effects.Clear();
         _effects.AddRange(effects);
+        InvalidateEffectsCache();
         HistoryChanged?.Invoke();
         EffectsChanged?.Invoke();
+        InvalidateRequested?.Invoke();
     }
 
     /// <summary>
@@ -782,7 +887,9 @@ public class EditorCore : IDisposable
     {
         _effects.Clear();
         _effects.AddRange(effects);
+        InvalidateEffectsCache();
         EffectsChanged?.Invoke();
+        InvalidateRequested?.Invoke();
     }
 
     /// <summary>
@@ -842,6 +949,7 @@ public class EditorCore : IDisposable
             SourceImage?.Dispose();
             SourceImage = memento.Canvas.Copy();
             CanvasSize = memento.CanvasSize;
+            InvalidateEffectsCache();
         }
 
         // ISSUE-010 fix: Restore selection state if memento captured a selected annotation
@@ -859,6 +967,7 @@ public class EditorCore : IDisposable
         {
             _effects.Clear();
             _effects.AddRange(memento.Effects);
+            InvalidateEffectsCache();
             EffectsChanged?.Invoke();
         }
 
@@ -880,10 +989,11 @@ public class EditorCore : IDisposable
     {
         canvas.Clear(SKColors.Transparent);
 
-        // Draw source image
-        if (SourceImage != null)
+        // Draw source image with effects composited
+        var composited = GetCompositedImage();
+        if (composited != null)
         {
-            canvas.DrawBitmap(SourceImage, 0, 0);
+            canvas.DrawBitmap(composited, 0, 0);
         }
 
         // Draw annotations
@@ -1130,6 +1240,7 @@ public class EditorCore : IDisposable
         SourceImage.Dispose();
         SourceImage = croppedBitmap;
         CanvasSize = new SKSize(width, height);
+        InvalidateEffectsCache();
 
         ImageChanged?.Invoke();
         InvalidateRequested?.Invoke();
@@ -1257,6 +1368,7 @@ public class EditorCore : IDisposable
 
         // Remove cutout annotation
         _annotations.Remove(cutOutAnnotation);
+        InvalidateEffectsCache();
 
         ImageChanged?.Invoke();
         InvalidateRequested?.Invoke();
@@ -1420,6 +1532,8 @@ public class EditorCore : IDisposable
     public void Dispose()
     {
         _history?.Dispose();
+        _effectsCache?.Dispose();
+        _effectsCache = null;
         SourceImage?.Dispose();
     }
 

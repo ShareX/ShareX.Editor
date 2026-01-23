@@ -41,6 +41,7 @@ using System.ComponentModel;
 using System.Linq; // Added for Enumerable.Select
 using ShareX.Editor.Views.Dialogs;
 using ShareX.Editor.ImageEffects;
+using ShareX.Editor.ImageEffects.Adjustments;
 
 namespace ShareX.Editor.Views
 {
@@ -352,11 +353,6 @@ namespace ShareX.Editor.Views
                 if (e.Key == Key.Delete)
                 {
                     vm.DeleteSelectedCommand.Execute(null);
-                    e.Handled = true;
-                }
-                else if (e.KeyModifiers.HasFlag(KeyModifiers.Control | KeyModifiers.Shift) && e.Key == Key.Z)
-                {
-                    vm.RedoCommand.Execute(null);
                     e.Handled = true;
                 }
                 else if (e.KeyModifiers.HasFlag(KeyModifiers.Control) && !e.KeyModifiers.HasFlag(KeyModifiers.Shift))
@@ -1066,10 +1062,10 @@ namespace ShareX.Editor.Views
         private void OnReplaceColorRequested(object? sender, EventArgs e) => ShowEffectDialog(new ReplaceColorDialog());
         private void OnGrayscaleRequested(object? sender, EventArgs e) => ShowEffectDialog(new GrayscaleDialog());
 
-        private void OnInvertRequested(object? sender, EventArgs e) { if (DataContext is MainViewModel vm) vm.InvertColorsCommand.Execute(null); }
-        private void OnBlackAndWhiteRequested(object? sender, EventArgs e) { if (DataContext is MainViewModel vm) vm.BlackAndWhiteCommand.Execute(null); }
+        private void OnInvertRequested(object? sender, EventArgs e) => _editorCore.AddEffect(new InvertImageEffect());
+        private void OnBlackAndWhiteRequested(object? sender, EventArgs e) => _editorCore.AddEffect(new BlackAndWhiteImageEffect());
         private void OnSepiaRequested(object? sender, EventArgs e) => ShowEffectDialog(new SepiaDialog());
-        private void OnPolaroidRequested(object? sender, EventArgs e) { if (DataContext is MainViewModel vm) vm.PolaroidCommand.Execute(null); }
+        private void OnPolaroidRequested(object? sender, EventArgs e) => _editorCore.AddEffect(new PolaroidImageEffect());
 
         // Filter handlers
         private void OnBorderRequested(object? sender, EventArgs e) => ShowEffectDialog(new BorderDialog());
@@ -1094,28 +1090,26 @@ namespace ShareX.Editor.Views
             var vm = DataContext as MainViewModel;
             if (vm == null) return;
 
-            // Initialize logic
-            vm.StartEffectPreview();
-            
-            // Wire events using interface instead of dynamic
-            dialog.PreviewRequested += (s, e) => vm.PreviewEffect(e.EffectOperation);
-            dialog.ApplyRequested += (s, e) => 
-            { 
-                vm.ApplyEffect(e.EffectOperation, e.StatusMessage, e.EffectInstance); 
+            // Wire events to use EditorCore's non-destructive effects pipeline.
+            // Preview: show the effect in real-time without committing to undo stack.
+            // Apply: commit the effect with proper undo support, preserving annotations.
+            // Cancel: remove the preview effect, restoring original state.
+            dialog.PreviewRequested += (s, e) => _editorCore.SetPreviewEffect(e.EffectOperation);
+            dialog.ApplyRequested += (s, e) =>
+            {
+                _editorCore.ClearPreviewEffect();
+                if (e.EffectInstance != null)
+                {
+                    _editorCore.AddEffect(e.EffectInstance);
+                }
                 vm.CloseEffectsPanelCommand.Execute(null);
             };
-            dialog.CancelRequested += (s, e) => 
-            { 
-                vm.CancelEffectPreview(); 
+            dialog.CancelRequested += (s, e) =>
+            {
+                _editorCore.ClearPreviewEffect();
                 vm.CloseEffectsPanelCommand.Execute(null);
             };
 
-            // If left sidebar is open, close it to avoid clutter? 
-            // The request says "Side bar at right side won't cover the image preview at center".
-            // So we can keep left sidebar open or close it. 
-            // Usually only one "main" panel is active or both sidebars. 
-            // Let's keep existing behavior for SettingsPanel (left) but ensure EffectsPanel (right) opens.
-            
             vm.EffectsPanelContent = dialog;
             vm.IsEffectsPanelOpen = true;
         }
