@@ -24,6 +24,7 @@
 #endregion License Information (GPL v3)
 
 using ShareX.Editor.Annotations;
+using ShareX.Editor.ImageEffects;
 using SkiaSharp;
 
 namespace ShareX.Editor;
@@ -55,18 +56,25 @@ internal class EditorMemento : IDisposable
     public Guid? SelectedAnnotationId { get; private set; }
 
     /// <summary>
+    /// Image effects state at this point in history.
+    /// </summary>
+    public List<ImageEffect>? Effects { get; private set; }
+
+    /// <summary>
     /// Create a new memento
     /// </summary>
     /// <param name="annotations">Annotation list to duplicate</param>
     /// <param name="canvasSize">Canvas size</param>
     /// <param name="canvas">Optional canvas bitmap for destructive operations</param>
     /// <param name="selectedAnnotationId">Optional selected annotation ID for selection restoration</param>
-    public EditorMemento(List<Annotation> annotations, SKSize canvasSize, SKBitmap? canvas = null, Guid? selectedAnnotationId = null)
+    /// <param name="effects">Optional image effects list to capture</param>
+    public EditorMemento(List<Annotation> annotations, SKSize canvasSize, SKBitmap? canvas = null, Guid? selectedAnnotationId = null, List<ImageEffect>? effects = null)
     {
         Annotations = annotations;
         CanvasSize = canvasSize;
         Canvas = canvas;
         SelectedAnnotationId = selectedAnnotationId;
+        Effects = effects;
     }
 
     public void Dispose()

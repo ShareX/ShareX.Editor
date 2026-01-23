@@ -24,6 +24,7 @@
 #endregion License Information (GPL v3)
 
 using ShareX.Editor.Annotations;
+using ShareX.Editor.ImageEffects;
 using SkiaSharp;
 
 namespace ShareX.Editor;
@@ -113,7 +114,8 @@ internal class EditorHistory : IDisposable
         List<Annotation> annotations = _editorCore.GetAnnotationsSnapshot();
         SKBitmap? canvas = _editorCore.SourceImage?.Copy();
         Guid? selectedId = _editorCore.SelectedAnnotation?.Id;
-        return new EditorMemento(annotations, _editorCore.CanvasSize, canvas, selectedId);
+        List<ImageEffect> effects = _editorCore.GetEffectsSnapshot();
+        return new EditorMemento(annotations, _editorCore.CanvasSize, canvas, selectedId, effects);
     }
 
     /// <summary>
@@ -124,7 +126,8 @@ internal class EditorHistory : IDisposable
     {
         List<Annotation> annotations = _editorCore.GetAnnotationsSnapshot(excludeAnnotation);
         Guid? selectedId = _editorCore.SelectedAnnotation?.Id;
-        return new EditorMemento(annotations, _editorCore.CanvasSize, null, selectedId);
+        List<ImageEffect> effects = _editorCore.GetEffectsSnapshot();
+        return new EditorMemento(annotations, _editorCore.CanvasSize, null, selectedId, effects);
     }
 
     /// <summary>
@@ -168,6 +171,16 @@ internal class EditorHistory : IDisposable
         }
 
         EditorMemento memento = GetMementoFromAnnotations(excludeAnnotation);
+        AddMemento(memento);
+    }
+
+    /// <summary>
+    /// Create a memento for effect changes. Unlike CreateAnnotationsMemento,
+    /// this is not gated by the active tool since effects are independent of region tools.
+    /// </summary>
+    public void CreateEffectsMemento()
+    {
+        EditorMemento memento = GetMementoFromAnnotations();
         AddMemento(memento);
     }
 

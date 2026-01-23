@@ -24,6 +24,7 @@
 #endregion License Information (GPL v3)
 
 using ShareX.Editor.Annotations;
+using ShareX.Editor.ImageEffects;
 using SkiaSharp;
 
 namespace ShareX.Editor;
@@ -73,6 +74,11 @@ public class EditorCore : IDisposable
     /// </summary>
     public event Action? HistoryChanged;
 
+    /// <summary>
+    /// Raised when the image effects list changes (add, remove, toggle, undo/redo)
+    /// </summary>
+    public event Action? EffectsChanged;
+
     #endregion
 
     #region State
@@ -111,6 +117,17 @@ public class EditorCore : IDisposable
     /// Auto-incrementing number counter for Number tool
     /// </summary>
     public int NumberCounter { get; set; } = 1;
+
+    #endregion
+
+    #region Image Effects
+
+    private readonly List<ImageEffect> _effects = new();
+
+    /// <summary>
+    /// All image effects currently configured
+    /// </summary>
+    public IReadOnlyList<ImageEffect> Effects => _effects;
 
     #endregion
 
@@ -179,11 +196,12 @@ public class EditorCore : IDisposable
     }
 
     /// <summary>
-    /// Clear all annotations
+    /// Clear all annotations and effects
     /// </summary>
     public void ClearAll()
     {
         _annotations.Clear();
+        _effects.Clear();
         _history?.Dispose();
         _history = new EditorHistory(this);
         _currentAnnotation = null;
@@ -192,6 +210,7 @@ public class EditorCore : IDisposable
         NumberCounter = 1;
         InvalidateRequested?.Invoke();
         HistoryChanged?.Invoke();
+        EffectsChanged?.Invoke();
     }
 
     #endregion
@@ -709,6 +728,73 @@ public class EditorCore : IDisposable
 
     #endregion
 
+    #region Effects Management
+
+    /// <summary>
+    /// Add an image effect, creating a memento before the change.
+    /// </summary>
+    public void AddEffect(ImageEffect effect)
+    {
+        _history.CreateEffectsMemento();
+        _effects.Add(effect);
+        HistoryChanged?.Invoke();
+        EffectsChanged?.Invoke();
+    }
+
+    /// <summary>
+    /// Remove an image effect, creating a memento before the change.
+    /// </summary>
+    public void RemoveEffect(ImageEffect effect)
+    {
+        _history.CreateEffectsMemento();
+        _effects.Remove(effect);
+        HistoryChanged?.Invoke();
+        EffectsChanged?.Invoke();
+    }
+
+    /// <summary>
+    /// Toggle an image effect's IsEnabled state, creating a memento before the change.
+    /// </summary>
+    public void ToggleEffect(ImageEffect effect)
+    {
+        _history.CreateEffectsMemento();
+        effect.IsEnabled = !effect.IsEnabled;
+        HistoryChanged?.Invoke();
+        EffectsChanged?.Invoke();
+    }
+
+    /// <summary>
+    /// Replace the entire effects list (e.g. from preset import), creating a memento before the change.
+    /// </summary>
+    public void SetEffects(List<ImageEffect> effects)
+    {
+        _history.CreateEffectsMemento();
+        _effects.Clear();
+        _effects.AddRange(effects);
+        HistoryChanged?.Invoke();
+        EffectsChanged?.Invoke();
+    }
+
+    /// <summary>
+    /// Set effects without creating a memento (for initial load).
+    /// </summary>
+    public void LoadEffects(List<ImageEffect> effects)
+    {
+        _effects.Clear();
+        _effects.AddRange(effects);
+        EffectsChanged?.Invoke();
+    }
+
+    /// <summary>
+    /// Get a deep-copy snapshot of the current effects list.
+    /// </summary>
+    internal List<ImageEffect> GetEffectsSnapshot()
+    {
+        return _effects.Select(e => e.Clone()).ToList();
+    }
+
+    #endregion
+
     #region Undo/Redo
 
     public bool CanUndo => _history?.CanUndo ?? false;
@@ -766,6 +852,14 @@ public class EditorCore : IDisposable
         else
         {
             _selectedAnnotation = null;
+        }
+
+        // Restore effects if the memento captured them
+        if (memento.Effects != null)
+        {
+            _effects.Clear();
+            _effects.AddRange(memento.Effects);
+            EffectsChanged?.Invoke();
         }
 
         // Trigger redraw
