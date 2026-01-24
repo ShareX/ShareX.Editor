@@ -943,13 +943,14 @@ public class EditorCore : IDisposable
         // Restore annotation list
         _annotations.AddRange(memento.Annotations);
 
-        // If memento has a canvas bitmap, restore it (for crop/cutout undo)
+        // If memento has a canvas bitmap, restore it (for crop/cutout/rotate undo)
         if (memento.Canvas != null)
         {
             SourceImage?.Dispose();
             SourceImage = memento.Canvas.Copy();
             CanvasSize = memento.CanvasSize;
             InvalidateEffectsCache();
+            ImageChanged?.Invoke();
         }
 
         // ISSUE-010 fix: Restore selection state if memento captured a selected annotation

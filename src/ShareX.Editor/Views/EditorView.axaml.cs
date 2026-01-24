@@ -77,12 +77,16 @@ namespace ShareX.Editor.Views
             _editorCore.ImageChanged += () => Avalonia.Threading.Dispatcher.UIThread.Post(() => {
                 if (_canvasControl != null)
                 {
-                    _canvasControl.Initialize((int)_editorCore.CanvasSize.Width, (int)_editorCore.CanvasSize.Height);
+                    int w = (int)_editorCore.CanvasSize.Width;
+                    int h = (int)_editorCore.CanvasSize.Height;
+                    _canvasControl.Initialize(w, h);
                     RenderCore();
                     if (DataContext is MainViewModel vm)
                     {
+                        vm.ImageWidth = w;
+                        vm.ImageHeight = h;
+                        vm.WindowTitle = $"ShareX - Image Editor - {w}x{h}";
                         UpdateViewModelHistoryState(vm);
-                        UpdateViewModelMetadata(vm);
                     }
                 }
             });
