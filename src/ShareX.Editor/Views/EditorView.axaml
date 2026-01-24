@@ -416,8 +416,9 @@
                             <TextBlock Text="Ratio" Foreground="#9CA3AF" Margin="0,0,0,8"/>
                             <Grid RowDefinitions="Auto,Auto,Auto" ColumnDefinitions="*,*,*">
                                 <Grid.Styles>
-                                    <Style Selector="Button">
+                                    <Style Selector="Button.editor-button">
                                         <Setter Property="Margin" Value="2"/>
+                                        <Setter Property="Width" Value="NaN"/>
                                         <Setter Property="Height" Value="32"/>
                                     </Style>
                                 </Grid.Styles>
