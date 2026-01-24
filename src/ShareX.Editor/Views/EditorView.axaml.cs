@@ -836,6 +836,40 @@ namespace ShareX.Editor.Views
             }
         }
 
+        private void OnShadowToggleChanged(object? sender, global::Avalonia.Interactivity.RoutedEventArgs e)
+        {
+            if (DataContext is MainViewModel vm && sender is CheckBox checkBox)
+            {
+                var isEnabled = checkBox.IsChecked == true;
+                
+                // Apply to selected annotation if any
+                var selected = _selectionController.SelectedShape;
+                if (selected?.Tag is Annotation annotation)
+                {
+                    annotation.ShadowEnabled = isEnabled;
+                    
+                    // Update the UI control's Effect property
+                    if (selected is Control control)
+                    {
+                        if (isEnabled)
+                        {
+                            control.Effect = new Avalonia.Media.DropShadowEffect
+                            {
+                                OffsetX = 3,
+                                OffsetY = 3,
+                                BlurRadius = 4,
+                                Color = Avalonia.Media.Color.FromArgb(128, 0, 0, 0)
+                            };
+                        }
+                        else
+                        {
+                            control.Effect = null;
+                        }
+                    }
+                }
+            }
+        }
+
         public void PerformCrop()
         {
             var cropOverlay = this.FindControl<global::Avalonia.Controls.Shapes.Rectangle>("CropOverlay");

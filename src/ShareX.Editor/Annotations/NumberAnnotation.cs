@@ -105,6 +105,17 @@ public class NumberAnnotation : Annotation
 
         grid.Children.Add(bg);
         grid.Children.Add(numText);
+        
+        if (ShadowEnabled)
+        {
+            grid.Effect = new Avalonia.Media.DropShadowEffect
+            {
+                OffsetX = 3,
+                OffsetY = 3,
+                BlurRadius = 4,
+                Color = Avalonia.Media.Color.FromArgb(128, 0, 0, 0)
+            };
+        }
 
         return grid;
     }

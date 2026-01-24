@@ -358,6 +358,7 @@
                     <!-- Shadow Toggle -->
                     <CheckBox x:Name="ShadowToggle"
                         IsChecked="{Binding ShadowEnabled}"
+                        IsCheckedChanged="OnShadowToggleChanged"
                         IsVisible="{Binding ShowShadow}"
                         Content="Shadow"
                         Foreground="#E7E9EA"
