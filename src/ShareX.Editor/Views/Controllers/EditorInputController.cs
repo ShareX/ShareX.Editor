@@ -265,6 +265,18 @@ public class EditorInputController
                     StrokeJoin = PenLineJoin.Round
                     // Data will be set on move
                 };
+                
+                if (vm.ShadowEnabled && vm.ActiveTool != EditorTool.SmartEraser)
+                {
+                    path.Effect = new Avalonia.Media.DropShadowEffect
+                    {
+                        OffsetX = 3,
+                        OffsetY = 3,
+                        BlurRadius = 4,
+                        Color = Avalonia.Media.Color.FromArgb(128, 0, 0, 0)
+                    };
+                }
+                
                 path.SetValue(Panel.ZIndexProperty, 1);
 
                 if (vm.ActiveTool == EditorTool.SmartEraser)
@@ -747,6 +759,17 @@ public class EditorInputController
             AcceptsReturn = false,
             Tag = textAnnotation
         };
+        
+        if (vm.ShadowEnabled)
+        {
+            textBox.Effect = new Avalonia.Media.DropShadowEffect
+            {
+                OffsetX = 3,
+                OffsetY = 3,
+                BlurRadius = 4,
+                Color = Avalonia.Media.Color.FromArgb(128, 0, 0, 0)
+            };
+        }
 
         Canvas.SetLeft(textBox, _startPoint.X);
         Canvas.SetTop(textBox, _startPoint.Y);

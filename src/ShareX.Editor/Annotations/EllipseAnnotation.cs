@@ -48,13 +48,26 @@ public class EllipseAnnotation : Annotation
         IBrush fillBrush = string.IsNullOrEmpty(FillColor) || FillColor == "#00000000"
             ? Brushes.Transparent
             : new SolidColorBrush(Color.Parse(FillColor));
-        return new Avalonia.Controls.Shapes.Ellipse
+        var ellipse = new Avalonia.Controls.Shapes.Ellipse
         {
             Stroke = strokeBrush,
             StrokeThickness = StrokeWidth,
             Fill = fillBrush,
             Tag = this
         };
+        
+        if (ShadowEnabled)
+        {
+            ellipse.Effect = new Avalonia.Media.DropShadowEffect
+            {
+                OffsetX = 3,
+                OffsetY = 3,
+                BlurRadius = 4,
+                Color = Avalonia.Media.Color.FromArgb(128, 0, 0, 0)
+            };
+        }
+        
+        return ellipse;
     }
 
     public override void Render(SKCanvas canvas)

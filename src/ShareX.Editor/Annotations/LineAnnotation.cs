@@ -46,7 +46,7 @@ public class LineAnnotation : Annotation
     public Control CreateVisual()
     {
         var brush = new SolidColorBrush(Color.Parse(StrokeColor));
-        return new Avalonia.Controls.Shapes.Line
+        var line = new Avalonia.Controls.Shapes.Line
         {
             Stroke = brush,
             StrokeThickness = StrokeWidth,
@@ -54,6 +54,19 @@ public class LineAnnotation : Annotation
             EndPoint = new Point(EndPoint.X, EndPoint.Y),
             Tag = this
         };
+        
+        if (ShadowEnabled)
+        {
+            line.Effect = new Avalonia.Media.DropShadowEffect
+            {
+                OffsetX = 3,
+                OffsetY = 3,
+                BlurRadius = 4,
+                Color = Avalonia.Media.Color.FromArgb(128, 0, 0, 0)
+            };
+        }
+        
+        return line;
     }
 
     public override void Render(SKCanvas canvas)

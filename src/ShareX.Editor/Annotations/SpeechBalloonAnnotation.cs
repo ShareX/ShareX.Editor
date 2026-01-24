@@ -42,12 +42,25 @@ public class SpeechBalloonAnnotation : Annotation
     /// </summary>
     public Control CreateVisual()
     {
-        return new SpeechBalloonControl
+        var control = new SpeechBalloonControl
         {
             Annotation = this,
             IsHitTestVisible = true,
             Tag = this
         };
+        
+        if (ShadowEnabled)
+        {
+            control.Effect = new Avalonia.Media.DropShadowEffect
+            {
+                OffsetX = 3,
+                OffsetY = 3,
+                BlurRadius = 4,
+                Color = Avalonia.Media.Color.FromArgb(128, 0, 0, 0)
+            };
+        }
+        
+        return control;
     }
 
     public override void Render(SKCanvas canvas)
