@@ -76,8 +76,8 @@ public class NumberAnnotation : Annotation
     public Control CreateVisual()
     {
         var radius = CalculateRadius();
-        IBrush fillBrush = string.IsNullOrEmpty(FillColor) || FillColor == "#00000000"
-            ? Brushes.Transparent
+        var fillBrush = string.IsNullOrEmpty(FillColor) || FillColor == "#00000000"
+            ? new SolidColorBrush(Color.Parse(StrokeColor))
             : new SolidColorBrush(Color.Parse(FillColor));
             
         var strokeBrush = new SolidColorBrush(Color.Parse(StrokeColor));
@@ -128,24 +128,23 @@ public class NumberAnnotation : Annotation
         var center = StartPoint;
         var radius = CalculateRadius();
 
-        // Draw filled circle (if fill is not transparent)
-        if (!string.IsNullOrEmpty(FillColor) && FillColor != "#00000000")
+        // Draw filled circle - use StrokeColor if FillColor is transparent
+        using var fillPaint = new SKPaint
         {
-            using var fillPaint = new SKPaint
-            {
-                Color = ParseColor(FillColor),
-                Style = SKPaintStyle.Fill,
-                IsAntialias = true
-            };
-            
-            if (ShadowEnabled)
-            {
-                fillPaint.ImageFilter = SKImageFilter.CreateDropShadow(
-                    3, 3, 2, 2, new SKColor(0, 0, 0, 128));
-            }
-            
-            canvas.DrawCircle(center, radius, fillPaint);
+            Color = string.IsNullOrEmpty(FillColor) || FillColor == "#00000000"
+                ? ParseColor(StrokeColor)
+                : ParseColor(FillColor),
+            Style = SKPaintStyle.Fill,
+            IsAntialias = true
+        };
+        
+        if (ShadowEnabled)
+        {
+            fillPaint.ImageFilter = SKImageFilter.CreateDropShadow(
+                3, 3, 2, 2, new SKColor(0, 0, 0, 128));
         }
+        
+        canvas.DrawCircle(center, radius, fillPaint);
 
         // Draw circle border
         using var borderPaint = new SKPaint

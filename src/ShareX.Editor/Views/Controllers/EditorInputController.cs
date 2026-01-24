@@ -253,11 +253,20 @@ public class EditorInputController
                 {
                     StrokeColor = vm.SelectedColor,
                     StrokeWidth = vm.StrokeWidth,
-                    FillColor = vm.FillColor,
+                    FillColor = vm.FillColor == "#00000000" ? vm.SelectedColor : vm.FillColor,
                     FontSize = vm.FontSize,
                     ShadowEnabled = vm.ShadowEnabled,
                     StartPoint = ToSKPoint(_startPoint),
                     Number = vm.NumberCounter
+                }; ;
+
+                _currentShape = numberAnnotation.CreateVisual();
+
+                // Center the number on the click point using calculated radius
+                var numberRadius = AnnotationGeometryHelper.CalculateNumberRadius(vm.FontSize);
+                Canvas.SetLeft(_currentShape, _startPoint.X - numberRadius);
+                Canvas.SetTop(_currentShape, _startPoint.Y - numberRadius);
+
                 }; ;
 
                 _currentShape = numberAnnotation.CreateVisual();

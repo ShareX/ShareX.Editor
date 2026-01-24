@@ -160,7 +160,6 @@ public abstract class Annotation
             StrokeCap = SKStrokeCap.Round,
             StrokeJoin = SKStrokeJoin.Round
         };
-
         if (ShadowEnabled)
         {
             paint.ImageFilter = SKImageFilter.CreateDropShadow(
@@ -169,7 +168,6 @@ public abstract class Annotation
                 new SKColor(0, 0, 0, 128) // Semi-transparent black shadow
             );
         }
-
         return paint;
     }
 
@@ -184,7 +182,6 @@ public abstract class Annotation
             Style = SKPaintStyle.Fill,
             IsAntialias = true
         };
-
         if (ShadowEnabled)
         {
             paint.ImageFilter = SKImageFilter.CreateDropShadow(
@@ -193,7 +190,6 @@ public abstract class Annotation
                 new SKColor(0, 0, 0, 128) // Semi-transparent black shadow
             );
         }
-
         return paint;
     }
 }

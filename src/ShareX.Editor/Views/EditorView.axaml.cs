@@ -743,7 +743,15 @@ namespace ShareX.Editor.Views
                         {
                             if (child is Avalonia.Controls.Shapes.Ellipse ellipse)
                             {
-                                ellipse.Fill = hexColor == "#00000000" ? Brushes.Transparent : solidBrush;
+                                // If transparent, use stroke color
+                                if (hexColor == "#00000000" && annotation is NumberAnnotation)
+                                {
+                                    ellipse.Fill = new SolidColorBrush(Color.Parse(annotation.StrokeColor));
+                                }
+                                else
+                                {
+                                    ellipse.Fill = solidBrush;
+                                }
                             }
                         }
                     }
@@ -774,7 +782,7 @@ namespace ShareX.Editor.Views
                     // Update the visual - resize grid and update text
                     if (selected is Grid grid)
                     {
-                        var radius = Math.Max(12, fontSize * 0.7f);
+                        var radius = AnnotationGeometryHelper.CalculateNumberRadius(fontSize);
                         grid.Width = radius * 2;
                         grid.Height = radius * 2;
                         
@@ -842,7 +850,6 @@ namespace ShareX.Editor.Views
                 }
             }
         }
-
         public void PerformCrop()
         {
             var cropOverlay = this.FindControl<global::Avalonia.Controls.Shapes.Rectangle>("CropOverlay");
