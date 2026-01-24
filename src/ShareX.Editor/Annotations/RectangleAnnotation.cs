@@ -44,12 +44,15 @@ public class RectangleAnnotation : Annotation
     /// </summary>
     public Control CreateVisual()
     {
-        var brush = new SolidColorBrush(Color.Parse(StrokeColor));
+        var strokeBrush = new SolidColorBrush(Color.Parse(StrokeColor));
+        IBrush fillBrush = string.IsNullOrEmpty(FillColor) || FillColor == "#00000000"
+            ? Brushes.Transparent
+            : new SolidColorBrush(Color.Parse(FillColor));
         return new Avalonia.Controls.Shapes.Rectangle
         {
-            Stroke = brush,
+            Stroke = strokeBrush,
             StrokeThickness = StrokeWidth,
-            Fill = Brushes.Transparent,
+            Fill = fillBrush,
             Tag = this
         };
     }
@@ -57,8 +60,17 @@ public class RectangleAnnotation : Annotation
     public override void Render(SKCanvas canvas)
     {
         var rect = GetBounds();
-        using var paint = CreateStrokePaint();
-        canvas.DrawRect(rect, paint);
+        
+        // Draw fill first (if not transparent)
+        if (!string.IsNullOrEmpty(FillColor) && FillColor != "#00000000")
+        {
+            using var fillPaint = CreateFillPaint();
+            canvas.DrawRect(rect, fillPaint);
+        }
+        
+        // Draw stroke on top
+        using var strokePaint = CreateStrokePaint();
+        canvas.DrawRect(rect, strokePaint);
     }
 
     public override bool HitTest(SKPoint point, float tolerance = 5)

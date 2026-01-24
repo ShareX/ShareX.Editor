@@ -43,12 +43,26 @@ public class NumberAnnotation : Annotation
     /// <summary>
     /// Font size for the number
     /// </summary>
-    public float FontSize { get; set; } = 32;
+    public float FontSize { get; set; } = 24;
 
     /// <summary>
-    /// Circle radius
+    /// Circle radius - auto-calculated based on FontSize if not explicitly set
     /// </summary>
-    public float Radius { get; set; } = 25;
+    public float Radius
+    {
+        get => CalculateRadius();
+        set { } // Allow setting but use calculated value
+    }
+
+    /// <summary>
+    /// Calculate radius based on font size to ensure text fits
+    /// </summary>
+    private float CalculateRadius()
+    {
+        // Radius should be about 70% of FontSize to properly contain the number
+        // with some padding around it
+        return Math.Max(12, FontSize * 0.7f);
+    }
 
     public NumberAnnotation()
     {
@@ -60,17 +74,21 @@ public class NumberAnnotation : Annotation
     /// </summary>
     public Control CreateVisual()
     {
-        var brush = new SolidColorBrush(Color.Parse(StrokeColor));
+        var radius = CalculateRadius();
+        var fillBrush = string.IsNullOrEmpty(FillColor) || FillColor == "#00000000"
+            ? new SolidColorBrush(Color.Parse(StrokeColor))
+            : new SolidColorBrush(Color.Parse(FillColor));
+        
         var grid = new Grid
         {
-            Width = Radius * 2,
-            Height = Radius * 2,
+            Width = radius * 2,
+            Height = radius * 2,
             Tag = this
         };
 
         var bg = new Avalonia.Controls.Shapes.Ellipse
         {
-            Fill = brush,
+            Fill = fillBrush,
             Stroke = Brushes.White,
             StrokeThickness = 2
         };
@@ -82,7 +100,7 @@ public class NumberAnnotation : Annotation
             HorizontalAlignment = HorizontalAlignment.Center,
             VerticalAlignment = VerticalAlignment.Center,
             FontWeight = FontWeight.Bold,
-            FontSize = FontSize / 2 // Scale font to fit in circle
+            FontSize = FontSize * 0.6 // Scale font to fit in circle with padding
         };
 
         grid.Children.Add(bg);
@@ -94,20 +112,41 @@ public class NumberAnnotation : Annotation
     public override void Render(SKCanvas canvas)
     {
         var center = StartPoint;
+        var radius = CalculateRadius();
 
-        // Draw filled circle
-        using var fillPaint = CreateFillPaint();
-        canvas.DrawCircle(center, Radius, fillPaint);
+        // Draw filled circle - use StrokeColor if FillColor is transparent
+        using var fillPaint = new SKPaint
+        {
+            Color = string.IsNullOrEmpty(FillColor) || FillColor == "#00000000"
+                ? ParseColor(StrokeColor)
+                : ParseColor(FillColor),
+            Style = SKPaintStyle.Fill,
+            IsAntialias = true
+        };
+        
+        if (ShadowEnabled)
+        {
+            fillPaint.ImageFilter = SKImageFilter.CreateDropShadow(
+                3, 3, 2, 2, new SKColor(0, 0, 0, 128));
+        }
+        
+        canvas.DrawCircle(center, radius, fillPaint);
 
-        // Draw circle border
-        using var strokePaint = CreateStrokePaint();
-        canvas.DrawCircle(center, Radius, strokePaint);
+        // Draw circle border (white)
+        using var borderPaint = new SKPaint
+        {
+            Color = SKColors.White,
+            StrokeWidth = 2,
+            Style = SKPaintStyle.Stroke,
+            IsAntialias = true
+        };
+        canvas.DrawCircle(center, radius, borderPaint);
 
         // Draw number text
         using var textPaint = new SKPaint
         {
             Color = SKColors.White,
-            TextSize = FontSize,
+            TextSize = FontSize * 0.6f, // Match visual scaling
             IsAntialias = true,
             TextAlign = SKTextAlign.Center,
             Typeface = SKTypeface.FromFamilyName("Segoe UI", SKFontStyleWeight.Bold, SKFontStyleWidth.Normal, SKFontStyleSlant.Upright)

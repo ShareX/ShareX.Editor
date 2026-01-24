@@ -3,8 +3,8 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              mc:Ignorable="d" d:DesignWidth="200" d:DesignHeight="40"
-             x:Class="ShareX.Editor.Controls.ColorPickerDropdown"
-             x:Name="ColorPickerDropdownRoot">
+             x:Class="ShareX.Editor.Controls.FontSizePickerDropdown"
+             x:Name="FontSizePickerDropdownRoot">
 
     <Grid>
         <!-- Dropdown Button -->
@@ -12,18 +12,16 @@
                 Classes="editor-button"
                 Click="OnDropdownButtonClick"
                 Height="40"
-                MinWidth="60"
+                MinWidth="70"
                 HorizontalContentAlignment="Stretch">
             <Grid ColumnDefinitions="Auto,*,Auto">
-                <!-- Color Preview -->
-                <Border Grid.Column="0"
-                        Width="24"
-                        Height="24"
-                        Background="{Binding SelectedColor, ElementName=ColorPickerDropdownRoot}"
-                        CornerRadius="4"
-                        BorderThickness="0"
-                        VerticalAlignment="Center"
-                        Margin="0,0,6,0"/>
+                <!-- Font Size Preview -->
+                <TextBlock Grid.Column="0"
+                           Text="{Binding SelectedFontSize, ElementName=FontSizePickerDropdownRoot, StringFormat='{}{0} pt'}"
+                           Foreground="#94A3B8"
+                           FontSize="12"
+                           VerticalAlignment="Center"
+                           Margin="0,0,6,0"/>
 
                 <!-- Spacer -->
                 <Border Grid.Column="1"/>
@@ -40,38 +38,32 @@
         </Button>
 
         <!-- Popup -->
-        <Popup x:Name="ColorPopup"
+        <Popup x:Name="FontSizePopup"
                PlacementTarget="{Binding #DropdownButton}"
                Placement="Bottom"
                IsLightDismissEnabled="True"
                VerticalOffset="4">
-            <Border Background="#1E1E1E" 
-                    CornerRadius="8" 
-                    Padding="8"
-                    BorderBrush="#3E3E3E"
-                    BorderThickness="1">
-                <ItemsControl ItemsSource="{Binding ColorPalette, ElementName=ColorPickerDropdownRoot}">
+            <Border Classes="popup-border">
+                <ItemsControl ItemsSource="{Binding FontSizeOptions, ElementName=FontSizePickerDropdownRoot}">
                     <ItemsControl.ItemsPanel>
                         <ItemsPanelTemplate>
-                            <UniformGrid Columns="8"/>
+                            <WrapPanel Orientation="Horizontal" MaxWidth="200"/>
                         </ItemsPanelTemplate>
                     </ItemsControl.ItemsPanel>
                     <ItemsControl.ItemTemplate>
                         <DataTemplate>
-                            <Button Width="28"
-                                    Height="28"
-                                    Padding="0"
+                            <Button MinWidth="50"
+                                    Height="32"
+                                    Padding="8,0"
                                     Background="Transparent"
                                     BorderThickness="0"
-                                    Margin="2"
-                                    Click="OnColorSelected"
-                                    CommandParameter="{Binding .}">
-                                <Border Width="24"
-                                        Height="24"
-                                        Background="{Binding .}"
-                                        CornerRadius="4"
-                                        BorderBrush="#555"
-                                        BorderThickness="1"/>
+                                    Click="OnFontSizeSelected"
+                                    CommandParameter="{Binding .}"
+                                    HorizontalContentAlignment="Center"
+                                    VerticalContentAlignment="Center">
+                                <TextBlock Text="{Binding ., StringFormat='{}{0} pt'}"
+                                           FontSize="12"
+                                           Foreground="#E7E9EA"/>
                             </Button>
                         </DataTemplate>
                     </ItemsControl.ItemTemplate>
