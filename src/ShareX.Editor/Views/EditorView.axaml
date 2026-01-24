@@ -45,6 +45,7 @@
         <x:String x:Key="IconZoomOut">&#xf010;</x:String>
         <x:String x:Key="IconSync">&#xf021;</x:String>
         <x:String x:Key="IconCloud">&#xf0c2;</x:String>
+        <x:String x:Key="IconThumbtack">&#xf08d;</x:String>
 
         <FontFamily x:Key="AppFontFamily">Segoe UI</FontFamily>
         <x:Double x:Key="AppFontSize">14</x:Double>
@@ -656,6 +657,14 @@
                         </StackPanel>
                     </Button>
 
+                    <Button Classes="editor-button" Command="{Binding PinToScreenCommand}" Height="40" Padding="16,0"
+                            Classes.active="{Binding IsPinned}">
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <TextBlock Text="{StaticResource IconThumbtack}" FontSize="16" FontFamily="{StaticResource FontAwesome}" FontWeight="Black"/>
+                            <TextBlock Text="Pin" FontSize="14"/>
+                        </StackPanel>
+                    </Button>
+
                 </StackPanel>
 
                 <!-- Center: Empty spacer -->
@@ -669,6 +678,7 @@
                         Height="40"
                         ToolTip.Tip="Zoom (Ctrl + Wheel)"/>
                 </StackPanel>
+
             </Grid>
         </Border>
 
