@@ -21,14 +21,29 @@
                 HorizontalContentAlignment="Stretch">
             <Grid ColumnDefinitions="Auto,*,Auto">
                 <!-- Color Preview -->
-                <Border Grid.Column="0"
-                        Width="24"
-                        Height="24"
-                        Background="{Binding SelectedColor, ElementName=ColorPickerDropdownRoot}"
-                        CornerRadius="4"
-                        BorderThickness="0"
-                        VerticalAlignment="Center"
-                        Margin="0,0,6,0"/>
+                <Grid Grid.Column="0" 
+                      Width="24" 
+                      Height="24" 
+                      VerticalAlignment="Center" 
+                      Margin="0,0,6,0">
+                    
+                    <!-- Checkered Background -->
+                    <Border CornerRadius="4" ClipToBounds="True">
+                        <Border.Background>
+                            <VisualBrush TileMode="Tile" Stretch="None" SourceRect="0,0,8,8" DestinationRect="0,0,8,8">
+                                <VisualBrush.Visual>
+                                    <Grid Width="8" Height="8" Background="#272727">
+                                        <Path Data="M 0 0 L 4 0 L 4 4 L 0 4 Z M 4 4 L 8 4 L 8 8 L 4 8 Z" Fill="#2E2E2E"/>
+                                    </Grid>
+                                </VisualBrush.Visual>
+                            </VisualBrush>
+                        </Border.Background>
+                    </Border>
+                    
+                    <!-- Color Overlay -->
+                    <Border Background="{Binding SelectedColor, ElementName=ColorPickerDropdownRoot}"
+                            CornerRadius="4"/>
+                </Grid>
 
                 <!-- Spacer -->
                 <Border Grid.Column="1"/>
@@ -56,7 +71,7 @@
                     BorderThickness="1">
                 <cp:ColorView Color="{Binding SelectedColorValue, ElementName=ColorPickerDropdownRoot, Mode=TwoWay}"
                               IsAlphaVisible="True"
-                              IsColorPreviewVisible="False"
+                              IsColorPreviewVisible="True"
                               HsvColor="{Binding SelectedHsvColor, ElementName=ColorPickerDropdownRoot, Mode=TwoWay}"/>
             </Border>
         </Popup>
