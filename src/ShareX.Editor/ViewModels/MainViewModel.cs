@@ -147,6 +147,16 @@ namespace ShareX.Editor.ViewModels
         }
 
         [ObservableProperty]
+        private bool _isPinned;
+
+        [RelayCommand]
+        private void PinToScreen()
+        {
+            IsPinned = !IsPinned;
+            // Actual window topmost logic would be bound or handled in View code-behind
+        }
+
+        [ObservableProperty]
         private double _previewPadding = 30;
 
         [ObservableProperty]
