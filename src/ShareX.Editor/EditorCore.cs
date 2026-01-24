@@ -1536,13 +1536,16 @@ public class EditorCore : IDisposable
         _history.CreateCanvasMemento();
 
         var rotated = RotateBitmap(SourceImage, 90);
+        var newSize = new SKSize(rotated.Width, rotated.Height);
+        var matrix = BuildRotateMatrix(90, SourceImage.Width, SourceImage.Height);
         SourceImage.Dispose();
         SourceImage = rotated;
-        CanvasSize = new SKSize(rotated.Width, rotated.Height);
-        _annotations.Clear();
+        CanvasSize = newSize;
+        TransformAnnotations(matrix, newSize);
         InvalidateEffectsCache();
         HistoryChanged?.Invoke();
         ImageChanged?.Invoke();
+        AnnotationsRestored?.Invoke();
         InvalidateRequested?.Invoke();
     }
 
@@ -1555,13 +1558,16 @@ public class EditorCore : IDisposable
         _history.CreateCanvasMemento();
 
         var rotated = RotateBitmap(SourceImage, -90);
+        var newSize = new SKSize(rotated.Width, rotated.Height);
+        var matrix = BuildRotateMatrix(-90, SourceImage.Width, SourceImage.Height);
         SourceImage.Dispose();
         SourceImage = rotated;
-        CanvasSize = new SKSize(rotated.Width, rotated.Height);
-        _annotations.Clear();
+        CanvasSize = newSize;
+        TransformAnnotations(matrix, newSize);
         InvalidateEffectsCache();
         HistoryChanged?.Invoke();
         ImageChanged?.Invoke();
+        AnnotationsRestored?.Invoke();
         InvalidateRequested?.Invoke();
     }
 
@@ -1574,13 +1580,16 @@ public class EditorCore : IDisposable
         _history.CreateCanvasMemento();
 
         var rotated = RotateBitmap(SourceImage, 180);
+        var newSize = new SKSize(rotated.Width, rotated.Height);
+        var matrix = BuildRotateMatrix(180, SourceImage.Width, SourceImage.Height);
         SourceImage.Dispose();
         SourceImage = rotated;
-        CanvasSize = new SKSize(rotated.Width, rotated.Height);
-        _annotations.Clear();
+        CanvasSize = newSize;
+        TransformAnnotations(matrix, newSize);
         InvalidateEffectsCache();
         HistoryChanged?.Invoke();
         ImageChanged?.Invoke();
+        AnnotationsRestored?.Invoke();
         InvalidateRequested?.Invoke();
     }
 
@@ -1592,13 +1601,16 @@ public class EditorCore : IDisposable
         if (SourceImage == null) return;
         _history.CreateCanvasMemento();
 
+        var matrix = BuildFlipMatrix(true, SourceImage.Width, SourceImage.Height);
         var flipped = FlipBitmap(SourceImage, horizontal: true);
+        var newSize = new SKSize(flipped.Width, flipped.Height);
         SourceImage.Dispose();
         SourceImage = flipped;
-        _annotations.Clear();
+        TransformAnnotations(matrix, newSize);
         InvalidateEffectsCache();
         HistoryChanged?.Invoke();
         ImageChanged?.Invoke();
+        AnnotationsRestored?.Invoke();
         InvalidateRequested?.Invoke();
     }
 
@@ -1610,14 +1622,81 @@ public class EditorCore : IDisposable
         if (SourceImage == null) return;
         _history.CreateCanvasMemento();
 
+        var matrix = BuildFlipMatrix(false, SourceImage.Width, SourceImage.Height);
         var flipped = FlipBitmap(SourceImage, horizontal: false);
+        var newSize = new SKSize(flipped.Width, flipped.Height);
         SourceImage.Dispose();
         SourceImage = flipped;
-        _annotations.Clear();
+        TransformAnnotations(matrix, newSize);
         InvalidateEffectsCache();
         HistoryChanged?.Invoke();
         ImageChanged?.Invoke();
+        AnnotationsRestored?.Invoke();
         InvalidateRequested?.Invoke();
+    }
+
+    /// <summary>
+    /// Transform all annotation coordinates using the given matrix and update canvas size.
+    /// </summary>
+    private void TransformAnnotations(SKMatrix matrix, SKSize newCanvasSize)
+    {
+        for (int i = _annotations.Count - 1; i >= 0; i--)
+        {
+            var annotation = _annotations[i];
+
+            annotation.StartPoint = matrix.MapPoint(annotation.StartPoint);
+            annotation.EndPoint = matrix.MapPoint(annotation.EndPoint);
+
+            if (annotation is FreehandAnnotation freehand)
+            {
+                for (int j = 0; j < freehand.Points.Count; j++)
+                {
+                    freehand.Points[j] = matrix.MapPoint(freehand.Points[j]);
+                }
+            }
+
+            if (annotation is SpotlightAnnotation spotlight)
+            {
+                spotlight.CanvasSize = newCanvasSize;
+            }
+
+            if (annotation is BaseEffectAnnotation effect && SourceImage != null)
+            {
+                effect.UpdateEffect(SourceImage);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Build the same transform matrix that RotateBitmap uses, for mapping annotation points.
+    /// </summary>
+    private static SKMatrix BuildRotateMatrix(float degrees, int sourceWidth, int sourceHeight)
+    {
+        bool is90or270 = Math.Abs(degrees % 180) == 90;
+        int newWidth = is90or270 ? sourceHeight : sourceWidth;
+        int newHeight = is90or270 ? sourceWidth : sourceHeight;
+
+        var matrix = SKMatrix.CreateTranslation(-sourceWidth / 2f, -sourceHeight / 2f);
+        matrix = matrix.PostConcat(SKMatrix.CreateRotationDegrees(degrees));
+        matrix = matrix.PostConcat(SKMatrix.CreateTranslation(newWidth / 2f, newHeight / 2f));
+        return matrix;
+    }
+
+    /// <summary>
+    /// Build the same transform matrix that FlipBitmap uses, for mapping annotation points.
+    /// </summary>
+    private static SKMatrix BuildFlipMatrix(bool horizontal, int sourceWidth, int sourceHeight)
+    {
+        if (horizontal)
+        {
+            // Scale(-1, 1) centered at (width/2, 0) → reflects around x = width/2
+            return SKMatrix.CreateScale(-1, 1, sourceWidth / 2f, sourceHeight / 2f);
+        }
+        else
+        {
+            // Scale(1, -1) centered at (0, height/2) → reflects around y = height/2
+            return SKMatrix.CreateScale(1, -1, sourceWidth / 2f, sourceHeight / 2f);
+        }
     }
 
     private static SKBitmap RotateBitmap(SKBitmap source, float degrees)
