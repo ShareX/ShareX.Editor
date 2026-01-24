@@ -840,19 +840,21 @@ namespace ShareX.Editor.ViewModels
         [RelayCommand(CanExecute = nameof(CanUndo))]
         private void Undo()
         {
-            // First check if we have image-level undo (crop/cutout operations)
+            // EditorCore undo takes priority (annotations, effects, crop/cutout)
+            if (_isCoreUndoAvailable)
+            {
+                UndoRequested?.Invoke(this, EventArgs.Empty);
+                return;
+            }
+
+            // Fall back to image-level undo (legacy rotate/flip/resize operations)
             if (_imageUndoStack.Count > 0)
             {
                 // Save current image to redo stack
                 if (_currentSourceImage != null)
                 {
-                    // ISSUE-025 fix: Check for null after Copy()
                     var copy = _currentSourceImage.Copy();
-                    if (copy == null)
-                    {
-                        // Continue with undo despite redo stack failure
-                    }
-                    else
+                    if (copy != null)
                     {
                         _imageRedoStack.Push(copy);
                     }
@@ -862,30 +864,27 @@ namespace ShareX.Editor.ViewModels
                 var previousImage = _imageUndoStack.Pop();
                 UpdatePreview(previousImage, clearAnnotations: false);
                 RestoreAppliedEffectsFromUndo();
-                return;
             }
-
-            // Otherwise delegate to annotation undo
-            UndoRequested?.Invoke(this, EventArgs.Empty);
         }
 
         [RelayCommand(CanExecute = nameof(CanRedo))]
         private void Redo()
         {
-            // First check if we have image-level redo (crop/cutout operations)
+            // EditorCore redo takes priority
+            if (_isCoreRedoAvailable)
+            {
+                RedoRequested?.Invoke(this, EventArgs.Empty);
+                return;
+            }
+
+            // Fall back to image-level redo (legacy rotate/flip/resize operations)
             if (_imageRedoStack.Count > 0)
             {
-                // Save current image to undo stack
                 var next = _imageRedoStack.Pop();
                 if (_currentSourceImage != null)
                 {
-                    // ISSUE-025 fix: Check for null after Copy()
                     var copy = _currentSourceImage.Copy();
-                    if (copy == null)
-                    {
-                        // Continue with redo despite undo stack failure
-                    }
-                    else
+                    if (copy != null)
                     {
                         _imageUndoStack.Push(copy);
                     }
@@ -893,11 +892,7 @@ namespace ShareX.Editor.ViewModels
                 UpdatePreview(next, clearAnnotations: true);
                 RestoreAppliedEffectsFromRedo();
                 UpdateUndoRedoProperties();
-                return;
             }
-
-            // Otherwise delegate to annotation redo
-            RedoRequested?.Invoke(this, EventArgs.Empty);
         }
 
         [RelayCommand(CanExecute = nameof(HasSelectedAnnotation))]

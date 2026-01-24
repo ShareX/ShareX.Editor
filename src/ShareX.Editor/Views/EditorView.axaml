@@ -10,8 +10,7 @@
              xmlns:controls="using:ShareX.Editor.Controls"
              mc:Ignorable="d" d:DesignWidth="1200" d:DesignHeight="800"
              x:Class="ShareX.Editor.Views.EditorView"
-             Focusable="True"
-             KeyDown="OnKeyDown">
+             Focusable="True">
 
     <UserControl.Resources>
         <converters:DoubleToCornerRadiusConverter x:Key="DoubleToCornerRadius" />

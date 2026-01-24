@@ -56,6 +56,7 @@ namespace ShareX.Editor.Views
         // SIP0018: Hybrid Rendering
         private SKCanvasControl? _canvasControl;
         private readonly EditorCore _editorCore;
+        private TopLevel? _topLevel;
 
         public EditorView()
         {
@@ -125,13 +126,33 @@ namespace ShareX.Editor.Views
             UpdateViewModelHistoryState(vm);
         }
 
+        protected override void OnAttachedToVisualTree(VisualTreeAttachmentEventArgs e)
+        {
+            base.OnAttachedToVisualTree(e);
+            _topLevel = TopLevel.GetTopLevel(this);
+            if (_topLevel != null)
+            {
+                _topLevel.AddHandler(KeyDownEvent, OnTopLevelKeyDown, RoutingStrategies.Tunnel);
+            }
+        }
+
+        protected override void OnDetachedFromVisualTree(VisualTreeAttachmentEventArgs e)
+        {
+            if (_topLevel != null)
+            {
+                _topLevel.RemoveHandler(KeyDownEvent, OnTopLevelKeyDown);
+                _topLevel = null;
+            }
+            base.OnDetachedFromVisualTree(e);
+        }
+
         protected override void OnLoaded(RoutedEventArgs e)
         {
             base.OnLoaded(e);
-            
+
             UpdateToolbarScrollPadding();
             UpdateSidebarScrollPadding();
-            
+
             AttachViewModel(DataContext as MainViewModel);
         }
 
@@ -344,7 +365,7 @@ namespace ShareX.Editor.Views
             _inputController.OnCanvasPointerReleased(sender, e);
         }
 
-        private void OnKeyDown(object sender, KeyEventArgs e)
+        private void OnTopLevelKeyDown(object? sender, KeyEventArgs e)
         {
             if (e.Source is TextBox) return;
 
@@ -359,12 +380,12 @@ namespace ShareX.Editor.Views
                 {
                     if (e.Key == Key.Z)
                     {
-                        vm.UndoCommand.Execute(null);
+                        PerformUndo();
                         e.Handled = true;
                     }
                     else if (e.Key == Key.Y)
                     {
-                        vm.RedoCommand.Execute(null);
+                        PerformRedo();
                         e.Handled = true;
                     }
                 }
