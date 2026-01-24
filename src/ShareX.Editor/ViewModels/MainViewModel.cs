@@ -225,16 +225,167 @@ namespace ShareX.Editor.ViewModels
             }
         }
 
+        // Color value for Avalonia ColorPicker binding
+        public Color SelectedColorValue
+        {
+            get => Color.Parse(SelectedColor);
+            set => SelectedColor = $"#{value.R:X2}{value.G:X2}{value.B:X2}";
+        }
+
         partial void OnSelectedColorChanged(string value)
         {
             OnPropertyChanged(nameof(SelectedColorBrush));
+            OnPropertyChanged(nameof(SelectedColorValue));
         }
 
         [ObservableProperty]
         private int _strokeWidth = 4;
 
+        // Tool-specific options
+        [ObservableProperty]
+        private string _fillColor = "#00000000"; // Transparent by default
+
+        // Add a brush version for the fill color dropdown control
+        public IBrush FillColorBrush
+        {
+            get => new SolidColorBrush(Color.Parse(FillColor));
+            set
+            {
+                if (value is SolidColorBrush solidBrush)
+                {
+                    FillColor = $"#{solidBrush.Color.A:X2}{solidBrush.Color.R:X2}{solidBrush.Color.G:X2}{solidBrush.Color.B:X2}";
+                }
+            }
+        }
+
+        // Color value for Avalonia ColorPicker binding
+        public Color FillColorValue
+        {
+            get => Color.Parse(FillColor);
+            set => FillColor = $"#{value.A:X2}{value.R:X2}{value.G:X2}{value.B:X2}";
+        }
+
+        partial void OnFillColorChanged(string value)
+        {
+            OnPropertyChanged(nameof(FillColorBrush));
+            OnPropertyChanged(nameof(FillColorValue));
+        }
+
+        [ObservableProperty]
+        private float _fontSize = 24;
+
+        [ObservableProperty]
+        private float _effectStrength = 10;
+
+        [ObservableProperty]
+        private bool _shadowEnabled = false;
+
+        // Visibility computed properties based on ActiveTool
+        public bool ShowBorderColor => ActiveTool switch
+        {
+            EditorTool.Rectangle or EditorTool.Ellipse or EditorTool.Line or EditorTool.Arrow
+                or EditorTool.Pen or EditorTool.Highlighter or EditorTool.Text
+                or EditorTool.SpeechBalloon or EditorTool.Number or EditorTool.Step => true,
+            EditorTool.Select => _selectedAnnotation != null && _selectedAnnotation.ToolType switch
+            {
+                EditorTool.Rectangle or EditorTool.Ellipse or EditorTool.Line or EditorTool.Arrow
+                    or EditorTool.Pen or EditorTool.Highlighter or EditorTool.Text
+                    or EditorTool.SpeechBalloon or EditorTool.Number or EditorTool.Step => true,
+                _ => false
+            },
+            _ => false
+        };
+
+        public bool ShowFillColor => ActiveTool switch
+        {
+            EditorTool.Rectangle or EditorTool.Ellipse or EditorTool.SpeechBalloon or EditorTool.Number or EditorTool.Step => true,
+            EditorTool.Select => _selectedAnnotation != null && _selectedAnnotation.ToolType switch
+            {
+                EditorTool.Rectangle or EditorTool.Ellipse or EditorTool.SpeechBalloon or EditorTool.Number or EditorTool.Step => true,
+                _ => false
+            },
+            _ => false
+        };
+
+        public bool ShowThickness => ActiveTool switch
+        {
+            EditorTool.Rectangle or EditorTool.Ellipse or EditorTool.Line or EditorTool.Arrow
+                or EditorTool.Pen or EditorTool.SpeechBalloon or EditorTool.Number or EditorTool.Step or EditorTool.SmartEraser => true,
+            EditorTool.Select => _selectedAnnotation != null && _selectedAnnotation.ToolType switch
+            {
+                EditorTool.Rectangle or EditorTool.Ellipse or EditorTool.Line or EditorTool.Arrow
+                    or EditorTool.Pen or EditorTool.SpeechBalloon or EditorTool.Number or EditorTool.Step or EditorTool.SmartEraser => true,
+                _ => false
+            },
+            _ => false
+        };
+
+        public bool ShowFontSize => ActiveTool switch
+        {
+            EditorTool.Text or EditorTool.Number or EditorTool.Step => true,
+            EditorTool.Select => _selectedAnnotation != null && _selectedAnnotation.ToolType switch
+            {
+                EditorTool.Text or EditorTool.Number or EditorTool.Step => true,
+                _ => false
+            },
+            _ => false
+        };
+
+        public bool ShowStrength => ActiveTool switch
+        {
+            EditorTool.Blur or EditorTool.Pixelate or EditorTool.Magnify or EditorTool.Spotlight => true,
+            EditorTool.Select => _selectedAnnotation != null && _selectedAnnotation.ToolType switch
+            {
+                EditorTool.Blur or EditorTool.Pixelate or EditorTool.Magnify or EditorTool.Spotlight => true,
+                _ => false
+            },
+            _ => false
+        };
+
+        public bool ShowShadow => ActiveTool switch
+        {
+            EditorTool.Rectangle or EditorTool.Ellipse or EditorTool.Line or EditorTool.Arrow
+                or EditorTool.Pen or EditorTool.Text or EditorTool.SpeechBalloon or EditorTool.Number or EditorTool.Step => true,
+            EditorTool.Select => _selectedAnnotation != null && _selectedAnnotation.ToolType switch
+            {
+                EditorTool.Rectangle or EditorTool.Ellipse or EditorTool.Line or EditorTool.Arrow
+                    or EditorTool.Pen or EditorTool.Text or EditorTool.SpeechBalloon or EditorTool.Number or EditorTool.Step => true,
+                _ => false
+            },
+            _ => false
+        };
+
+        // Track selected annotation for Select tool visibility logic
+        private Annotation? _selectedAnnotation;
+        public Annotation? SelectedAnnotation
+        {
+            get => _selectedAnnotation;
+            set
+            {
+                if (SetProperty(ref _selectedAnnotation, value))
+                {
+                    UpdateToolOptionsVisibility();
+                }
+            }
+        }
+
+        private void UpdateToolOptionsVisibility()
+        {
+            OnPropertyChanged(nameof(ShowBorderColor));
+            OnPropertyChanged(nameof(ShowFillColor));
+            OnPropertyChanged(nameof(ShowThickness));
+            OnPropertyChanged(nameof(ShowFontSize));
+            OnPropertyChanged(nameof(ShowStrength));
+            OnPropertyChanged(nameof(ShowShadow));
+        }
+
         [ObservableProperty]
         private EditorTool _activeTool = EditorTool.Rectangle;
+
+        partial void OnActiveToolChanged(EditorTool value)
+        {
+            UpdateToolOptionsVisibility();
+        }
 
         [ObservableProperty]
         private bool _isSettingsPanelOpen;

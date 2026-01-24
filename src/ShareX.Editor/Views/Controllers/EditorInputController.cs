@@ -179,19 +179,19 @@ public class EditorInputController
         switch (vm.ActiveTool)
         {
             case EditorTool.Rectangle:
-                var rectAnnotation = new RectangleAnnotation { StrokeColor = vm.SelectedColor, StrokeWidth = vm.StrokeWidth, StartPoint = ToSKPoint(_startPoint), EndPoint = ToSKPoint(_startPoint) };
+                var rectAnnotation = new RectangleAnnotation { StrokeColor = vm.SelectedColor, StrokeWidth = vm.StrokeWidth, FillColor = vm.FillColor, ShadowEnabled = vm.ShadowEnabled, StartPoint = ToSKPoint(_startPoint), EndPoint = ToSKPoint(_startPoint) };
                 _currentShape = rectAnnotation.CreateVisual();
                 break;
             case EditorTool.Ellipse:
-                var ellipseAnnotation = new EllipseAnnotation { StrokeColor = vm.SelectedColor, StrokeWidth = vm.StrokeWidth, StartPoint = ToSKPoint(_startPoint), EndPoint = ToSKPoint(_startPoint) };
+                var ellipseAnnotation = new EllipseAnnotation { StrokeColor = vm.SelectedColor, StrokeWidth = vm.StrokeWidth, FillColor = vm.FillColor, ShadowEnabled = vm.ShadowEnabled, StartPoint = ToSKPoint(_startPoint), EndPoint = ToSKPoint(_startPoint) };
                 _currentShape = ellipseAnnotation.CreateVisual();
                 break;
             case EditorTool.Line:
-                var lineAnnotation = new LineAnnotation { StrokeColor = vm.SelectedColor, StrokeWidth = vm.StrokeWidth, StartPoint = ToSKPoint(_startPoint), EndPoint = ToSKPoint(_startPoint) };
+                var lineAnnotation = new LineAnnotation { StrokeColor = vm.SelectedColor, StrokeWidth = vm.StrokeWidth, ShadowEnabled = vm.ShadowEnabled, StartPoint = ToSKPoint(_startPoint), EndPoint = ToSKPoint(_startPoint) };
                 _currentShape = lineAnnotation.CreateVisual();
                 break;
             case EditorTool.Arrow:
-                var arrowAnnotation = new ArrowAnnotation { StrokeColor = vm.SelectedColor, StrokeWidth = vm.StrokeWidth, StartPoint = ToSKPoint(_startPoint), EndPoint = ToSKPoint(_startPoint) };
+                var arrowAnnotation = new ArrowAnnotation { StrokeColor = vm.SelectedColor, StrokeWidth = vm.StrokeWidth, ShadowEnabled = vm.ShadowEnabled, StartPoint = ToSKPoint(_startPoint), EndPoint = ToSKPoint(_startPoint) };
                 _currentShape = arrowAnnotation.CreateVisual();
                 _selectionController.RegisterArrowEndpoint(_currentShape, _startPoint, _startPoint);
                 break;
@@ -208,15 +208,15 @@ public class EditorInputController
                 _currentShape = spotlightControl;
                 break;
             case EditorTool.Blur:
-                _currentShape = new BlurAnnotation { StrokeColor = vm.SelectedColor, StrokeWidth = vm.StrokeWidth, StartPoint = ToSKPoint(_startPoint), EndPoint = ToSKPoint(_startPoint) }.CreateVisual();
+                _currentShape = new BlurAnnotation { StrokeColor = vm.SelectedColor, StrokeWidth = vm.StrokeWidth, Amount = vm.EffectStrength, StartPoint = ToSKPoint(_startPoint), EndPoint = ToSKPoint(_startPoint) }.CreateVisual();
                 _isCreatingEffect = true;
                 break;
             case EditorTool.Pixelate:
-                _currentShape = new PixelateAnnotation { StrokeColor = vm.SelectedColor, StrokeWidth = vm.StrokeWidth, StartPoint = ToSKPoint(_startPoint), EndPoint = ToSKPoint(_startPoint) }.CreateVisual();
+                _currentShape = new PixelateAnnotation { StrokeColor = vm.SelectedColor, StrokeWidth = vm.StrokeWidth, Amount = vm.EffectStrength, StartPoint = ToSKPoint(_startPoint), EndPoint = ToSKPoint(_startPoint) }.CreateVisual();
                 _isCreatingEffect = true;
                 break;
             case EditorTool.Magnify:
-                _currentShape = new MagnifyAnnotation { StrokeColor = vm.SelectedColor, StrokeWidth = vm.StrokeWidth, StartPoint = ToSKPoint(_startPoint), EndPoint = ToSKPoint(_startPoint) }.CreateVisual();
+                _currentShape = new MagnifyAnnotation { StrokeColor = vm.SelectedColor, StrokeWidth = vm.StrokeWidth, Amount = vm.EffectStrength, StartPoint = ToSKPoint(_startPoint), EndPoint = ToSKPoint(_startPoint) }.CreateVisual();
                 _isCreatingEffect = true;
                 break;
             case EditorTool.Highlighter:
@@ -224,7 +224,7 @@ public class EditorInputController
                 _isCreatingEffect = true;
                 break;
             case EditorTool.SpeechBalloon:
-                 var balloonAnnotation = new SpeechBalloonAnnotation { StrokeColor = vm.SelectedColor, StrokeWidth = vm.StrokeWidth, FillColor = "#FFFFFFFF", StartPoint = ToSKPoint(_startPoint), EndPoint = ToSKPoint(_startPoint) };
+                 var balloonAnnotation = new SpeechBalloonAnnotation { StrokeColor = vm.SelectedColor, StrokeWidth = vm.StrokeWidth, FillColor = vm.FillColor == "#00000000" ? "#FFFFFFFF" : vm.FillColor, ShadowEnabled = vm.ShadowEnabled, StartPoint = ToSKPoint(_startPoint), EndPoint = ToSKPoint(_startPoint) };
                  var balloonControl = balloonAnnotation.CreateVisual();
                  balloonControl.Width = 0;
                  balloonControl.Height = 0;
@@ -237,15 +237,19 @@ public class EditorInputController
                 {
                     StrokeColor = vm.SelectedColor,
                     StrokeWidth = vm.StrokeWidth,
+                    FillColor = vm.FillColor == "#00000000" ? vm.SelectedColor : vm.FillColor,
+                    FontSize = vm.FontSize,
+                    ShadowEnabled = vm.ShadowEnabled,
                     StartPoint = ToSKPoint(_startPoint),
                     Number = vm.NumberCounter
-                };
+                };;
                 
                 _currentShape = numberAnnotation.CreateVisual();
                 
-                // Center the number on the click point (approximate center for 30x30 default)
-                Canvas.SetLeft(_currentShape, _startPoint.X - 15);
-                Canvas.SetTop(_currentShape, _startPoint.Y - 15);
+                // Center the number on the click point using calculated radius
+                var numberRadius = Math.Max(12, vm.FontSize * 0.7f);
+                Canvas.SetLeft(_currentShape, _startPoint.X - numberRadius);
+                Canvas.SetTop(_currentShape, _startPoint.Y - numberRadius);
                 
                 vm.NumberCounter++;
                 _isDrawing = true; // Keep true so released handler can select it (or we explicitly select it)?
@@ -282,7 +286,7 @@ public class EditorInputController
                 }
                 else
                 {
-                    var freehand = new FreehandAnnotation { StrokeColor = vm.SelectedColor, StrokeWidth = vm.StrokeWidth, Points = new List<SKPoint> { ToSKPoint(_startPoint) } };
+                    var freehand = new FreehandAnnotation { StrokeColor = vm.SelectedColor, StrokeWidth = vm.StrokeWidth, ShadowEnabled = vm.ShadowEnabled, Points = new List<SKPoint> { ToSKPoint(_startPoint) } };
                     path.Tag = freehand;
                     path.Data = freehand.CreateSmoothedGeometry();
                 }
@@ -724,7 +728,8 @@ public class EditorInputController
         {
             StrokeColor = vm.SelectedColor,
             StrokeWidth = (float)strokeWidth,
-            FontSize = (float)Math.Max(12, strokeWidth * 4),
+            FontSize = vm.FontSize,
+            ShadowEnabled = vm.ShadowEnabled,
             StartPoint = ToSKPoint(_startPoint),
             EndPoint = ToSKPoint(_startPoint) // Will be updated when text is finalized
         };
@@ -735,7 +740,7 @@ public class EditorInputController
             Background = Brushes.Transparent,
             BorderThickness = new Thickness(1),
             BorderBrush = Brushes.White,
-            FontSize = textAnnotation.FontSize,
+            FontSize = vm.FontSize,
             Text = string.Empty,
             Padding = new Thickness(4),
             MinWidth = 50,
