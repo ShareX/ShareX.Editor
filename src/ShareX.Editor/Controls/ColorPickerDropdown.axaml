@@ -2,9 +2,14 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:cp="clr-namespace:Avalonia.Controls;assembly=Avalonia.Controls.ColorPicker"
              mc:Ignorable="d" d:DesignWidth="200" d:DesignHeight="40"
              x:Class="ShareX.Editor.Controls.ColorPickerDropdown"
              x:Name="ColorPickerDropdownRoot">
+
+    <UserControl.Styles>
+        <StyleInclude Source="avares://Avalonia.Controls.ColorPicker/Themes/Fluent/Fluent.xaml" />
+    </UserControl.Styles>
 
     <Grid>
         <!-- Dropdown Button -->
@@ -39,7 +44,6 @@
             </Grid>
         </Button>
 
-        <!-- Popup -->
         <Popup x:Name="ColorPopup"
                PlacementTarget="{Binding #DropdownButton}"
                Placement="Bottom"
@@ -47,35 +51,13 @@
                VerticalOffset="4">
             <Border Background="#1E1E1E" 
                     CornerRadius="8" 
-                    Padding="8"
+                    Padding="4"
                     BorderBrush="#3E3E3E"
                     BorderThickness="1">
-                <ItemsControl ItemsSource="{Binding ColorPalette, ElementName=ColorPickerDropdownRoot}">
-                    <ItemsControl.ItemsPanel>
-                        <ItemsPanelTemplate>
-                            <UniformGrid Columns="8"/>
-                        </ItemsPanelTemplate>
-                    </ItemsControl.ItemsPanel>
-                    <ItemsControl.ItemTemplate>
-                        <DataTemplate>
-                            <Button Width="28"
-                                    Height="28"
-                                    Padding="0"
-                                    Background="Transparent"
-                                    BorderThickness="0"
-                                    Margin="2"
-                                    Click="OnColorSelected"
-                                    CommandParameter="{Binding .}">
-                                <Border Width="24"
-                                        Height="24"
-                                        Background="{Binding .}"
-                                        CornerRadius="4"
-                                        BorderBrush="#555"
-                                        BorderThickness="1"/>
-                            </Button>
-                        </DataTemplate>
-                    </ItemsControl.ItemTemplate>
-                </ItemsControl>
+                <cp:ColorView Color="{Binding SelectedColorValue, ElementName=ColorPickerDropdownRoot, Mode=TwoWay}"
+                              IsAlphaVisible="True"
+                              IsColorPreviewVisible="False"
+                              HsvColor="{Binding SelectedHsvColor, ElementName=ColorPickerDropdownRoot, Mode=TwoWay}"/>
             </Border>
         </Popup>
     </Grid>
