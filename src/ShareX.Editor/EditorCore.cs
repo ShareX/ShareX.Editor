@@ -1524,6 +1524,136 @@ public class EditorCore : IDisposable
 
     #endregion
 
+    #region Rotate/Flip
+
+    /// <summary>
+    /// Rotate the source image 90° clockwise. Creates a canvas memento for undo.
+    /// </summary>
+    public void PerformRotate90CW()
+    {
+        if (SourceImage == null) return;
+        _history.CreateCanvasMemento();
+
+        var rotated = RotateBitmap(SourceImage, 90);
+        SourceImage.Dispose();
+        SourceImage = rotated;
+        CanvasSize = new SKSize(rotated.Width, rotated.Height);
+        _annotations.Clear();
+        InvalidateEffectsCache();
+        HistoryChanged?.Invoke();
+        ImageChanged?.Invoke();
+        InvalidateRequested?.Invoke();
+    }
+
+    /// <summary>
+    /// Rotate the source image 90° counter-clockwise. Creates a canvas memento for undo.
+    /// </summary>
+    public void PerformRotate90CCW()
+    {
+        if (SourceImage == null) return;
+        _history.CreateCanvasMemento();
+
+        var rotated = RotateBitmap(SourceImage, -90);
+        SourceImage.Dispose();
+        SourceImage = rotated;
+        CanvasSize = new SKSize(rotated.Width, rotated.Height);
+        _annotations.Clear();
+        InvalidateEffectsCache();
+        HistoryChanged?.Invoke();
+        ImageChanged?.Invoke();
+        InvalidateRequested?.Invoke();
+    }
+
+    /// <summary>
+    /// Rotate the source image 180°. Creates a canvas memento for undo.
+    /// </summary>
+    public void PerformRotate180()
+    {
+        if (SourceImage == null) return;
+        _history.CreateCanvasMemento();
+
+        var rotated = RotateBitmap(SourceImage, 180);
+        SourceImage.Dispose();
+        SourceImage = rotated;
+        CanvasSize = new SKSize(rotated.Width, rotated.Height);
+        _annotations.Clear();
+        InvalidateEffectsCache();
+        HistoryChanged?.Invoke();
+        ImageChanged?.Invoke();
+        InvalidateRequested?.Invoke();
+    }
+
+    /// <summary>
+    /// Flip the source image horizontally. Creates a canvas memento for undo.
+    /// </summary>
+    public void PerformFlipHorizontal()
+    {
+        if (SourceImage == null) return;
+        _history.CreateCanvasMemento();
+
+        var flipped = FlipBitmap(SourceImage, horizontal: true);
+        SourceImage.Dispose();
+        SourceImage = flipped;
+        _annotations.Clear();
+        InvalidateEffectsCache();
+        HistoryChanged?.Invoke();
+        ImageChanged?.Invoke();
+        InvalidateRequested?.Invoke();
+    }
+
+    /// <summary>
+    /// Flip the source image vertically. Creates a canvas memento for undo.
+    /// </summary>
+    public void PerformFlipVertical()
+    {
+        if (SourceImage == null) return;
+        _history.CreateCanvasMemento();
+
+        var flipped = FlipBitmap(SourceImage, horizontal: false);
+        SourceImage.Dispose();
+        SourceImage = flipped;
+        _annotations.Clear();
+        InvalidateEffectsCache();
+        HistoryChanged?.Invoke();
+        ImageChanged?.Invoke();
+        InvalidateRequested?.Invoke();
+    }
+
+    private static SKBitmap RotateBitmap(SKBitmap source, float degrees)
+    {
+        bool is90or270 = Math.Abs(degrees % 180) == 90;
+        int newWidth = is90or270 ? source.Height : source.Width;
+        int newHeight = is90or270 ? source.Width : source.Height;
+
+        var result = new SKBitmap(newWidth, newHeight, source.ColorType, source.AlphaType);
+        using var canvas = new SKCanvas(result);
+        canvas.Clear(SKColors.Transparent);
+        canvas.Translate(newWidth / 2f, newHeight / 2f);
+        canvas.RotateDegrees(degrees);
+        canvas.Translate(-source.Width / 2f, -source.Height / 2f);
+        canvas.DrawBitmap(source, 0, 0);
+        return result;
+    }
+
+    private static SKBitmap FlipBitmap(SKBitmap source, bool horizontal)
+    {
+        var result = new SKBitmap(source.Width, source.Height, source.ColorType, source.AlphaType);
+        using var canvas = new SKCanvas(result);
+        canvas.Clear(SKColors.Transparent);
+        if (horizontal)
+        {
+            canvas.Scale(-1, 1, source.Width / 2f, 0);
+        }
+        else
+        {
+            canvas.Scale(1, -1, 0, source.Height / 2f);
+        }
+        canvas.DrawBitmap(source, 0, 0);
+        return result;
+    }
+
+    #endregion
+
     #region IDisposable
 
     /// <summary>

@@ -1017,29 +1017,9 @@ namespace ShareX.Editor.Views
             }
         }
 
-        private void OnRotate90CWRequested(object? sender, EventArgs e)
-        {
-            if (DataContext is MainViewModel vm)
-            {
-                vm.Rotate90ClockwiseCommand.Execute(null);
-            }
-        }
-
-        private void OnRotate90CCWRequested(object? sender, EventArgs e)
-        {
-            if (DataContext is MainViewModel vm)
-            {
-                vm.Rotate90CounterClockwiseCommand.Execute(null);
-            }
-        }
-
-        private void OnRotate180Requested(object? sender, EventArgs e)
-        {
-            if (DataContext is MainViewModel vm)
-            {
-                vm.Rotate180Command.Execute(null);
-            }
-        }
+        private void OnRotate90CWRequested(object? sender, EventArgs e) => _editorCore.PerformRotate90CW();
+        private void OnRotate90CCWRequested(object? sender, EventArgs e) => _editorCore.PerformRotate90CCW();
+        private void OnRotate180Requested(object? sender, EventArgs e) => _editorCore.PerformRotate180();
 
         private void OnRotateCustomAngleRequested(object? sender, EventArgs e)
         {
@@ -1052,21 +1032,8 @@ namespace ShareX.Editor.Views
             }
         }
 
-        private void OnFlipHorizontalRequested(object? sender, EventArgs e)
-        {
-            if (DataContext is MainViewModel vm)
-            {
-                vm.FlipHorizontalCommand.Execute(null);
-            }
-        }
-
-        private void OnFlipVerticalRequested(object? sender, EventArgs e)
-        {
-            if (DataContext is MainViewModel vm)
-            {
-                vm.FlipVerticalCommand.Execute(null);
-            }
-        }
+        private void OnFlipHorizontalRequested(object? sender, EventArgs e) => _editorCore.PerformFlipHorizontal();
+        private void OnFlipVerticalRequested(object? sender, EventArgs e) => _editorCore.PerformFlipVertical();
 
         // --- Effects Menu Handlers ---
 
