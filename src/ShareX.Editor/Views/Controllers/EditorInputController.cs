@@ -253,7 +253,7 @@ public class EditorInputController
                 {
                     StrokeColor = vm.SelectedColor,
                     StrokeWidth = vm.StrokeWidth,
-                    FillColor = vm.FillColor == "#00000000" ? vm.SelectedColor : vm.FillColor,
+                    FillColor = vm.FillColor,
                     FontSize = vm.FontSize,
                     ShadowEnabled = vm.ShadowEnabled,
                     StartPoint = ToSKPoint(_startPoint),
