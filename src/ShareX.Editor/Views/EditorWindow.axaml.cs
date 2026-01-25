@@ -1,13 +1,33 @@
-#pragma warning disable CS0618 // FileDialogFilter is obsolete
-using Avalonia;
+#region License Information (GPL v3)
+
+/*
+    ShareX.Editor - The UI-agnostic Editor library for ShareX
+    Copyright (c) 2007-2026 ShareX Team
+
+    This program is free software; you can redistribute it and/or
+    modify it under the terms of the GNU General Public License
+    as published by the Free Software Foundation; either version 2
+    of the License, or (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this program; if not, write to the Free Software
+    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+
+    Optionally you can also view the license at <http://www.gnu.org/licenses/>.
+*/
+
+#endregion License Information (GPL v3)
+
 using Avalonia.Controls;
 using Avalonia.Markup.Xaml;
 using Avalonia.Media.Imaging;
 using ShareX.Editor.ViewModels;
 using SkiaSharp;
-using System;
-using System.IO;
-using System.Threading.Tasks;
 
 namespace ShareX.Editor.Views
 {
@@ -25,10 +45,10 @@ namespace ShareX.Editor.Views
 
             // Hook up ViewModel events
             _viewModel.SaveAsRequested += OnSaveAsRequested;
-            
+
             // If the window is closed, we might want to clean up
             this.Closed += OnClosed;
-            
+
             // Defer image loading until EditorView is loaded and subscribed
             this.Loaded += OnWindowLoaded;
         }
@@ -37,7 +57,7 @@ namespace ShareX.Editor.Views
         {
             AvaloniaXamlLoader.Load(this);
         }
-        
+
         private void OnWindowLoaded(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
         {
             // Now that EditorView is loaded and subscribed to ViewModel, load the image
@@ -80,7 +100,7 @@ namespace ShareX.Editor.Views
 
             LoadImageInternal(filePath);
         }
-        
+
         private void LoadImageInternal(string filePath)
         {
             try
