@@ -738,7 +738,6 @@ public class EditorInputController
             FontSize = textAnnotation.FontSize,
             Text = string.Empty,
             Padding = new Thickness(4),
-            MinWidth = 50,
             AcceptsReturn = false,
             Tag = textAnnotation,
             MinWidth = 0
@@ -781,6 +780,9 @@ public class EditorInputController
                             viewModel.HasAnnotations = true;
                         }
                     }
+
+                    // Auto-select the newly created text
+                    _selectionController.SetSelectedShape(tb);
 
                     // Convert to display mode (select-only)
                     tb.IsHitTestVisible = false;
