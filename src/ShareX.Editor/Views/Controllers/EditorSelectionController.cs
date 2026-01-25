@@ -159,6 +159,15 @@ public class EditorSelectionController
 
                 if (hitTarget == _selectedShape)
                 {
+                    if (hitTarget is TextBox tb && e.ClickCount == 2)
+                    {
+                        tb.IsHitTestVisible = true;
+                        tb.Focus();
+                        AttachTextBoxEditHandlers(tb);
+                        e.Handled = true;
+                        return true;
+                    }
+
                     _isDraggingShape = true;
                     _lastDragPoint = point;
                     UpdateSelectionHandles();
@@ -1217,6 +1226,50 @@ public class EditorSelectionController
         Canvas.SetTop(_hoverOutlineWhite, top - 2);
         _hoverOutlineWhite.Width = width + 4;
         _hoverOutlineWhite.Height = height + 4;
+    }
+
+    private void AttachTextBoxEditHandlers(TextBox tb)
+    {
+        EventHandler<global::Avalonia.Interactivity.RoutedEventArgs>? lostFocusHandler = null;
+        EventHandler<KeyEventArgs>? keyDownHandler = null;
+
+        lostFocusHandler = (s, args) =>
+        {
+            if (lostFocusHandler != null) tb.LostFocus -= lostFocusHandler;
+            if (keyDownHandler != null) tb.KeyDown -= keyDownHandler;
+
+            tb.IsHitTestVisible = false;
+
+            if (tb.Tag is Annotation annotation)
+            {
+                 // Sync Text
+                 if (annotation is TextAnnotation textAnn)
+                 {
+                     textAnn.Text = tb.Text ?? string.Empty;
+                     
+                     // Sync Bounds
+                     textAnn.EndPoint = new SKPoint(
+                         (float)(Canvas.GetLeft(tb) + tb.Bounds.Width),
+                         (float)(Canvas.GetTop(tb) + tb.Bounds.Height)
+                     );
+                     
+                     UpdateSelectionHandles();
+                     UpdateHoverOutline();
+                 }
+            }
+        };
+
+        keyDownHandler = (s, args) =>
+        {
+            if (args.Key == Key.Enter)
+            {
+                args.Handled = true;
+                _view.Focus();
+            }
+        };
+
+        tb.LostFocus += lostFocusHandler;
+        tb.KeyDown += keyDownHandler;
     }
 
     private static SKPoint ToSKPoint(Point point) => new((float)point.X, (float)point.Y);

@@ -770,7 +770,8 @@ public class EditorInputController
             Text = string.Empty,
             Padding = new Thickness(4),
             AcceptsReturn = false,
-            Tag = textAnnotation
+            Tag = textAnnotation,
+            MinWidth = 0
         };
         
         if (vm.ShadowEnabled)
