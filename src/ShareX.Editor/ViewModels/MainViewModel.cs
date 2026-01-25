@@ -1,10 +1,8 @@
-using ShareX.Editor.ImageEffects.Manipulations;
-using ShareX.Editor.ImageEffects.Adjustments;
 #region License Information (GPL v3)
 
 /*
     ShareX.Editor - The UI-agnostic Editor library for ShareX
-    Copyright (c) 2007-2025 ShareX Team
+    Copyright (c) 2007-2026 ShareX Team
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -32,6 +30,8 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using ShareX.Editor.Annotations;
 using ShareX.Editor.Helpers;
+using ShareX.Editor.ImageEffects.Adjustments;
+using ShareX.Editor.ImageEffects.Manipulations;
 using System.Collections.ObjectModel;
 
 namespace ShareX.Editor.ViewModels
