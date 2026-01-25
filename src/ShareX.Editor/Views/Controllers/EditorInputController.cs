@@ -102,6 +102,13 @@ public class EditorInputController
                  }
 
                  canvas.Children.Remove(hitTarget);
+
+                 // Update HasAnnotations state
+                 if (vm != null && _view != null)
+                 {
+                     vm.HasAnnotations = _view.EditorCore.Annotations.Count > 0 || canvas.Children.Count > 0;
+                 }
+
                  e.Handled = true;
                  return;
              }
