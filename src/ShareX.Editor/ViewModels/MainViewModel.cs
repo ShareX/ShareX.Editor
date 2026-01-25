@@ -1,10 +1,10 @@
-﻿using ShareX.Editor.ImageEffects.Manipulations;
+﻿ï»¿using ShareX.Editor.ImageEffects.Manipulations;
 using ShareX.Editor.ImageEffects.Adjustments;
 #region License Information (GPL v3)
 
 /*
     ShareX.Editor - The UI-agnostic Editor library for ShareX
-    Copyright (c) 2007-2025 ShareX Team
+    Copyright (c) 2007-2026 ShareX Team
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -34,6 +34,8 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using ShareX.Editor.Annotations;
 using ShareX.Editor.Helpers;
+using ShareX.Editor.ImageEffects.Adjustments;
+using ShareX.Editor.ImageEffects.Manipulations;
 using System.Collections.ObjectModel;
 
 namespace ShareX.Editor.ViewModels
@@ -158,8 +160,8 @@ namespace ShareX.Editor.ViewModels
 
         /// <summary>
         /// ISSUE-022 fix: Recursion guard flag for smart padding event chain.
-        /// Prevents infinite loop: UseSmartPadding property change â†’ ApplySmartPaddingCrop â†’
-        /// UpdatePreview â†’ PreviewImage changed â†’ ApplySmartPaddingCrop (again).
+        /// Prevents infinite loop: UseSmartPadding property change Ã¢â€ â€™ ApplySmartPaddingCrop Ã¢â€ â€™
+        /// UpdatePreview Ã¢â€ â€™ PreviewImage changed Ã¢â€ â€™ ApplySmartPaddingCrop (again).
         /// Set to true during ApplySmartPaddingCrop execution to break the cycle.
         /// </summary>
         private bool _isApplyingSmartPadding = false;
@@ -502,10 +504,10 @@ namespace ShareX.Editor.ViewModels
         /// This method is part of a complex event chain that requires recursion prevention:
         /// </para>
         /// <list type="number">
-        /// <item>User toggles UseSmartPadding property â†’ OnPropertyChanged fires</item>
+        /// <item>User toggles UseSmartPadding property Ã¢â€ â€™ OnPropertyChanged fires</item>
         /// <item>Property change triggers this method via partial method hook</item>
         /// <item>Method modifies PreviewImage (via UpdatePreview or direct assignment)</item>
-        /// <item>PreviewImage change would trigger this method again â†’ infinite loop</item>
+        /// <item>PreviewImage change would trigger this method again Ã¢â€ â€™ infinite loop</item>
         /// </list>
         /// <para>
         /// Solution: <c>_isApplyingSmartPadding</c> flag prevents re-entry during execution.
@@ -2052,6 +2054,7 @@ namespace ShareX.Editor.ViewModels
         }
     }
 }
+
 
 
 
