@@ -812,6 +812,16 @@ public class EditorInputController
         _isDrawing = false;
     }
     
+    private static bool IsColorLight(string colorHex)
+    {
+        if (Avalonia.Media.Color.TryParse(colorHex, out var color))
+        {
+             double lum = (0.299 * color.R + 0.587 * color.G + 0.114 * color.B) / 255.0;
+             return lum > 0.5;
+        }
+        return true; // Default to light if parse fails
+    }
+
     private static SKPoint ToSKPoint(Point point) => new((float)point.X, (float)point.Y);
     private static SKSize ToSKSize(Size size) => new((float)size.Width, (float)size.Height);
 }
