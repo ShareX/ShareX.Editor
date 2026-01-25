@@ -81,7 +81,6 @@ public class TextAnnotation : Annotation
             BorderBrush = Brushes.Transparent,
             BorderThickness = new Avalonia.Thickness(0),
             Padding = new Avalonia.Thickness(2),
-            MinWidth = 100,
             Text = Text,
             Tag = this
         };

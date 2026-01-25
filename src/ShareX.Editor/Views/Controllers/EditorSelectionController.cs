@@ -1003,7 +1003,8 @@ public class EditorSelectionController
             if (shapeBounds.Contains(currentPoint))
             {
                 // Use the annotation's HitTest method if available
-                if (child.Tag is Annotation annotation)
+                // Skip strict hit test for TextBox to match visual bounds (ant lines)
+                if (child.Tag is Annotation annotation && !(child is TextBox))
                 {
                     var skPoint = ToSKPoint(currentPoint);
                     if (!annotation.HitTest(skPoint))
