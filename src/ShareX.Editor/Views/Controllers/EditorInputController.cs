@@ -740,7 +740,8 @@ public class EditorInputController
             Padding = new Thickness(4),
             MinWidth = 50,
             AcceptsReturn = false,
-            Tag = textAnnotation
+            Tag = textAnnotation,
+            MinWidth = 0
         };
 
         Canvas.SetLeft(textBox, _startPoint.X);
