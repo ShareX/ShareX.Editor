@@ -390,12 +390,6 @@ namespace ShareX.Editor.ViewModels
         }
 
         [ObservableProperty]
-        private float _effectStrength = 10;
-
-        [ObservableProperty]
-        private float _fontSize = 24;
-
-        [ObservableProperty]
         private EditorTool _activeTool = EditorTool.Rectangle;
 
         partial void OnActiveToolChanged(EditorTool value)
