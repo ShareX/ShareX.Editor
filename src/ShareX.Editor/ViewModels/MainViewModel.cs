@@ -282,7 +282,7 @@ namespace ShareX.Editor.ViewModels
         }
 
         [ObservableProperty]
-        private float _fontSize = 24;
+        private float _fontSize = 30;
 
         [ObservableProperty]
         private float _effectStrength = 10;
