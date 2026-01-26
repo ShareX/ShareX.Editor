@@ -102,6 +102,13 @@ public class EditorInputController
                  }
 
                  canvas.Children.Remove(hitTarget);
+
+                 // Update HasAnnotations state
+                 if (vm != null && _view != null)
+                 {
+                     vm.HasAnnotations = _view.EditorCore.Annotations.Count > 0 || canvas.Children.Count > 0;
+                 }
+
                  e.Handled = true;
                  return;
              }
@@ -189,10 +196,12 @@ public class EditorInputController
             case EditorTool.Line:
                 var lineAnnotation = new LineAnnotation { StrokeColor = vm.SelectedColor, StrokeWidth = vm.StrokeWidth, StartPoint = ToSKPoint(_startPoint), EndPoint = ToSKPoint(_startPoint) };
                 _currentShape = lineAnnotation.CreateVisual();
+                _currentShape.IsHitTestVisible = false;
                 break;
             case EditorTool.Arrow:
                 var arrowAnnotation = new ArrowAnnotation { StrokeColor = vm.SelectedColor, StrokeWidth = vm.StrokeWidth, StartPoint = ToSKPoint(_startPoint), EndPoint = ToSKPoint(_startPoint) };
                 _currentShape = arrowAnnotation.CreateVisual();
+                _currentShape.IsHitTestVisible = false;
                 _selectionController.RegisterArrowEndpoint(_currentShape, _startPoint, _startPoint);
                 break;
             case EditorTool.Text:
@@ -266,7 +275,9 @@ public class EditorInputController
                     Stroke = (vm.ActiveTool == EditorTool.SmartEraser) ? new SolidColorBrush(Color.Parse("#80FF0000")) : brush,
                     StrokeThickness = (vm.ActiveTool == EditorTool.SmartEraser) ? 10 : vm.StrokeWidth,
                     StrokeLineCap = PenLineCap.Round,
-                    StrokeJoin = PenLineJoin.Round
+                    StrokeJoin = PenLineJoin.Round,
+                    UseLayoutRounding = false,
+                    IsHitTestVisible = false
                     // Data will be set on move
                 };
                 path.SetValue(Panel.ZIndexProperty, 1);
@@ -538,6 +549,9 @@ public class EditorInputController
                                  _currentShape.Width,
                                  _currentShape.Height);
                          }
+
+                         // Restore hit testing for the finalized shape (was disabled for performance during drawing)
+                         _currentShape.IsHitTestVisible = true;
 
                          _selectionController.SetSelectedShape(_currentShape);
                      }
