@@ -2,7 +2,7 @@
 
 /*
     ShareX.Editor - The UI-agnostic Editor library for ShareX
-    Copyright (c) 2007-2025 ShareX Team
+    Copyright (c) 2007-2026 ShareX Team
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -57,7 +57,7 @@ public class ArrowAnnotation : Annotation
     public Control CreateVisual()
     {
         var brush = new SolidColorBrush(Color.Parse(StrokeColor));
-        return new Avalonia.Controls.Shapes.Path
+        var path = new Avalonia.Controls.Shapes.Path
         {
             Stroke = brush,
             StrokeThickness = StrokeWidth,
@@ -65,6 +65,19 @@ public class ArrowAnnotation : Annotation
             Data = new PathGeometry(),
             Tag = this
         };
+        
+        if (ShadowEnabled)
+        {
+            path.Effect = new Avalonia.Media.DropShadowEffect
+            {
+                OffsetX = 3,
+                OffsetY = 3,
+                BlurRadius = 4,
+                Color = Avalonia.Media.Color.FromArgb(128, 0, 0, 0)
+            };
+        }
+        
+        return path;
     }
 
     /// <summary>

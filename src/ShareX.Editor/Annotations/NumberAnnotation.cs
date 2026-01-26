@@ -2,7 +2,7 @@
 
 /*
     ShareX.Editor - The UI-agnostic Editor library for ShareX
-    Copyright (c) 2007-2025 ShareX Team
+    Copyright (c) 2007-2026 ShareX Team
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -43,12 +43,26 @@ public class NumberAnnotation : Annotation
     /// <summary>
     /// Font size for the number
     /// </summary>
-    public float FontSize { get; set; } = 32;
+    public float FontSize { get; set; } = 24;
 
     /// <summary>
-    /// Circle radius
+    /// Circle radius - auto-calculated based on FontSize if not explicitly set
     /// </summary>
-    public float Radius { get; set; } = 25;
+    public float Radius
+    {
+        get => CalculateRadius();
+        set { } // Allow setting but use calculated value
+    }
+
+    /// <summary>
+    /// Calculate radius based on font size to ensure text fits
+    /// </summary>
+    private float CalculateRadius()
+    {
+        // Radius should be about 70% of FontSize to properly contain the number
+        // with some padding around it
+        return Math.Max(12, FontSize * 0.7f);
+    }
 
     public NumberAnnotation()
     {
@@ -60,19 +74,25 @@ public class NumberAnnotation : Annotation
     /// </summary>
     public Control CreateVisual()
     {
-        var brush = new SolidColorBrush(Color.Parse(StrokeColor));
+        var radius = CalculateRadius();
+        IBrush fillBrush = string.IsNullOrEmpty(FillColor) || FillColor == "#00000000"
+            ? Brushes.Transparent
+            : new SolidColorBrush(Color.Parse(FillColor));
+            
+        var strokeBrush = new SolidColorBrush(Color.Parse(StrokeColor));
+        
         var grid = new Grid
         {
-            Width = Radius * 2,
-            Height = Radius * 2,
+            Width = radius * 2,
+            Height = radius * 2,
             Tag = this
         };
 
         var bg = new Avalonia.Controls.Shapes.Ellipse
         {
-            Fill = brush,
-            Stroke = Brushes.White,
-            StrokeThickness = 2
+            Fill = fillBrush,
+            Stroke = strokeBrush,
+            StrokeThickness = StrokeWidth
         };
 
         var numText = new TextBlock
@@ -82,11 +102,22 @@ public class NumberAnnotation : Annotation
             HorizontalAlignment = HorizontalAlignment.Center,
             VerticalAlignment = VerticalAlignment.Center,
             FontWeight = FontWeight.Bold,
-            FontSize = FontSize / 2 // Scale font to fit in circle
+            FontSize = FontSize * 0.6 // Scale font to fit in circle with padding
         };
 
         grid.Children.Add(bg);
         grid.Children.Add(numText);
+        
+        if (ShadowEnabled)
+        {
+            grid.Effect = new Avalonia.Media.DropShadowEffect
+            {
+                OffsetX = 3,
+                OffsetY = 3,
+                BlurRadius = 4,
+                Color = Avalonia.Media.Color.FromArgb(128, 0, 0, 0)
+            };
+        }
 
         return grid;
     }
@@ -94,20 +125,42 @@ public class NumberAnnotation : Annotation
     public override void Render(SKCanvas canvas)
     {
         var center = StartPoint;
+        var radius = CalculateRadius();
 
-        // Draw filled circle
-        using var fillPaint = CreateFillPaint();
-        canvas.DrawCircle(center, Radius, fillPaint);
+        // Draw filled circle (if fill is not transparent)
+        if (!string.IsNullOrEmpty(FillColor) && FillColor != "#00000000")
+        {
+            using var fillPaint = new SKPaint
+            {
+                Color = ParseColor(FillColor),
+                Style = SKPaintStyle.Fill,
+                IsAntialias = true
+            };
+            
+            if (ShadowEnabled)
+            {
+                fillPaint.ImageFilter = SKImageFilter.CreateDropShadow(
+                    3, 3, 2, 2, new SKColor(0, 0, 0, 128));
+            }
+            
+            canvas.DrawCircle(center, radius, fillPaint);
+        }
 
         // Draw circle border
-        using var strokePaint = CreateStrokePaint();
-        canvas.DrawCircle(center, Radius, strokePaint);
+        using var borderPaint = new SKPaint
+        {
+            Color = ParseColor(StrokeColor),
+            StrokeWidth = StrokeWidth,
+            Style = SKPaintStyle.Stroke,
+            IsAntialias = true
+        };
+        canvas.DrawCircle(center, radius, borderPaint);
 
         // Draw number text
         using var textPaint = new SKPaint
         {
-            Color = SKColors.White,
-            TextSize = FontSize,
+            Color = SKColors.White, // Keep text white for now
+            TextSize = FontSize * 0.6f, // Match visual scaling
             IsAntialias = true,
             TextAlign = SKTextAlign.Center,
             Typeface = SKTypeface.FromFamilyName("Segoe UI", SKFontStyleWeight.Bold, SKFontStyleWidth.Normal, SKFontStyleSlant.Upright)

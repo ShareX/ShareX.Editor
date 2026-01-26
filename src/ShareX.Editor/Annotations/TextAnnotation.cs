@@ -2,7 +2,7 @@
 
 /*
     ShareX.Editor - The UI-agnostic Editor library for ShareX
-    Copyright (c) 2007-2025 ShareX Team
+    Copyright (c) 2007-2026 ShareX Team
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -70,7 +70,7 @@ public class TextAnnotation : Annotation
     public Control CreateVisual()
     {
         var brush = new SolidColorBrush(Color.Parse(StrokeColor));
-        return new TextBox
+        var textBox = new TextBox
         {
             Foreground = brush,
             Background = Brushes.Transparent,
@@ -85,6 +85,19 @@ public class TextAnnotation : Annotation
             Tag = this,
             MinWidth = 0
         };
+        
+        if (ShadowEnabled)
+        {
+            textBox.Effect = new Avalonia.Media.DropShadowEffect
+            {
+                OffsetX = 3,
+                OffsetY = 3,
+                BlurRadius = 4,
+                Color = Avalonia.Media.Color.FromArgb(128, 0, 0, 0)
+            };
+        }
+        
+        return textBox;
     }
 
     public override void Render(SKCanvas canvas)
