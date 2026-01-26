@@ -104,6 +104,51 @@
 - UI impact statement: No .axaml files touched and no menu or command definitions changed; EffectsMenuDropdown.axaml is untouched, so Import Preset... and Export Preset... are not modified.
 - Suggested import method: Manual re-implement recommended (build pipeline impact)
 
+## JX-008 Downgrade Avalonia packages to 11.3.9
+- Feature ID: JX-008
+- Feature name: Downgrade Avalonia packages to 11.3.9
+- User-visible outcome: Reverts Avalonia package versions to 11.3.9 for stability/compatibility.
+- Primary areas touched: src/ShareX.Editor/ShareX.Editor.csproj, src/ShareX.Editor.Loader/ShareX.Editor.Loader.csproj
+- Commits:
+  - 430ce80 Downgrade Avalonia packages to version 11.3.9
+- Risk rating: High
+- UI impact statement: No .axaml files touched and no menu or command definitions changed; EffectsMenuDropdown.axaml is untouched, so Import Preset... and Export Preset... are not modified.
+- Suggested import method: Cherry pick with conflict risk (package version alignment)
+
+## JX-009 Minimum shape size validation for annotation tools
+- Feature ID: JX-009
+- Feature name: Minimum shape size validation for annotation tools
+- User-visible outcome: Prevents tiny accidental shapes by discarding shapes smaller than a minimum size.
+- Primary areas touched: src/ShareX.Editor/Views/Controllers/EditorInputController.cs
+- Commits:
+  - 72bf393 Add minimum shape size validation to annotation tools
+- Risk rating: Medium
+- UI impact statement: No .axaml files touched and no menu or command definitions changed; EffectsMenuDropdown.axaml is untouched, so Import Preset... and Export Preset... are not modified.
+- Suggested import method: Clean cherry pick
+
+## JX-010 Color picker palette customization
+- Feature ID: JX-010
+- Feature name: Color picker palette customization
+- User-visible outcome: Tweaks ColorView palette colors and improves initial selection behavior in the color picker.
+- Primary areas touched: src/ShareX.Editor/Controls/ColorPickerDropdown.axaml, src/ShareX.Editor/Controls/ColorPickerDropdown.axaml.cs
+- Commits:
+  - a6febe4 Customize ColorView palette colors in ColorPickerDropdown
+- Risk rating: Low
+- UI impact statement: Touches .axaml files (ColorPickerDropdown.axaml). No menu or command definitions changed; EffectsMenuDropdown.axaml is untouched, so Import Preset... and Export Preset... are not modified.
+- Suggested import method: Clean cherry pick
+
+## JX-011 Picker dropdown active styling and default font size
+- Feature ID: JX-011
+- Feature name: Picker dropdown active styling and default font size
+- User-visible outcome: Highlights selected options in font size/width pickers and increases default font size to 30.
+- Primary areas touched: src/ShareX.Editor/Controls/FontSizePickerDropdown.axaml, src/ShareX.Editor/Controls/FontSizePickerDropdown.axaml.cs, src/ShareX.Editor/Controls/WidthPickerDropdown.axaml, src/ShareX.Editor/Controls/WidthPickerDropdown.axaml.cs, src/ShareX.Editor/ViewModels/MainViewModel.cs
+- Commits:
+  - 6454b90 Add active state styling to picker dropdowns
+  - 44040ff Increase default font size to 30
+- Risk rating: Low
+- UI impact statement: Touches .axaml files (FontSizePickerDropdown.axaml, WidthPickerDropdown.axaml). No menu or command definitions changed; EffectsMenuDropdown.axaml is untouched, so Import Preset... and Export Preset... are not modified.
+- Suggested import method: Clean cherry pick
+
 | Feature ID | Name | Risk | UI touched | Approved (Y/N) | Notes |
 | --- | --- | --- | --- | --- | --- |
 | JX-001 | Annotation styling controls and color picker UI | Medium | Yes (.axaml) | Y |  |
@@ -113,3 +158,7 @@
 | JX-005 | Effect annotation robustness | Low | No | Y |  |
 | JX-006 | License header updates | Low | No (.axaml.cs only) | Y |  |
 | JX-007 | Project cleanup: remove verification project and build props | High | No | N | Removal excluded per approval |
+| JX-008 | Downgrade Avalonia packages to 11.3.9 | High | No | Y | Approved |
+| JX-009 | Minimum shape size validation for annotation tools | Medium | No | Y | Approved |
+| JX-010 | Color picker palette customization | Low | Yes (.axaml) | Y | Approved |
+| JX-011 | Picker dropdown active styling and default font size | Low | Yes (.axaml) | Y | Approved |
