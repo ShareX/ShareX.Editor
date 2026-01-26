@@ -4,7 +4,7 @@ This folder contains all documentation related to integrating changes from the `
 
 ## Current Status
 
-All currently approved `jaex` batches (JX-001 through JX-006) are integrated into `develop` as of 2026-01-26.
+All currently approved `jaex` batches (JX-001 through JX-011) are integrated into `develop` as of 2026-01-26.
 No pending integration batches remain at this time.
 
 ## Folder Structure
@@ -64,6 +64,10 @@ No pending integration batches remain at this time.
 
 | Batch | Date | Description | Commits |
 |-------|------|-------------|---------|
+| JX-011 | 2026-01-26 | Picker dropdown active styling and default font size | See completed/jaex-JX-011.md |
+| JX-010 | 2026-01-26 | Color picker palette customization | See completed/jaex-JX-010.md |
+| JX-009 | 2026-01-26 | Minimum shape size validation for annotation tools | See completed/jaex-JX-009.md |
+| JX-008 | 2026-01-26 | Downgrade Avalonia packages to 11.3.9 | See completed/jaex-JX-008.md |
 | JX-006 | 2026-01-26 | License header updates | See completed/jaex-JX-006.md |
 | JX-005 | 2026-01-26 | Effect annotation robustness | See completed/jaex-JX-005.md |
 | JX-004 | 2026-01-26 | Annotation interaction and state fixes | See completed/jaex-JX-004.md |
