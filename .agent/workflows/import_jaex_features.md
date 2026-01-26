@@ -60,20 +60,46 @@ This explicitly includes all menu items such as:
 - `Import Preset...`
 - `Export Preset...`
 
+## Documentation placement
+All documentation artifacts produced by this workflow must live under [docs/jaex-integration](ShareX.Editor/docs/jaex-integration), respecting its folder structure.
+
+- Feature candidate lists: [docs/jaex-integration/jaex_feature_candidates.md](ShareX.Editor/docs/jaex-integration/jaex_feature_candidates.md)
+- UI snapshots (develop baseline): keep [docs/ui_snapshot_develop.md](ShareX.Editor/docs/ui_snapshot_develop.md) per AGENTS.md, and also store a copy under [docs/jaex-integration/ui-snapshots/ui_snapshot_develop.md](ShareX.Editor/docs/jaex-integration/ui-snapshots/ui_snapshot_develop.md)
+- UI snapshots (after feature): [docs/jaex-integration/ui-snapshots/ui_snapshot_after_<feature-id>.md](ShareX.Editor/docs/jaex-integration/ui-snapshots/ui_snapshot_after_<feature-id>.md)
+- State markers and provenance: [docs/jaex-integration/completed/LAST_PROCESSED_JAEX_COMMIT.txt](ShareX.Editor/docs/jaex-integration/completed/LAST_PROCESSED_JAEX_COMMIT.txt) and [docs/jaex-integration/completed/features_log.md](ShareX.Editor/docs/jaex-integration/completed/features_log.md)
+
+Note: The readiness signal file [integrate/jaex-JX-<feature-id>.md](ShareX.Editor/integrate/jaex-JX-<feature-id>.md) remains at the repository root as a non-documentation marker per AGENTS.md.
+
+## State tracking and resume
+To avoid re-processing older `jaex` commits across runs, maintain a simple state marker:
+
+- Marker path: `docs/jaex-integration/completed/LAST_PROCESSED_JAEX_COMMIT.txt`
+- Content: single `origin/jaex` commit SHA corresponding to the newest commit integrated in the last completed batch.
+
+Usage:
+- When starting comparisons in Phase 0, if the marker file exists, use its SHA as the BASE reference; otherwise use `origin/develop`.
+- Update the marker after each successful merge to record the newest processed `jaex` commit SHA.
+- Optionally maintain `docs/jaex-integration/completed/features_log.md` with rows: `Date | Feature ID | Name | Jaex SHAs | Notes` for provenance.
+
 ## Phase 0. Feature discovery and approval gate
 No code changes are allowed until a high level feature list is produced and explicitly approved.
 
 ### 0.1 Identify candidate changes
-Run the following comparisons:
+Determine the BASE for comparison:
 
-- `git log --oneline origin/develop..origin/jaex`
-- `git range-diff origin/develop...origin/jaex`
-- `git diff --name-only origin/develop...origin/jaex`
+- If `docs/jaex-integration/completed/LAST_PROCESSED_JAEX_COMMIT.txt` exists, set `<BASE>` to its SHA.
+- Otherwise set `<BASE>` to `origin/develop`.
+
+Run the following comparisons using `<BASE>`:
+
+- `git log --oneline <BASE>..origin/jaex`
+- `git range-diff <BASE>...origin/jaex`
+- `git diff --name-only <BASE>...origin/jaex`
 
 Group commits into coherent user visible features.
 
 ### 0.2 Produce feature list for approval
-Create `docs/jaex_feature_candidates.md`.
+Create `docs/jaex-integration/jaex_feature_candidates.md`.
 
 For each feature include:
 - Feature ID `JX-###`
@@ -91,10 +117,19 @@ For each feature include:
   - Cherry pick with conflicts
   - Manual re implementation
 
-Include an approval table:
+Interactive approval (chat):
 
-| Feature ID | Name | Risk | UI touched | Approved (Y/N) | Notes |
-| --- | --- | --- | --- | --- | --- |
+- The agent will read [docs/jaex-integration/jaex_feature_candidates.md](ShareX.Editor/docs/jaex-integration/jaex_feature_candidates.md), display the candidate features in chat, and prompt for approval decisions.
+- Supported responses:
+   - "Approve all" (approves every JX feature listed)
+   - "Approve all (except JX-###, JX-###)"
+   - "Approve: JX-###, JX-###; Reject: JX-###, JX-###"
+   - Explicit per-feature decisions (approve/reject) by JX ID
+- After you reply, the agent will update the approval table in [docs/jaex-integration/jaex_feature_candidates.md](ShareX.Editor/docs/jaex-integration/jaex_feature_candidates.md) to reflect the final decisions.
+   - The table format remains:
+    
+      | Feature ID | Name | Risk | UI touched | Approved (Y/N) | Notes |
+      | --- | --- | --- | --- | --- | --- |
 
 ### 0.3 Stop point
 After creating `docs/jaex_feature_candidates.md`:
@@ -107,9 +142,10 @@ After creating `docs/jaex_feature_candidates.md`:
 - Use `git cherry-pick -x` only
 - One approved feature per integration batch
 - `develop` is the source of truth
-- No UI removals or regressions
+- No UI removals, renames, or hiding; no regressions
 - No new warnings
 - No broken builds
+ - If any conflict occurs, prefer `develop` behaviour across code and assets
 
 ## Pre flight UI protection
 Before importing any approved feature:
@@ -126,6 +162,8 @@ Before importing any approved feature:
 - `git grep -n "Export Preset" src/`
 - Save output in the snapshot file
 
+3. Store a copy of the develop UI snapshot under `docs/jaex-integration/ui-snapshots/ui_snapshot_develop.md` to keep workflow artifacts scoped to `docs/jaex-integration`.
+
 ## Feature integration process
 For each approved feature:
 
@@ -139,6 +177,13 @@ For each approved feature:
 - Preserve existing UI from `develop`
 - Re apply only logic changes from `jaex`
 - Do not remove or rename menu items
+ - If conflicts arise, prefer `develop` behaviour; do not hide UI
+
+4. **Branch isolation rule (critical)**:
+   - Do **NOT** merge these changes into `develop` locally before creating the PR.
+   - The PR must contain the actual diff for the feature (non-empty).
+   - Do **NOT** push or merge `develop` ahead of the feature PR.
+   - If `develop` has moved since branching, rebase/merge `origin/develop` into the *feature branch only* (resolve conflicts there), then open/refresh the PR.
 
 ## Mandatory verification
 After applying changes:
@@ -152,6 +197,7 @@ After applying changes:
 3. Verify protected UI.
    - `git grep -n "Import Preset" src/`
    - `git grep -n "Export Preset" src/`
+   - Confirm protected UI items still exist and bindings remain intact
 
 4. Build and test.
 - Run standard build
@@ -161,10 +207,19 @@ After applying changes:
 ## UI regression gate
 Before PR:
 
-1. Create `docs/ui_snapshot_after_<feature-id>.md`
+1. Create `docs/jaex-integration/ui-snapshots/ui_snapshot_after_<feature-id>.md`
 2. Compare against `docs/ui_snapshot_develop.md`
 3. Confirm no removals or regressions
 4. Perform manual UI smoke test
+
+## Readiness signal
+Once the integration branch is verified end-to-end:
+
+1. Create readiness marker file in the repository root:
+   - `integrate/jaex-JX-<feature-id>.md`
+   - The existence of this file signals that the branch is ready for PR.
+
+2. Proceed to create the PR targeting `develop`.
 
 ## Pull request requirements
 PR title  
@@ -177,9 +232,18 @@ PR description must include:
 - Links to UI snapshots
 
 ## Merge and cleanup
-- Merge into `develop`
-- Delete `integrate/jaex-<feature-id>` branch only
-- Do not delete any other branches
+- Merge the PR into `develop` (do not pre-merge locally).
+- Delete `integrate/jaex-<feature-id>` branch only after PR merge.
+- Do not delete any other branches.
+- Prioritise merging the PR once checks pass.
+- Ensure the PR merge actually introduces the feature diff (no “empty” merges).
+
+### Update state marker
+After merging the feature batch into `develop`:
+
+1. Identify the newest `jaex` commit SHA used in this batch's cherry-picks.
+2. Write that SHA to `docs/jaex-integration/completed/LAST_PROCESSED_JAEX_COMMIT.txt` (overwrite with the single SHA).
+3. Append an entry to `docs/jaex-integration/completed/features_log.md` capturing: date, `JX-###`, feature name, list of `jaex` SHAs, and any notes.
 
 ## Fallback rule
 If a feature cannot be cleanly cherry picked:
