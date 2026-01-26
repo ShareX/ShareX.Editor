@@ -168,6 +168,13 @@ public class EditorSelectionController
                         return true;
                     }
 
+                    if (hitTarget is SpeechBalloonControl balloon && e.ClickCount == 2)
+                    {
+                        ShowSpeechBalloonTextEditor(balloon, canvas);
+                        e.Handled = true;
+                        return true;
+                    }
+
                     _isDraggingShape = true;
                     _lastDragPoint = point;
                     UpdateSelectionHandles();
@@ -211,51 +218,67 @@ public class EditorSelectionController
                       if (!(manualHit is SpotlightControl)) manualHit = null;
                  }
 
-                 if (hitTarget != null)
-                 {
-                     if (hitTarget is TextBox tb && e.ClickCount == 2)
+                     if (hitTarget != null)
                      {
-                         tb.IsHitTestVisible = true;
-                         tb.Focus();
+                         if (hitTarget is TextBox tb && e.ClickCount == 2)
+                         {
+                             tb.IsHitTestVisible = true;
+                             tb.Focus();
+                             AttachTextBoxEditHandlers(tb);
+                             e.Handled = true;
+                             return true;
+                         }
+
+                         if (hitTarget is SpeechBalloonControl balloon && e.ClickCount == 2)
+                         {
+                             ShowSpeechBalloonTextEditor(balloon, canvas);
+                             e.Handled = true;
+                             return true;
+                         }
+
+                         _selectedShape = hitTarget;
+                         _isDraggingShape = true;
+                         _lastDragPoint = point;
+                         UpdateSelectionHandles();
+                         SelectionChanged?.Invoke(true);
+                         e.Pointer.Capture(hitTarget);
                          e.Handled = true;
                          return true;
                      }
-
-                     _selectedShape = hitTarget;
-                     _isDraggingShape = true;
-                     _lastDragPoint = point;
-                     UpdateSelectionHandles();
-                     SelectionChanged?.Invoke(true);
-                     e.Pointer.Capture(hitTarget);
-                     e.Handled = true;
-                     return true;
-                 }
-                 else
-                 {
-                     if (manualHit != null)
+                     else
                      {
-                          if (manualHit is TextBox tb && e.ClickCount == 2)
-                          {
-                              tb.IsHitTestVisible = true;
-                              tb.Focus();
+                         if (manualHit != null)
+                         {
+                              if (manualHit is TextBox tb && e.ClickCount == 2)
+                              {
+                                  tb.IsHitTestVisible = true;
+                                  tb.Focus();
+                                  AttachTextBoxEditHandlers(tb);
+                                  e.Handled = true;
+                                  return true;
+                              }
+
+                              if (manualHit is SpeechBalloonControl balloon && e.ClickCount == 2)
+                              {
+                                  ShowSpeechBalloonTextEditor(balloon, canvas);
+                                  e.Handled = true;
+                                  return true;
+                              }
+
+                              _selectedShape = manualHit;
+                              _isDraggingShape = true;
+                              _lastDragPoint = point;
+                              UpdateSelectionHandles();
+                              SelectionChanged?.Invoke(true);
+                              e.Pointer.Capture(manualHit);
                               e.Handled = true;
                               return true;
-                          }
+                         }
 
-                          _selectedShape = manualHit;
-                          _isDraggingShape = true;
-                          _lastDragPoint = point;
-                          UpdateSelectionHandles();
-                          SelectionChanged?.Invoke(true);
-                          e.Pointer.Capture(manualHit);
-                          e.Handled = true;
-                          return true;
+                         ClearSelection();
+                         // Don't return true, allowing rubber band selection (if implemented) or just clearing
+                         return false;
                      }
-
-                     ClearSelection();
-                     // Don't return true, allowing rubber band selection (if implemented) or just clearing
-                     return false;
-                 }
             }
         }
 
@@ -831,7 +854,10 @@ public class EditorSelectionController
         canvas.Children.Add(textBox);
         _balloonTextEditor = textBox;
         textBox.Focus();
-        textBox.SelectAll();
+        textBox.CaretIndex = textBox.Text.Length; // Place caret at end
+
+        // Attach extended handlers for live update if needed, or rely on LostFocus
+        AttachTextBoxEditHandlers(textBox);
     }
     
     public void PerformDelete()
