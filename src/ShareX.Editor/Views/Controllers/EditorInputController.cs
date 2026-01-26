@@ -241,7 +241,7 @@ public class EditorInputController
                 _isCreatingEffect = true;
                 break;
             case EditorTool.SpeechBalloon:
-                 var balloonAnnotation = new SpeechBalloonAnnotation { StrokeColor = vm.SelectedColor, StrokeWidth = vm.StrokeWidth, FillColor = vm.FillColor == "#00000000" ? "#FFFFFFFF" : vm.FillColor, ShadowEnabled = vm.ShadowEnabled, StartPoint = ToSKPoint(_startPoint), EndPoint = ToSKPoint(_startPoint) };
+                 var balloonAnnotation = new SpeechBalloonAnnotation { StrokeColor = vm.SelectedColor, StrokeWidth = vm.StrokeWidth, FillColor = vm.FillColor == "#00000000" ? "#FFFFFFFF" : vm.FillColor, FontSize = vm.FontSize, ShadowEnabled = vm.ShadowEnabled, StartPoint = ToSKPoint(_startPoint), EndPoint = ToSKPoint(_startPoint) };
                  var balloonControl = balloonAnnotation.CreateVisual();
                  balloonControl.Width = 0;
                  balloonControl.Height = 0;
@@ -777,9 +777,9 @@ public class EditorInputController
             FontSize = vm.FontSize,
             Text = string.Empty,
             Padding = new Thickness(4),
-            MinWidth = 50,
             AcceptsReturn = false,
-            Tag = textAnnotation
+            Tag = textAnnotation,
+            MinWidth = 0
         };
         
         if (vm.ShadowEnabled)
@@ -831,6 +831,9 @@ public class EditorInputController
                         }
                     }
 
+                    // Auto-select the newly created text
+                    _selectionController.SetSelectedShape(tb);
+
                     // Convert to display mode (select-only)
                     tb.IsHitTestVisible = false;
                     
@@ -859,6 +862,16 @@ public class EditorInputController
         _isDrawing = false;
     }
     
+    private static bool IsColorLight(string colorHex)
+    {
+        if (Avalonia.Media.Color.TryParse(colorHex, out var color))
+        {
+             double lum = (0.299 * color.R + 0.587 * color.G + 0.114 * color.B) / 255.0;
+             return lum > 0.5;
+        }
+        return true; // Default to light if parse fails
+    }
+
     private static SKPoint ToSKPoint(Point point) => new((float)point.X, (float)point.Y);
     private static SKSize ToSKSize(Size size) => new((float)size.Width, (float)size.Height);
 }

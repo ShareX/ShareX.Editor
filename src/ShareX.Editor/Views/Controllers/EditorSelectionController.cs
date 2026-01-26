@@ -159,6 +159,22 @@ public class EditorSelectionController
 
                 if (hitTarget == _selectedShape)
                 {
+                    if (hitTarget is TextBox tb && e.ClickCount == 2)
+                    {
+                        tb.IsHitTestVisible = true;
+                        tb.Focus();
+                        AttachTextBoxEditHandlers(tb);
+                        e.Handled = true;
+                        return true;
+                    }
+
+                    if (hitTarget is SpeechBalloonControl balloon && e.ClickCount == 2)
+                    {
+                        ShowSpeechBalloonTextEditor(balloon, canvas);
+                        e.Handled = true;
+                        return true;
+                    }
+
                     _isDraggingShape = true;
                     _lastDragPoint = point;
                     UpdateSelectionHandles();
@@ -202,51 +218,67 @@ public class EditorSelectionController
                       if (!(manualHit is SpotlightControl)) manualHit = null;
                  }
 
-                 if (hitTarget != null)
-                 {
-                     if (hitTarget is TextBox tb && e.ClickCount == 2)
+                     if (hitTarget != null)
                      {
-                         tb.IsHitTestVisible = true;
-                         tb.Focus();
+                         if (hitTarget is TextBox tb && e.ClickCount == 2)
+                         {
+                             tb.IsHitTestVisible = true;
+                             tb.Focus();
+                             AttachTextBoxEditHandlers(tb);
+                             e.Handled = true;
+                             return true;
+                         }
+
+                         if (hitTarget is SpeechBalloonControl balloon && e.ClickCount == 2)
+                         {
+                             ShowSpeechBalloonTextEditor(balloon, canvas);
+                             e.Handled = true;
+                             return true;
+                         }
+
+                         _selectedShape = hitTarget;
+                         _isDraggingShape = true;
+                         _lastDragPoint = point;
+                         UpdateSelectionHandles();
+                         SelectionChanged?.Invoke(true);
+                         e.Pointer.Capture(hitTarget);
                          e.Handled = true;
                          return true;
                      }
-
-                     _selectedShape = hitTarget;
-                     _isDraggingShape = true;
-                     _lastDragPoint = point;
-                     UpdateSelectionHandles();
-                     SelectionChanged?.Invoke(true);
-                     e.Pointer.Capture(hitTarget);
-                     e.Handled = true;
-                     return true;
-                 }
-                 else
-                 {
-                     if (manualHit != null)
+                     else
                      {
-                          if (manualHit is TextBox tb && e.ClickCount == 2)
-                          {
-                              tb.IsHitTestVisible = true;
-                              tb.Focus();
+                         if (manualHit != null)
+                         {
+                              if (manualHit is TextBox tb && e.ClickCount == 2)
+                              {
+                                  tb.IsHitTestVisible = true;
+                                  tb.Focus();
+                                  AttachTextBoxEditHandlers(tb);
+                                  e.Handled = true;
+                                  return true;
+                              }
+
+                              if (manualHit is SpeechBalloonControl balloon && e.ClickCount == 2)
+                              {
+                                  ShowSpeechBalloonTextEditor(balloon, canvas);
+                                  e.Handled = true;
+                                  return true;
+                              }
+
+                              _selectedShape = manualHit;
+                              _isDraggingShape = true;
+                              _lastDragPoint = point;
+                              UpdateSelectionHandles();
+                              SelectionChanged?.Invoke(true);
+                              e.Pointer.Capture(manualHit);
                               e.Handled = true;
                               return true;
-                          }
+                         }
 
-                          _selectedShape = manualHit;
-                          _isDraggingShape = true;
-                          _lastDragPoint = point;
-                          UpdateSelectionHandles();
-                          SelectionChanged?.Invoke(true);
-                          e.Pointer.Capture(manualHit);
-                          e.Handled = true;
-                          return true;
+                         ClearSelection();
+                         // Don't return true, allowing rubber band selection (if implemented) or just clearing
+                         return false;
                      }
-
-                     ClearSelection();
-                     // Don't return true, allowing rubber band selection (if implemented) or just clearing
-                     return false;
-                 }
             }
         }
 
@@ -764,15 +796,22 @@ public class EditorSelectionController
         _selectionHandles.Add(handleBorder);
     }
     
-    private void ShowSpeechBalloonTextEditor(SpeechBalloonControl balloonControl, Canvas canvas)
+    private void ShowSpeechBalloonTextEditor(SpeechBalloonControl balloonControl, Canvas unusedCanvas)
     {
         if (balloonControl.Annotation == null) return;
+        
+        // Use OverlayCanvas to ensure TextBox is on top of everything
+        var overlay = _view.FindControl<Canvas>("OverlayCanvas");
+        if (overlay == null) return;
 
         if (_balloonTextEditor != null)
         {
-            canvas.Children.Remove(_balloonTextEditor);
+            // Remove from whichever parent it has
+            (_balloonTextEditor.Parent as Panel)?.Children.Remove(_balloonTextEditor);
             _balloonTextEditor = null;
         }
+
+
 
         var annotation = balloonControl.Annotation;
         var balloonLeft = Canvas.GetLeft(balloonControl);
@@ -780,12 +819,79 @@ public class EditorSelectionController
         var balloonWidth = balloonControl.Width;
         var balloonHeight = balloonControl.Height;
 
+        // Check if balloon is too small (e.g. user just clicked without dragging)
+        if (balloonWidth < 50 || balloonHeight < 30)
+        {
+            balloonWidth = Math.Max(balloonWidth, 200);
+            balloonHeight = Math.Max(balloonHeight, 100);
+
+            balloonControl.Width = balloonWidth;
+            balloonControl.Height = balloonHeight;
+
+            annotation.EndPoint = new SKPoint(
+                annotation.StartPoint.X + (float)balloonWidth,
+                annotation.StartPoint.Y + (float)balloonHeight
+            );
+
+            // Fix Tail Point if it was at 0,0 or default
+            if (annotation.TailPoint.X == 0 && annotation.TailPoint.Y == 0 ||
+               (Math.Abs(annotation.TailPoint.X - annotation.StartPoint.X) < 1 && Math.Abs(annotation.TailPoint.Y - annotation.StartPoint.Y) < 1))
+            {
+                annotation.TailPoint = new SKPoint(
+                    annotation.StartPoint.X + (float)balloonWidth / 2,
+                    annotation.StartPoint.Y + (float)balloonHeight + 30
+                );
+            }
+
+            balloonControl.InvalidateVisual();
+            UpdateSelectionHandles();
+        }
+
+        // Ensure text is visible during editing
+        IBrush foregroundBrush = new SolidColorBrush(Avalonia.Media.Color.Parse(annotation.StrokeColor));
+        try
+        {
+            var foreColor = Avalonia.Media.Color.Parse(annotation.StrokeColor);
+            var backColor = Avalonia.Media.Color.Parse(annotation.FillColor);
+
+            // Calculate relative luminance
+            double foreLum = (0.299 * foreColor.R + 0.587 * foreColor.G + 0.114 * foreColor.B) / 255.0;
+            double backLum = (0.299 * backColor.R + 0.587 * backColor.G + 0.114 * backColor.B) / 255.0;
+            double backAlpha = backColor.A / 255.0;
+
+            if (backAlpha > 0.1 && Math.Abs(foreLum - backLum) < 0.3)
+            {
+                foregroundBrush = backLum > 0.5 ? Avalonia.Media.Brushes.Black : Avalonia.Media.Brushes.White;
+            }
+        }
+        catch { /* Fallback to stroke color */ }
+
+        // Determine a safe background for the TextBox to ensure visibility
+        IBrush editorBackground;
+        var fillColor = Avalonia.Media.Color.Parse(annotation.FillColor);
+
+        if (fillColor.A < 20)
+        {
+            var fgBrush = foregroundBrush as SolidColorBrush;
+            var fgColor = fgBrush?.Color ?? Avalonia.Media.Colors.Black;
+            editorBackground = fgColor.R > 127
+                ? new SolidColorBrush(Avalonia.Media.Color.Parse("#AA000000"))
+                : new SolidColorBrush(Avalonia.Media.Color.Parse("#AAFFFFFF"));
+        }
+        else
+        {
+            editorBackground = new SolidColorBrush(fillColor);
+        }
+
         var textBox = new TextBox
         {
             Text = annotation.Text,
-            Background = Brushes.Transparent,
-            BorderThickness = new Thickness(0),
-            Foreground = new SolidColorBrush(Color.Parse(annotation.StrokeColor)),
+            Background = editorBackground,
+            BorderThickness = new Thickness(1),
+            BorderBrush = new SolidColorBrush(Avalonia.Media.Color.Parse("#80808080")),
+            CornerRadius = new CornerRadius(5),
+            Foreground = foregroundBrush,
+            CaretBrush = foregroundBrush,
             FontSize = annotation.FontSize,
             Padding = new Thickness(12),
             TextAlignment = TextAlignment.Center,
@@ -794,6 +900,9 @@ public class EditorSelectionController
             TextWrapping = TextWrapping.Wrap
         };
 
+        // Keep the editor above the balloon geometry.
+        textBox.SetValue(Panel.ZIndexProperty, 9999);
+        textBox.Classes.Add("dashed-border");
         Canvas.SetLeft(textBox, balloonLeft);
         Canvas.SetTop(textBox, balloonTop);
         textBox.Width = balloonWidth;
@@ -805,7 +914,7 @@ public class EditorSelectionController
             {
                 annotation.Text = tb.Text ?? string.Empty;
                 balloonControl.InvalidateVisual();
-                canvas.Children.Remove(tb);
+                (tb.Parent as Panel)?.Children.Remove(tb); // Remove from OverlayCanvas
                 _balloonTextEditor = null;
             }
         };
@@ -819,10 +928,12 @@ public class EditorSelectionController
             }
         };
 
-        canvas.Children.Add(textBox);
+        overlay.Children.Add(textBox); // Add to OverlayCanvas
         _balloonTextEditor = textBox;
         textBox.Focus();
         textBox.SelectAll();
+        // Attach extended handlers for live update if needed, or rely on LostFocus
+        AttachTextBoxEditHandlers(textBox);
     }
     
     public void PerformDelete()
@@ -1003,7 +1114,8 @@ public class EditorSelectionController
             if (shapeBounds.Contains(currentPoint))
             {
                 // Use the annotation's HitTest method if available
-                if (child.Tag is Annotation annotation)
+                // Skip strict hit test for TextBox to match visual bounds (ant lines)
+                if (child.Tag is Annotation annotation && !(child is TextBox))
                 {
                     var skPoint = ToSKPoint(currentPoint);
                     if (!annotation.HitTest(skPoint))
@@ -1218,6 +1330,110 @@ public class EditorSelectionController
         _hoverOutlineWhite.Height = height + 4;
     }
 
+    private void AttachTextBoxEditHandlers(TextBox tb)
+    {
+        EventHandler<global::Avalonia.Interactivity.RoutedEventArgs>? lostFocusHandler = null;
+        EventHandler<KeyEventArgs>? keyDownHandler = null;
+
+        lostFocusHandler = (s, args) =>
+        {
+            if (lostFocusHandler != null) tb.LostFocus -= lostFocusHandler;
+            if (keyDownHandler != null) tb.KeyDown -= keyDownHandler;
+
+            tb.IsHitTestVisible = false;
+
+            if (tb.Tag is Annotation annotation)
+            {
+                 // Sync Text
+                 if (annotation is TextAnnotation textAnn)
+                 {
+                     textAnn.Text = tb.Text ?? string.Empty;
+                     
+                     // Sync Bounds
+                     textAnn.EndPoint = new SKPoint(
+                         (float)(Canvas.GetLeft(tb) + tb.Bounds.Width),
+                         (float)(Canvas.GetTop(tb) + tb.Bounds.Height)
+                     );
+                     
+                     UpdateSelectionHandles();
+                     UpdateHoverOutline();
+                 }
+            }
+        };
+
+        keyDownHandler = (s, args) =>
+        {
+            if (args.Key == Key.Enter)
+            {
+                args.Handled = true;
+                _view.Focus();
+            }
+        };
+
+        tb.LostFocus += lostFocusHandler;
+        tb.KeyDown += keyDownHandler;
+    }
+
     private static SKPoint ToSKPoint(Point point) => new((float)point.X, (float)point.Y);
+    public void UpdateActiveTextEditorProperties()
+    {
+        if (_balloonTextEditor == null || !(_selectedShape is SpeechBalloonControl balloonControl)) return;
+        if (balloonControl.Annotation is not SpeechBalloonAnnotation annotation) return;
+
+        // Update Font Size
+        _balloonTextEditor.FontSize = annotation.FontSize;
+
+        // Re-execute color logic (matching ShowSpeechBalloonTextEditor logic)
+        IBrush foregroundBrush = new SolidColorBrush(Avalonia.Media.Color.Parse(annotation.StrokeColor));
+        
+        try
+        {
+            var foreColor = Avalonia.Media.Color.Parse(annotation.StrokeColor);
+            var backColor = Avalonia.Media.Color.Parse(annotation.FillColor);
+            double foreLum = (0.299 * foreColor.R + 0.587 * foreColor.G + 0.114 * foreColor.B) / 255.0;
+            double backLum = (0.299 * backColor.R + 0.587 * backColor.G + 0.114 * backColor.B) / 255.0;
+            double backAlpha = backColor.A / 255.0;
+            
+            if (backAlpha > 0.1)
+            {
+                if (Math.Abs(foreLum - backLum) < 0.3)
+                {
+                    foregroundBrush = backLum > 0.5 ? Avalonia.Media.Brushes.Black : Avalonia.Media.Brushes.White;
+                }
+            }
+        }
+        catch { }
+
+        IBrush editorBackground;
+        var fillColor = Avalonia.Media.Color.Parse(annotation.FillColor);
+        if (fillColor.A < 20)
+        {
+             var fgBrush = foregroundBrush as SolidColorBrush;
+             var fgColor = fgBrush?.Color ?? Avalonia.Media.Colors.Black;
+             editorBackground = fgColor.R > 127 
+                 ? new SolidColorBrush(Avalonia.Media.Color.Parse("#AA000000")) 
+                 : new SolidColorBrush(Avalonia.Media.Color.Parse("#AAFFFFFF"));
+        }
+        else
+        {
+             editorBackground = new SolidColorBrush(fillColor);
+        }
+
+        _balloonTextEditor.Background = editorBackground;
+        _balloonTextEditor.Foreground = foregroundBrush;
+        _balloonTextEditor.CaretBrush = foregroundBrush;
+
+        // Update resource overrides for Focus state
+        _balloonTextEditor.Resources["TextControlBackground"] = editorBackground;
+        _balloonTextEditor.Resources["TextControlBackgroundFocused"] = editorBackground;
+        _balloonTextEditor.Resources["TextControlBackgroundPointerOver"] = editorBackground;
+        
+        _balloonTextEditor.Resources["TextControlBorderThemeThickness"] = new Thickness(0);
+        _balloonTextEditor.Resources["TextControlBorderThemeThicknessFocused"] = new Thickness(0);
+        _balloonTextEditor.Resources["TextControlBorderThemeThicknessPointerOver"] = new Thickness(0);
+        _balloonTextEditor.Resources["TextControlBorderBrush"] = Avalonia.Media.Brushes.Transparent;
+        _balloonTextEditor.Resources["TextControlBorderBrushFocused"] = Avalonia.Media.Brushes.Transparent;
+        _balloonTextEditor.Resources["TextControlBorderBrushPointerOver"] = Avalonia.Media.Brushes.Transparent;
+    }
 }
 

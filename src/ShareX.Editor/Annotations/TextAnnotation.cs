@@ -81,9 +81,9 @@ public class TextAnnotation : Annotation
             BorderBrush = Brushes.Transparent,
             BorderThickness = new Avalonia.Thickness(0),
             Padding = new Avalonia.Thickness(2),
-            MinWidth = 100,
             Text = Text,
-            Tag = this
+            Tag = this,
+            MinWidth = 0
         };
         
         if (ShadowEnabled)
@@ -156,7 +156,8 @@ public class TextAnnotation : Annotation
         float bottom = Math.Max(StartPoint.Y, EndPoint.Y);
 
         // Ensure minimum size for visibility
-        const float minSize = 50f;
+        // Ensure minimum size for visibility
+        const float minSize = 10f;
         if (right - left < minSize) right = left + minSize;
         if (bottom - top < minSize) bottom = top + minSize;
 
