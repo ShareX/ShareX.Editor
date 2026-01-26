@@ -70,6 +70,16 @@ public abstract class Annotation
     public float StrokeWidth { get; set; } = 4;
 
     /// <summary>
+    /// Fill color (hex color string, transparent by default for stroke-only shapes)
+    /// </summary>
+    public string FillColor { get; set; } = "#00000000";
+
+    /// <summary>
+    /// Whether shadow is enabled for this annotation
+    /// </summary>
+    public bool ShadowEnabled { get; set; }
+
+    /// <summary>
     /// Starting point (top-left for rectangles, start for lines/arrows)
     /// </summary>
     public SKPoint StartPoint { get; set; }
@@ -141,7 +151,7 @@ public abstract class Annotation
     /// </summary>
     protected SKPaint CreateStrokePaint()
     {
-        return new SKPaint
+        var paint = new SKPaint
         {
             Color = ParseColor(StrokeColor),
             StrokeWidth = StrokeWidth,
@@ -150,6 +160,17 @@ public abstract class Annotation
             StrokeCap = SKStrokeCap.Round,
             StrokeJoin = SKStrokeJoin.Round
         };
+
+        if (ShadowEnabled)
+        {
+            paint.ImageFilter = SKImageFilter.CreateDropShadow(
+                3, 3, // X and Y offset
+                2, 2, // X and Y blur sigma
+                new SKColor(0, 0, 0, 128) // Semi-transparent black shadow
+            );
+        }
+
+        return paint;
     }
 
     /// <summary>
@@ -157,11 +178,22 @@ public abstract class Annotation
     /// </summary>
     protected SKPaint CreateFillPaint()
     {
-        return new SKPaint
+        var paint = new SKPaint
         {
-            Color = ParseColor(StrokeColor),
+            Color = ParseColor(FillColor),
             Style = SKPaintStyle.Fill,
             IsAntialias = true
         };
+
+        if (ShadowEnabled)
+        {
+            paint.ImageFilter = SKImageFilter.CreateDropShadow(
+                3, 3, // X and Y offset
+                2, 2, // X and Y blur sigma
+                new SKColor(0, 0, 0, 128) // Semi-transparent black shadow
+            );
+        }
+
+        return paint;
     }
 }

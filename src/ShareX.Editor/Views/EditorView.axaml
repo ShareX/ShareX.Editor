@@ -46,6 +46,7 @@
         <x:String x:Key="IconSync">&#xf021;</x:String>
         <x:String x:Key="IconCloud">&#xf0c2;</x:String>
         <x:String x:Key="IconThumbtack">&#xf08d;</x:String>
+        <x:String x:Key="IconMoon">&#xf186;</x:String>
 
         <FontFamily x:Key="AppFontFamily">Segoe UI</FontFamily>
         <x:Double x:Key="AppFontSize">14</x:Double>
@@ -301,19 +302,52 @@
                     <!-- Separator -->
                     <Border Width="1" Height="40" Background="#2E2E2E" Margin="4,0"/>
 
-                    <!-- Color Picker Dropdown -->
+                    <!-- Border Color Picker Dropdown -->
                     <controls:ColorPickerDropdown x:Name="ColorPickerDropdown"
                         SelectedColor="{Binding SelectedColorBrush}"
                         ColorChanged="OnColorChanged"
                         Height="40"
-                        ToolTip.Tip="Color"/>
+                        IsVisible="{Binding ShowBorderColor}"
+                        ToolTip.Tip="Border Color"/>
 
-                    <!-- Width Picker Dropdown -->
+                    <!-- Fill Color Picker Dropdown -->
+                    <controls:ColorPickerDropdown x:Name="FillColorPickerDropdown"
+                        SelectedColor="{Binding FillColorBrush}"
+                        ColorChanged="OnFillColorChanged"
+                        Height="40"
+                        IsVisible="{Binding ShowFillColor}"
+                        ToolTip.Tip="Fill Color"/>
+
+                    <!-- Thickness Picker Dropdown -->
                     <controls:WidthPickerDropdown
                         SelectedWidth="{Binding StrokeWidth}"
                         WidthChanged="OnWidthChanged"
                         Height="40"
-                        ToolTip.Tip="Width"/>
+                        IsVisible="{Binding ShowThickness}"
+                        ToolTip.Tip="Thickness"/>
+
+                    <!-- Font Size Picker Dropdown -->
+                    <controls:FontSizePickerDropdown
+                        SelectedFontSize="{Binding FontSize}"
+                        FontSizeChanged="OnFontSizeChanged"
+                        Height="40"
+                        IsVisible="{Binding ShowFontSize}"
+                        ToolTip.Tip="Font Size"/>
+
+                    <!-- Strength Slider -->
+                    <controls:StrengthSlider
+                        SelectedStrength="{Binding EffectStrength}"
+                        StrengthChanged="OnStrengthChanged"
+                        IsVisible="{Binding ShowStrength}"
+                        ToolTip.Tip="Effect Strength"/>
+
+                    <!-- Shadow Toggle Button -->
+                    <Button Classes="editor-button" Width="40" Height="40"
+                            Classes.active="{Binding ShadowEnabled}"
+                            Click="OnShadowButtonClick"
+                            IsVisible="{Binding ShowShadow}"
+                            ToolTip.Tip="Toggle Shadow"
+                            FontFamily="{StaticResource FontAwesome}" FontWeight="Black" FontSize="16" Content="{StaticResource IconMoon}"/>
 
                     <!-- Separator -->
                     <Border Width="1" Height="40" Background="#2E2E2E" Margin="4,0"/>

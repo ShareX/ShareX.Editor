@@ -136,7 +136,7 @@ namespace ShareX.Editor.ViewModels
                 {
                     ApplySmartPaddingCrop();
                 }
-                
+
                 WindowTitle = $"ShareX - Image Editor - {ImageWidth}x{ImageHeight}";
             }
             else
@@ -235,19 +235,170 @@ namespace ShareX.Editor.ViewModels
             }
         }
 
+        // Color value for Avalonia ColorPicker binding
+        public Color SelectedColorValue
+        {
+            get => Color.Parse(SelectedColor);
+            set => SelectedColor = $"#{value.R:X2}{value.G:X2}{value.B:X2}";
+        }
+
         partial void OnSelectedColorChanged(string value)
         {
             OnPropertyChanged(nameof(SelectedColorBrush));
+            OnPropertyChanged(nameof(SelectedColorValue));
         }
 
         [ObservableProperty]
         private int _strokeWidth = 4;
+
+        // Tool-specific options
+        [ObservableProperty]
+        private string _fillColor = "#00000000"; // Transparent by default
+
+        // Add a brush version for the fill color dropdown control
+        public IBrush FillColorBrush
+        {
+            get => new SolidColorBrush(Color.Parse(FillColor));
+            set
+            {
+                if (value is SolidColorBrush solidBrush)
+                {
+                    FillColor = $"#{solidBrush.Color.A:X2}{solidBrush.Color.R:X2}{solidBrush.Color.G:X2}{solidBrush.Color.B:X2}";
+                }
+            }
+        }
+
+        // Color value for Avalonia ColorPicker binding
+        public Color FillColorValue
+        {
+            get => Color.Parse(FillColor);
+            set => FillColor = $"#{value.A:X2}{value.R:X2}{value.G:X2}{value.B:X2}";
+        }
+
+        partial void OnFillColorChanged(string value)
+        {
+            OnPropertyChanged(nameof(FillColorBrush));
+            OnPropertyChanged(nameof(FillColorValue));
+        }
+
+        [ObservableProperty]
+        private float _fontSize = 24;
+
+        [ObservableProperty]
+        private float _effectStrength = 10;
+
+        [ObservableProperty]
+        private bool _shadowEnabled = true;
+
+        // Visibility computed properties based on ActiveTool
+        public bool ShowBorderColor => ActiveTool switch
+        {
+            EditorTool.Rectangle or EditorTool.Ellipse or EditorTool.Line or EditorTool.Arrow
+                or EditorTool.Pen or EditorTool.Highlighter or EditorTool.Text
+                or EditorTool.SpeechBalloon or EditorTool.Number or EditorTool.Step => true,
+            EditorTool.Select => _selectedAnnotation != null && _selectedAnnotation.ToolType switch
+            {
+                EditorTool.Rectangle or EditorTool.Ellipse or EditorTool.Line or EditorTool.Arrow
+                    or EditorTool.Pen or EditorTool.Highlighter or EditorTool.Text
+                    or EditorTool.SpeechBalloon or EditorTool.Number or EditorTool.Step => true,
+                _ => false
+            },
+            _ => false
+        };
+
+        public bool ShowFillColor => ActiveTool switch
+        {
+            EditorTool.Rectangle or EditorTool.Ellipse or EditorTool.SpeechBalloon or EditorTool.Number or EditorTool.Step => true,
+            EditorTool.Select => _selectedAnnotation != null && _selectedAnnotation.ToolType switch
+            {
+                EditorTool.Rectangle or EditorTool.Ellipse or EditorTool.SpeechBalloon or EditorTool.Number or EditorTool.Step => true,
+                _ => false
+            },
+            _ => false
+        };
+
+        public bool ShowThickness => ActiveTool switch
+        {
+            EditorTool.Rectangle or EditorTool.Ellipse or EditorTool.Line or EditorTool.Arrow
+                or EditorTool.Pen or EditorTool.SpeechBalloon or EditorTool.Number or EditorTool.Step or EditorTool.SmartEraser => true,
+            EditorTool.Select => _selectedAnnotation != null && _selectedAnnotation.ToolType switch
+            {
+                EditorTool.Rectangle or EditorTool.Ellipse or EditorTool.Line or EditorTool.Arrow
+                    or EditorTool.Pen or EditorTool.SpeechBalloon or EditorTool.Number or EditorTool.Step or EditorTool.SmartEraser => true,
+                _ => false
+            },
+            _ => false
+        };
+
+        public bool ShowFontSize => ActiveTool switch
+        {
+            EditorTool.Text or EditorTool.Number or EditorTool.Step => true,
+            EditorTool.Select => _selectedAnnotation != null && _selectedAnnotation.ToolType switch
+            {
+                EditorTool.Text or EditorTool.Number or EditorTool.Step => true,
+                _ => false
+            },
+            _ => false
+        };
+
+        public bool ShowStrength => ActiveTool switch
+        {
+            EditorTool.Blur or EditorTool.Pixelate or EditorTool.Magnify or EditorTool.Spotlight => true,
+            EditorTool.Select => _selectedAnnotation != null && _selectedAnnotation.ToolType switch
+            {
+                EditorTool.Blur or EditorTool.Pixelate or EditorTool.Magnify or EditorTool.Spotlight => true,
+                _ => false
+            },
+            _ => false
+        };
+
+        public bool ShowShadow => ActiveTool switch
+        {
+            EditorTool.Rectangle or EditorTool.Ellipse or EditorTool.Line or EditorTool.Arrow
+                or EditorTool.Pen or EditorTool.Text or EditorTool.SpeechBalloon or EditorTool.Number or EditorTool.Step => true,
+            EditorTool.Select => _selectedAnnotation != null && _selectedAnnotation.ToolType switch
+            {
+                EditorTool.Rectangle or EditorTool.Ellipse or EditorTool.Line or EditorTool.Arrow
+                    or EditorTool.Pen or EditorTool.Text or EditorTool.SpeechBalloon or EditorTool.Number or EditorTool.Step => true,
+                _ => false
+            },
+            _ => false
+        };
+
+        // Track selected annotation for Select tool visibility logic
+        private Annotation? _selectedAnnotation;
+        public Annotation? SelectedAnnotation
+        {
+            get => _selectedAnnotation;
+            set
+            {
+                if (SetProperty(ref _selectedAnnotation, value))
+                {
+                    UpdateToolOptionsVisibility();
+                }
+            }
+        }
+
+        private void UpdateToolOptionsVisibility()
+        {
+            OnPropertyChanged(nameof(ShowBorderColor));
+            OnPropertyChanged(nameof(ShowFillColor));
+            OnPropertyChanged(nameof(ShowThickness));
+            OnPropertyChanged(nameof(ShowFontSize));
+            OnPropertyChanged(nameof(ShowStrength));
+            OnPropertyChanged(nameof(ShowShadow));
+        }
 
         [ObservableProperty]
         private float _effectStrength = 10;
 
         [ObservableProperty]
         private EditorTool _activeTool = EditorTool.Rectangle;
+
+        partial void OnActiveToolChanged(EditorTool value)
+        {
+            UpdateToolOptionsVisibility();
+        }
 
         [ObservableProperty]
         private bool _isSettingsPanelOpen;
@@ -274,13 +425,13 @@ namespace ShareX.Editor.ViewModels
             // Toggle background effects visibility
             OnPropertyChanged(nameof(AreBackgroundEffectsActive));
             UpdateCanvasProperties();
-            
+
             // Re-evaluate Smart Padding application
             // If we closed the panel, we might need to revert crop. If opened, apply crop.
             // But ApplySmartPaddingCrop depends on UseSmartPadding too.
             if (_originalSourceImage != null)
             {
-                 ApplySmartPaddingCrop();
+                ApplySmartPaddingCrop();
             }
         }
 
@@ -1408,7 +1559,7 @@ namespace ShareX.Editor.ViewModels
         private async Task Upload()
         {
             DebugHelper.WriteLine("Upload() called - starting upload flow");
-            
+
             // Get flattened image with annotations
             Bitmap? snapshot = null;
             if (SnapshotRequested != null)
@@ -1557,7 +1708,7 @@ namespace ShareX.Editor.ViewModels
                 return; // Can't proceed without undo capability for destructive operation
             }
             PushImageUndoSnapshot(undoCopy);
-            
+
             // ... (CutOut logic omitted for brevity in diff, assuming calling UpdateUndoRedoProperties after invalidation or here?)
             // Actually CutOutImage calls UpdatePreview implicitly? No, it uses ViewModel.CutOutImage which calls this.
             // Wait, CutOut modifies bitmap?
@@ -1567,7 +1718,7 @@ namespace ShareX.Editor.ViewModels
             // Line 1000 was last line viewed. I assume it continues.
             // I will just update the start of CutOut to ensure stack is pushed, and I should call UpdateUndoRedoProperties.
             // BUT I don't see the end of CutOutImage.
-            
+
             // Safer to just update CropImage and Undo/Redo for now. 
             // I'll verify CutOutImage later or assuming it calls UpdatePreview?
             // Note: CutOut logic in Controller calls ViewModel.CutOutImage.
@@ -1833,17 +1984,17 @@ namespace ShareX.Editor.ViewModels
         public void UpdatePreviewImageOnly(SkiaSharp.SKBitmap preview)
         {
             if (preview == null) return;
-            
+
             // Dispose previous preview bitmap if it exists and isn't the source
             // Note: UpdatePreview creates a new Avalonia bitmap, so we are fine.
             // We just need to update the binding properly.
-            
+
             // We don't call UpdatePreview() here because that resets annotations and other state too aggressively?
             // Actually UpdatePreview() does:
             // 1. Sets _currentSourceImage (WE DO NOT WANT THIS yet)
             // 2. Backs up original (WE DO NOT WANT THIS)
             // 3. Converts to Avalonia Bitmap (WE WANT THIS)
-            
+
             PreviewImage = Helpers.BitmapConversionHelpers.ToAvaloniBitmap(preview);
         }
 
@@ -1911,11 +2062,11 @@ namespace ShareX.Editor.ViewModels
         public void PreviewEffect(Func<SkiaSharp.SKBitmap, SkiaSharp.SKBitmap> effect)
         {
             if (_preEffectImage == null || effect == null) return;
-            
+
             // Run effect on copy of pre-effect image? 
             // Or if effect is non-destructive (returns new), pass pre-effect directly.
             // ImageHelpers methods return NEW bitmap.
-            try 
+            try
             {
                 var result = effect(_preEffectImage);
                 // UpdatePreviewImageOnly takes ownership or we verify disposal?
@@ -1924,9 +2075,9 @@ namespace ShareX.Editor.ViewModels
                 // But PreviewImage might depend on it if it wraps it directly?
                 // ToAvaloniaBitmap usually creates a WriteableBitmap copy.
                 // Let's assume we need to dispose result if ToAvaloniaBitmap copies.
-                
+
                 PreviewImage = BitmapConversionHelpers.ToAvaloniBitmap(result);
-                result.Dispose(); 
+                result.Dispose();
             }
             catch (Exception ex)
             {
@@ -1974,32 +2125,32 @@ namespace ShareX.Editor.ViewModels
         {
             if (PreviewImage == null || _currentSourceImage == null) return;
 
-             // Snapshot the CURRENT state (including any previous edits)
-             var current = _currentSourceImage;
-             if (current != null)
-             {
-                 // ISSUE-024 fix: Dispose previous bitmap before reassignment
-                 _rotateCustomAngleOriginalBitmap?.Dispose();
-                 // ISSUE-025 fix: Check for null after Copy()
-                 var copy = current.Copy();
-                 if (copy == null)
-                 {
-                     return;
-                 }
-                 _rotateCustomAngleOriginalBitmap = copy;
-                 RotateAngleDegrees = 0;
-                 IsRotateCustomAngleDialogOpen = true;
-             }
+            // Snapshot the CURRENT state (including any previous edits)
+            var current = _currentSourceImage;
+            if (current != null)
+            {
+                // ISSUE-024 fix: Dispose previous bitmap before reassignment
+                _rotateCustomAngleOriginalBitmap?.Dispose();
+                // ISSUE-025 fix: Check for null after Copy()
+                var copy = current.Copy();
+                if (copy == null)
+                {
+                    return;
+                }
+                _rotateCustomAngleOriginalBitmap = copy;
+                RotateAngleDegrees = 0;
+                IsRotateCustomAngleDialogOpen = true;
+            }
         }
 
         partial void OnRotateAngleDegreesChanged(double value)
         {
-             RotateCustomAngleLiveApply();
+            RotateCustomAngleLiveApply();
         }
 
         partial void OnRotateAutoResizeChanged(bool value)
         {
-             RotateCustomAngleLiveApply();
+            RotateCustomAngleLiveApply();
         }
 
         private void RotateCustomAngleLiveApply()
@@ -2010,8 +2161,8 @@ namespace ShareX.Editor.ViewModels
             var effect = RotateImageEffect.Custom(angle, RotateAutoResize);
 
             var result = effect.Apply(_rotateCustomAngleOriginalBitmap);
-            
-            UpdatePreview(result, clearAnnotations: false); 
+
+            UpdatePreview(result, clearAnnotations: false);
         }
 
         [RelayCommand]
@@ -2032,7 +2183,7 @@ namespace ShareX.Editor.ViewModels
 
             var effect = RotateImageEffect.Custom(angle, RotateAutoResize);
             var result = effect.Apply(_rotateCustomAngleOriginalBitmap);
-            
+
             UpdatePreview(result, clearAnnotations: true);
             UpdateUndoRedoProperties();
             RecordAppliedEffect(effect);
@@ -2040,7 +2191,7 @@ namespace ShareX.Editor.ViewModels
             IsRotateCustomAngleDialogOpen = false;
             IsModalOpen = false;
             ModalContent = null;
-            
+
             _rotateCustomAngleOriginalBitmap?.Dispose();
             _rotateCustomAngleOriginalBitmap = null;
         }

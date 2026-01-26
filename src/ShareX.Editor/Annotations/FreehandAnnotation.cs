@@ -36,7 +36,7 @@ public class FreehandAnnotation : Annotation, IPointBasedAnnotation
     public Control CreateVisual()
     {
         var brush = new SolidColorBrush(Color.Parse(StrokeColor));
-        return new global::Avalonia.Controls.Shapes.Path
+        var path = new global::Avalonia.Controls.Shapes.Path
         {
             Stroke = brush,
             StrokeThickness = StrokeWidth,
@@ -45,6 +45,19 @@ public class FreehandAnnotation : Annotation, IPointBasedAnnotation
             Data = CreateSmoothedGeometry(),
             Tag = this
         };
+        
+        if (ShadowEnabled)
+        {
+            path.Effect = new Avalonia.Media.DropShadowEffect
+            {
+                OffsetX = 3,
+                OffsetY = 3,
+                BlurRadius = 4,
+                Color = Avalonia.Media.Color.FromArgb(128, 0, 0, 0)
+            };
+        }
+        
+        return path;
     }
 
     public Geometry CreateSmoothedGeometry()

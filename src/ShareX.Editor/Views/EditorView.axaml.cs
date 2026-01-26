@@ -780,6 +780,131 @@ namespace ShareX.Editor.Views
             }
         }
 
+        private void OnFillColorChanged(object? sender, IBrush color)
+        {
+            if (DataContext is MainViewModel vm && color is SolidColorBrush solidBrush)
+            {
+                var hexColor = $"#{solidBrush.Color.A:X2}{solidBrush.Color.R:X2}{solidBrush.Color.G:X2}{solidBrush.Color.B:X2}";
+                vm.FillColor = hexColor;
+                
+                // Apply to selected annotation if any
+                var selected = _selectionController.SelectedShape;
+                if (selected?.Tag is Annotation annotation)
+                {
+                    annotation.FillColor = hexColor;
+                    
+                    // Update the UI control's Fill property
+                    if (selected is Shape shape)
+                    {
+                        shape.Fill = hexColor == "#00000000" ? Brushes.Transparent : solidBrush;
+                    }
+                    else if (selected is Grid grid)
+                    {
+                        // For NumberAnnotation, update the Ellipse fill
+                        foreach (var child in grid.Children)
+                        {
+                            if (child is Avalonia.Controls.Shapes.Ellipse ellipse)
+                            {
+                                ellipse.Fill = hexColor == "#00000000" ? Brushes.Transparent : solidBrush;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        private void OnFontSizeChanged(object? sender, float fontSize)
+        {
+            if (DataContext is MainViewModel vm)
+            {
+                vm.FontSize = fontSize;
+                
+                // Apply to selected annotation if any
+                var selected = _selectionController.SelectedShape;
+                if (selected?.Tag is TextAnnotation textAnn)
+                {
+                    textAnn.FontSize = fontSize;
+                    if (selected is TextBox textBox)
+                    {
+                        textBox.FontSize = fontSize;
+                    }
+                }
+                else if (selected?.Tag is NumberAnnotation numAnn)
+                {
+                    numAnn.FontSize = fontSize;
+                    
+                    // Update the visual - resize grid and update text
+                    if (selected is Grid grid)
+                    {
+                        var radius = Math.Max(12, fontSize * 0.7f);
+                        grid.Width = radius * 2;
+                        grid.Height = radius * 2;
+                        
+                        foreach (var child in grid.Children)
+                        {
+                            if (child is TextBlock textBlock)
+                            {
+                                textBlock.FontSize = fontSize * 0.6; // Match CreateVisual scaling
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        private void OnStrengthChanged(object? sender, float strength)
+        {
+            if (DataContext is MainViewModel vm)
+            {
+                vm.EffectStrength = strength;
+                
+                // Apply to selected annotation if any
+                var selected = _selectionController.SelectedShape;
+                if (selected?.Tag is BaseEffectAnnotation effectAnn)
+                {
+                    effectAnn.Amount = strength;
+                    // Regenerate effect
+                    OnRequestUpdateEffect(selected);
+                }
+            }
+        }
+
+        private void OnShadowButtonClick(object? sender, global::Avalonia.Interactivity.RoutedEventArgs e)
+        {
+            if (DataContext is MainViewModel vm)
+            {
+                // Toggle state
+                vm.ShadowEnabled = !vm.ShadowEnabled;
+                var isEnabled = vm.ShadowEnabled;
+                
+                // Apply to selected annotation if any
+                var selected = _selectionController.SelectedShape;
+                if (selected?.Tag is Annotation annotation)
+                {
+                    annotation.ShadowEnabled = isEnabled;
+                    
+                    // Update the UI control's Effect property
+                    if (selected is Control control)
+                    {
+                        if (isEnabled)
+                        {
+                            control.Effect = new Avalonia.Media.DropShadowEffect
+                            {
+                                OffsetX = 3,
+                                OffsetY = 3,
+                                BlurRadius = 4,
+                                Color = Avalonia.Media.Color.FromArgb(128, 0, 0, 0)
+                            };
+                        }
+                        else
+                        {
+                            control.Effect = null;
+                        }
+                    }
+                }
+            }
+        }
+
         public void PerformCrop()
         {
             var cropOverlay = this.FindControl<global::Avalonia.Controls.Shapes.Rectangle>("CropOverlay");
@@ -892,7 +1017,7 @@ namespace ShareX.Editor.Views
                     {
                         if (child is Ellipse ellipse)
                         {
-                            ellipse.Fill = brush;
+                            ellipse.Stroke = brush;
                         }
                     }
                     break;
