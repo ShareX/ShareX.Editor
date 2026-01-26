@@ -38,3 +38,10 @@ These rules are mandatory.
    - Re implement manually using `jaex` as reference only.
 
 Failure to follow these rules is a defect.
+
+8. Finalisation and Merge.
+   - Once the integration branch `integrate/jaex-JX-*` is verified:
+     - Create a corresponding file named `integrate/jaex-JX-*.md` to signal readiness.
+     - Create a Pull Request targeting `develop`.
+     - Prioritize merging the PR into `develop`.
+     - Delete the `integrate/jaex-JX-*` branch after merge.
