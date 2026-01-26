@@ -906,7 +906,7 @@ namespace ShareX.Editor.Views
             }
             
             // ISSUE-LIVE-UPDATE: Update active text editor if present
-            _selectionController.UpdateActiveTextEditorStyles();
+            _selectionController.UpdateActiveTextEditorProperties();
         }
 
         private void ApplySelectedStrokeWidth(int width)

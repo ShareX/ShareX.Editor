@@ -224,7 +224,7 @@ public class EditorInputController
                 _isCreatingEffect = true;
                 break;
             case EditorTool.SpeechBalloon:
-                 var balloonAnnotation = new SpeechBalloonAnnotation { StrokeColor = vm.SelectedColor, StrokeWidth = vm.StrokeWidth, FillColor = "#FFFFFFFF", StartPoint = ToSKPoint(_startPoint), EndPoint = ToSKPoint(_startPoint) };
+                 var balloonAnnotation = new SpeechBalloonAnnotation { StrokeColor = vm.SelectedColor, StrokeWidth = vm.StrokeWidth, FillColor = "#FFFFFFFF", FontSize = vm.FontSize, StartPoint = ToSKPoint(_startPoint), EndPoint = ToSKPoint(_startPoint) };
                  var balloonControl = balloonAnnotation.CreateVisual();
                  balloonControl.Width = 0;
                  balloonControl.Height = 0;

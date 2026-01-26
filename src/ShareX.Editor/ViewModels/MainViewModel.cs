@@ -234,6 +234,9 @@ namespace ShareX.Editor.ViewModels
         private int _strokeWidth = 4;
 
         [ObservableProperty]
+        private float _fontSize = 24;
+
+        [ObservableProperty]
         private EditorTool _activeTool = EditorTool.Rectangle;
 
         [ObservableProperty]

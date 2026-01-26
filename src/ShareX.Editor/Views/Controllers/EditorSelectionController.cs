@@ -1375,10 +1375,13 @@ public class EditorSelectionController
     }
 
     private static SKPoint ToSKPoint(Point point) => new((float)point.X, (float)point.Y);
-    public void UpdateActiveTextEditorStyles()
+    public void UpdateActiveTextEditorProperties()
     {
         if (_balloonTextEditor == null || !(_selectedShape is SpeechBalloonControl balloonControl)) return;
         if (balloonControl.Annotation is not SpeechBalloonAnnotation annotation) return;
+
+        // Update Font Size
+        _balloonTextEditor.FontSize = annotation.FontSize;
 
         // Re-execute color logic (matching ShowSpeechBalloonTextEditor logic)
         IBrush foregroundBrush = new SolidColorBrush(Avalonia.Media.Color.Parse(annotation.StrokeColor));
