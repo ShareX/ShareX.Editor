@@ -45,8 +45,10 @@
         <x:String x:Key="IconZoomOut">&#xf010;</x:String>
         <x:String x:Key="IconSync">&#xf021;</x:String>
         <x:String x:Key="IconCloud">&#xf0c2;</x:String>
+        <x:String x:Key="IconCloudArrowUp">&#xf0ee;</x:String>
         <x:String x:Key="IconThumbtack">&#xf08d;</x:String>
         <x:String x:Key="IconMoon">&#xf186;</x:String>
+        <x:String x:Key="IconHardDrive">&#xf0a0;</x:String>
 
         <FontFamily x:Key="AppFontFamily">Segoe UI</FontFamily>
         <x:Double x:Key="AppFontSize">14</x:Double>
@@ -645,56 +647,45 @@
         <!-- Row 2: Combined Bottom Bar (Export + Zoom Controls) -->
         <Border Grid.Row="2" Padding="8" Background="#222222" BorderBrush="#1F1F1F" BorderThickness="0,1,0,0">
             <Grid ColumnDefinitions="Auto,*,Auto">
-                <!-- Left: Export Actions -->
-                <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="4">
-                    <Button Classes="editor-button" Command="{Binding CopyCommand}" Height="40" Padding="16,0">
-                        <StackPanel Orientation="Horizontal" Spacing="8">
-                            <TextBlock Text="{StaticResource IconCopy}" FontSize="16" FontFamily="{StaticResource FontAwesome}" FontWeight="Black"/>
-                            <TextBlock Text="Copy" FontSize="14"/>
-                        </StackPanel>
-                    </Button>
-
-                    <Button Classes="editor-button" Command="{Binding QuickSaveCommand}" Height="40" Padding="16,0">
-                        <StackPanel Orientation="Horizontal" Spacing="8">
-                            <TextBlock Text="{StaticResource IconDownload}" FontSize="16" FontFamily="{StaticResource FontAwesome}" FontWeight="Black"/>
-                            <TextBlock Text="Save" FontSize="14"/>
-                        </StackPanel>
-                    </Button>
-
-                    <Button Classes="editor-button" Command="{Binding SaveAsCommand}" Height="40" Padding="16,0">
-                        <StackPanel Orientation="Horizontal" Spacing="8">
-                            <TextBlock Text="{StaticResource IconSave}" FontSize="16" FontFamily="{StaticResource FontAwesome}" FontWeight="Black"/>
-                            <TextBlock Text="Save As..." FontSize="14"/>
-                        </StackPanel>
-                    </Button>
-
-                    <Button Classes="editor-button" Command="{Binding UploadCommand}" Height="40" Padding="16,0">
-                        <StackPanel Orientation="Horizontal" Spacing="8">
-                            <TextBlock Text="&#xf093;" FontSize="16" FontFamily="{StaticResource FontAwesome}" FontWeight="Black"/>
-                            <TextBlock Text="Upload" FontSize="14"/>
-                        </StackPanel>
-                    </Button>
-
-                    <Button Classes="editor-button" Command="{Binding PinToScreenCommand}" Height="40" Padding="16,0"
-                            Classes.active="{Binding IsPinned}">
-                        <StackPanel Orientation="Horizontal" Spacing="8">
-                            <TextBlock Text="{StaticResource IconThumbtack}" FontSize="16" FontFamily="{StaticResource FontAwesome}" FontWeight="Black"/>
-                            <TextBlock Text="Pin" FontSize="14"/>
-                        </StackPanel>
-                    </Button>
-
-                </StackPanel>
-
-                <!-- Center: Empty spacer -->
-                <Border Grid.Column="1"/>
-
-                <!-- Right: Zoom Controls -->
-                <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
+                <!-- Left: Zoom Controls -->
+                <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
                     <controls:ZoomPickerDropdown
                         SelectedZoom="{Binding Zoom}"
                         ZoomChanged="OnZoomChanged"
                         Height="40"
                         ToolTip.Tip="Zoom (Ctrl + Wheel)" ToolTip.Placement="Top" ToolTip.VerticalOffset="-5"/>
+                </StackPanel>
+
+                <!-- Center: Empty spacer -->
+                <Border Grid.Column="1"/>
+
+                <!-- Right: Export Actions -->
+                <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="4">
+                    <Button Classes="editor-button" Command="{Binding CopyCommand}" Padding="0"
+                            ToolTip.Tip="Copy image to clipboard" ToolTip.Placement="Top" ToolTip.VerticalOffset="-5">
+                        <TextBlock Text="{StaticResource IconCopy}" FontSize="16" FontFamily="{StaticResource FontAwesome}" FontWeight="Black"/>
+                    </Button>
+
+                    <Button Classes="editor-button" Command="{Binding QuickSaveCommand}" Padding="0"
+                            ToolTip.Tip="Save image" ToolTip.Placement="Top" ToolTip.VerticalOffset="-5">
+                        <TextBlock Text="{StaticResource IconSave}" FontSize="16" FontFamily="{StaticResource FontAwesome}" FontWeight="Black"/>
+                    </Button>
+
+                    <Button Classes="editor-button" Command="{Binding SaveAsCommand}" Padding="0"
+                            ToolTip.Tip="Save image as..." ToolTip.Placement="Top" ToolTip.VerticalOffset="-5">
+                        <TextBlock Text="{StaticResource IconHardDrive}" FontSize="16" FontFamily="{StaticResource FontAwesome}" FontWeight="Black"/>
+                    </Button>
+
+                    <Button Classes="editor-button" Command="{Binding PinToScreenCommand}" Padding="0"
+                            ToolTip.Tip="Pin image to screen" ToolTip.Placement="Top" ToolTip.VerticalOffset="-5"
+                            Classes.active="{Binding IsPinned}">
+                        <TextBlock Text="{StaticResource IconThumbtack}" FontSize="16" FontFamily="{StaticResource FontAwesome}" FontWeight="Black"/>
+                    </Button>
+
+                    <Button Classes="editor-button" Command="{Binding UploadCommand}" Padding="0"
+                            ToolTip.Tip="Upload image" ToolTip.Placement="Top" ToolTip.VerticalOffset="-5">
+                        <TextBlock Text="{StaticResource IconCloudArrowUp}" FontSize="16" FontFamily="{StaticResource FontAwesome}" FontWeight="Black"/>
+                    </Button>
                 </StackPanel>
             </Grid>
         </Border>

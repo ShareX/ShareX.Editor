@@ -12,3 +12,7 @@ develop:src/ShareX.Editor/Controls/EffectsMenuDropdown.axaml:332:               
 
 ### Export Preset...
 develop:src/ShareX.Editor/Controls/EffectsMenuDropdown.axaml:337:                    <MenuItem Header="Export Preset..." Click="OnExportPresetClick" IsEnabled="{Binding HasAppliedEffects}">
+
+## Bottom bar layout
+- Left: Zoom picker
+- Right: Copy, Quick Save, Save As, Pin, Upload
