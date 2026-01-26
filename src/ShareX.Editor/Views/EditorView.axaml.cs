@@ -788,6 +788,14 @@ namespace ShareX.Editor.Views
                             }
                         }
                     }
+                    else if (selected is SpeechBalloonControl balloon)
+                    {
+                         // For speech balloon, trigger visual invalidation to redraw filling
+                         balloon.InvalidateVisual();
+                    }
+                    
+                    // ISSUE-LIVE-UPDATE: Update active text editor if present
+                    _selectionController.UpdateActiveTextEditorStyles();
                 }
             }
         }
@@ -797,6 +805,8 @@ namespace ShareX.Editor.Views
             if (DataContext is MainViewModel vm)
             {
                 vm.FontSize = fontSize;
+                
+                // ... (rest of logic) ...
 
                 // Apply to selected annotation if any
                 var selected = _selectionController.SelectedShape;
@@ -969,6 +979,10 @@ namespace ShareX.Editor.Views
                     {
                         path.Fill = brush;
                     }
+                    else if (selected is SpeechBalloonControl balloon)
+                    {
+                         balloon.InvalidateVisual();
+                    }
                     break;
                 case TextBox textBox:
                     textBox.Foreground = brush;
@@ -982,7 +996,13 @@ namespace ShareX.Editor.Views
                         }
                     }
                     break;
+                case SpeechBalloonControl balloonControl:
+                    balloonControl.InvalidateVisual();
+                    break;
             }
+            
+            // ISSUE-LIVE-UPDATE: Update active text editor if present
+            _selectionController.UpdateActiveTextEditorStyles();
         }
 
         private void ApplySelectedStrokeWidth(int width)

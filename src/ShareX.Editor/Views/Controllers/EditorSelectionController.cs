@@ -874,9 +874,8 @@ public class EditorSelectionController
         {
             Text = annotation.Text,
             Background = editorBackground,
-            BorderThickness = new Thickness(1),
-            BorderBrush = new SolidColorBrush(Avalonia.Media.Color.Parse("#80808080")), // Semi-transparent visible border
-            CornerRadius = new CornerRadius(5),
+            BorderThickness = new Thickness(0),
+            CornerRadius = new CornerRadius(0), // No corner radius needed if no border/background match
             Foreground = foregroundBrush,
             FontSize = annotation.FontSize,
             Padding = new Thickness(12),
@@ -886,13 +885,23 @@ public class EditorSelectionController
             TextWrapping = TextWrapping.Wrap
         };
         
+        // ISSUE-FIX: Override theme resources to ensure Focus state doesn't revert to White background
+        textBox.Resources["TextControlBackground"] = editorBackground;
+        textBox.Resources["TextControlBackgroundFocused"] = editorBackground;
+        textBox.Resources["TextControlBackgroundPointerOver"] = editorBackground;
+        
+        // ISSUE-FIX: Override border resources to remove them completely in all states
+        textBox.Resources["TextControlBorderThemeThickness"] = new Thickness(0);
+        textBox.Resources["TextControlBorderThemeThicknessFocused"] = new Thickness(0);
+        textBox.Resources["TextControlBorderThemeThicknessPointerOver"] = new Thickness(0);
+        textBox.Resources["TextControlBorderBrush"] = Avalonia.Media.Brushes.Transparent;
+        textBox.Resources["TextControlBorderBrushFocused"] = Avalonia.Media.Brushes.Transparent;
+        textBox.Resources["TextControlBorderBrushPointerOver"] = Avalonia.Media.Brushes.Transparent;
+
         // Ensure TextBox is above the balloon geometry (ZIndex 100 might not be enough if Overlay is higher)
         // But AnnotationCanvas is usually below Overlay. 
         // We can't put TextBox in Overlay because Overlay is for handles.
         textBox.SetValue(Panel.ZIndexProperty, 9999); 
-        
-        // Dashed border for visibility
-        textBox.Classes.Add("dashed-border"); 
         
         Canvas.SetLeft(textBox, balloonLeft);
         Canvas.SetTop(textBox, balloonTop);
@@ -1367,5 +1376,61 @@ public class EditorSelectionController
     }
 
     private static SKPoint ToSKPoint(Point point) => new((float)point.X, (float)point.Y);
+    public void UpdateActiveTextEditorStyles()
+    {
+        if (_balloonTextEditor == null || !(_selectedShape is SpeechBalloonControl balloonControl)) return;
+        if (balloonControl.Annotation is not SpeechBalloonAnnotation annotation) return;
+
+        // Re-execute color logic (matching ShowSpeechBalloonTextEditor logic)
+        IBrush foregroundBrush = new SolidColorBrush(Avalonia.Media.Color.Parse(annotation.StrokeColor));
+        
+        try
+        {
+            var foreColor = Avalonia.Media.Color.Parse(annotation.StrokeColor);
+            var backColor = Avalonia.Media.Color.Parse(annotation.FillColor);
+            double foreLum = (0.299 * foreColor.R + 0.587 * foreColor.G + 0.114 * foreColor.B) / 255.0;
+            double backLum = (0.299 * backColor.R + 0.587 * backColor.G + 0.114 * backColor.B) / 255.0;
+            double backAlpha = backColor.A / 255.0;
+            
+            if (backAlpha > 0.1)
+            {
+                if (Math.Abs(foreLum - backLum) < 0.3)
+                {
+                    foregroundBrush = backLum > 0.5 ? Avalonia.Media.Brushes.Black : Avalonia.Media.Brushes.White;
+                }
+            }
+        }
+        catch { }
+
+        IBrush editorBackground;
+        var fillColor = Avalonia.Media.Color.Parse(annotation.FillColor);
+        if (fillColor.A < 20)
+        {
+             var fgBrush = foregroundBrush as SolidColorBrush;
+             var fgColor = fgBrush?.Color ?? Avalonia.Media.Colors.Black;
+             editorBackground = fgColor.R > 127 
+                 ? new SolidColorBrush(Avalonia.Media.Color.Parse("#AA000000")) 
+                 : new SolidColorBrush(Avalonia.Media.Color.Parse("#AAFFFFFF"));
+        }
+        else
+        {
+             editorBackground = new SolidColorBrush(fillColor);
+        }
+
+        _balloonTextEditor.Background = editorBackground;
+        _balloonTextEditor.Foreground = foregroundBrush;
+        
+        // Update resource overrides for Focus state
+        _balloonTextEditor.Resources["TextControlBackground"] = editorBackground;
+        _balloonTextEditor.Resources["TextControlBackgroundFocused"] = editorBackground;
+        _balloonTextEditor.Resources["TextControlBackgroundPointerOver"] = editorBackground;
+        
+        _balloonTextEditor.Resources["TextControlBorderThemeThickness"] = new Thickness(0);
+        _balloonTextEditor.Resources["TextControlBorderThemeThicknessFocused"] = new Thickness(0);
+        _balloonTextEditor.Resources["TextControlBorderThemeThicknessPointerOver"] = new Thickness(0);
+        _balloonTextEditor.Resources["TextControlBorderBrush"] = Avalonia.Media.Brushes.Transparent;
+        _balloonTextEditor.Resources["TextControlBorderBrushFocused"] = Avalonia.Media.Brushes.Transparent;
+        _balloonTextEditor.Resources["TextControlBorderBrushPointerOver"] = Avalonia.Media.Brushes.Transparent;
+    }
 }
 
