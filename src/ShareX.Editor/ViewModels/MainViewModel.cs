@@ -1,6 +1,4 @@
-﻿ï»¿using ShareX.Editor.ImageEffects.Manipulations;
-using ShareX.Editor.ImageEffects.Adjustments;
-#region License Information (GPL v3)
+﻿#region License Information (GPL v3)
 
 /*
     ShareX.Editor - The UI-agnostic Editor library for ShareX
@@ -2054,6 +2052,7 @@ namespace ShareX.Editor.ViewModels
         }
     }
 }
+
 
 
 
