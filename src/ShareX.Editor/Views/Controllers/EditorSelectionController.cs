@@ -891,6 +891,7 @@ public class EditorSelectionController
             BorderBrush = new SolidColorBrush(Avalonia.Media.Color.Parse("#80808080")),
             CornerRadius = new CornerRadius(5),
             Foreground = foregroundBrush,
+            CaretBrush = foregroundBrush,
             FontSize = annotation.FontSize,
             Padding = new Thickness(12),
             TextAlignment = TextAlignment.Center,
@@ -1417,7 +1418,8 @@ public class EditorSelectionController
 
         _balloonTextEditor.Background = editorBackground;
         _balloonTextEditor.Foreground = foregroundBrush;
-        
+        _balloonTextEditor.CaretBrush = foregroundBrush;
+
         // Update resource overrides for Focus state
         _balloonTextEditor.Resources["TextControlBackground"] = editorBackground;
         _balloonTextEditor.Resources["TextControlBackgroundFocused"] = editorBackground;
