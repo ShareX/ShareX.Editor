@@ -2,6 +2,11 @@
 
 This folder contains all documentation related to integrating changes from the `jaex` branch into `develop`.
 
+## Current Status
+
+All currently approved `jaex` batches (JX-001 through JX-006) are integrated into `develop` as of 2026-01-26.
+No pending integration batches remain at this time.
+
 ## Folder Structure
 
 - **completed/** - Completed integration batches (JX-001, JX-002, etc.)
@@ -59,12 +64,12 @@ This folder contains all documentation related to integrating changes from the `
 
 | Batch | Date | Description | Commits |
 |-------|------|-------------|---------|
-| JX-006 | TBD | Latest integration | See completed/jaex-JX-006.md |
-| JX-005 | TBD | Previous integration | See completed/jaex-JX-005.md |
-| JX-004 | TBD | Previous integration | See completed/jaex-JX-004.md |
-| JX-003 | TBD | Previous integration | See completed/jaex-JX-003.md |
-| JX-002 | TBD | Previous integration | See completed/jaex-JX-002.md |
-| JX-001 | TBD | Initial integration | See completed/jaex-JX-001.md |
+| JX-006 | 2026-01-26 | License header updates | See completed/jaex-JX-006.md |
+| JX-005 | 2026-01-26 | Effect annotation robustness | See completed/jaex-JX-005.md |
+| JX-004 | 2026-01-26 | Annotation interaction and state fixes | See completed/jaex-JX-004.md |
+| JX-003 | 2026-01-26 | Text and speech balloon editing UX | See completed/jaex-JX-003.md |
+| JX-002 | 2026-01-26 | Editor toolbar layout updates and pin-to-screen | See completed/jaex-JX-002.md |
+| JX-001 | 2026-01-26 | Annotation styling controls and color picker UI | See completed/jaex-JX-001.md |
 
 ---
 
