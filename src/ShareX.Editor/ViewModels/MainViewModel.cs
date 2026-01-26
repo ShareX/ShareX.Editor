@@ -330,10 +330,10 @@ namespace ShareX.Editor.ViewModels
 
         public bool ShowFontSize => ActiveTool switch
         {
-            EditorTool.Text or EditorTool.Number or EditorTool.Step => true,
+            EditorTool.Text or EditorTool.Number or EditorTool.Step or EditorTool.SpeechBalloon => true,
             EditorTool.Select => _selectedAnnotation != null && _selectedAnnotation.ToolType switch
             {
-                EditorTool.Text or EditorTool.Number or EditorTool.Step => true,
+                EditorTool.Text or EditorTool.Number or EditorTool.Step or EditorTool.SpeechBalloon => true,
                 _ => false
             },
             _ => false

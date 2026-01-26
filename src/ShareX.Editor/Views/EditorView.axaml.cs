@@ -795,7 +795,7 @@ namespace ShareX.Editor.Views
                     }
                     
                     // ISSUE-LIVE-UPDATE: Update active text editor if present
-                    _selectionController.UpdateActiveTextEditorStyles();
+                    _selectionController.UpdateActiveTextEditorProperties();
                 }
             }
         }
@@ -837,6 +837,15 @@ namespace ShareX.Editor.Views
                             }
                         }
                     }
+                }
+                else if (selected?.Tag is SpeechBalloonAnnotation balloonAnn)
+                {
+                    balloonAnn.FontSize = fontSize;
+                    if (selected is SpeechBalloonControl balloonControl)
+                    {
+                        balloonControl.InvalidateVisual();
+                    }
+                    _selectionController.UpdateActiveTextEditorProperties();
                 }
             }
         }
@@ -1002,7 +1011,7 @@ namespace ShareX.Editor.Views
             }
             
             // ISSUE-LIVE-UPDATE: Update active text editor if present
-            _selectionController.UpdateActiveTextEditorStyles();
+            _selectionController.UpdateActiveTextEditorProperties();
         }
 
         private void ApplySelectedStrokeWidth(int width)
