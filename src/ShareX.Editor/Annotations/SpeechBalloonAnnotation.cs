@@ -28,12 +28,12 @@ public class SpeechBalloonAnnotation : Annotation
     /// Background color (hex)
     /// </summary>
     public string FillColor { get; set; } = "#FFFFFFFF"; // White
-
     public SpeechBalloonAnnotation()
     {
         ToolType = EditorTool.SpeechBalloon;
         StrokeWidth = 2;
         StrokeColor = "#FF000000";
+        FillColor = "#FFFFFFFF"; // Default to white
     }
 
     /// <summary>

@@ -883,6 +883,10 @@ namespace ShareX.Editor.Views
                     {
                         path.Fill = brush;
                     }
+                    else if (selected is SpeechBalloonControl balloon)
+                    {
+                         balloon.InvalidateVisual();
+                    }
                     break;
                 case TextBox textBox:
                     textBox.Foreground = brush;
@@ -896,7 +900,13 @@ namespace ShareX.Editor.Views
                         }
                     }
                     break;
+                case SpeechBalloonControl balloonControl:
+                    balloonControl.InvalidateVisual();
+                    break;
             }
+            
+            // ISSUE-LIVE-UPDATE: Update active text editor if present
+            _selectionController.UpdateActiveTextEditorStyles();
         }
 
         private void ApplySelectedStrokeWidth(int width)
