@@ -77,13 +77,14 @@ public class TextAnnotation : Annotation
             FontSize = FontSize,
             FontWeight = IsBold ? FontWeight.Bold : FontWeight.Normal,
             FontStyle = IsItalic ? FontStyle.Italic : FontStyle.Normal,
-            FontFamily = new FontFamily(FontFamily),
             BorderBrush = Brushes.Transparent,
             BorderThickness = new Avalonia.Thickness(0),
-            Padding = new Avalonia.Thickness(2),
+            Padding = new Avalonia.Thickness(4),
+            AcceptsReturn = false,
             Text = Text,
             Tag = this,
-            MinWidth = 0
+            MinWidth = 0,
+            IsHitTestVisible = false
         };
         
         if (ShadowEnabled)
