@@ -69,9 +69,11 @@
                     Padding="4"
                     BorderBrush="#3E3E3E"
                     BorderThickness="1">
-                <cp:ColorView Color="{Binding SelectedColorValue, ElementName=ColorPickerDropdownRoot, Mode=TwoWay}"
+                <cp:ColorView x:Name="ColorViewControl"
+                              Color="{Binding SelectedColorValue, ElementName=ColorPickerDropdownRoot, Mode=TwoWay}"
                               IsAlphaVisible="True"
                               IsColorPreviewVisible="True"
+                              SelectedIndex="1"
                               HsvColor="{Binding SelectedHsvColor, ElementName=ColorPickerDropdownRoot, Mode=TwoWay}"/>
             </Border>
         </Popup>
