@@ -1,6 +1,5 @@
 using Avalonia;
 using Avalonia.Controls;
-using Avalonia.Controls.Shapes;
 using Avalonia.Media;
 using SkiaSharp;
 
@@ -31,9 +30,6 @@ public class FreehandAnnotation : Annotation, IPointBasedAnnotation
         return clone;
     }
 
-    /// <summary>
-    /// Creates the Avalonia visual for this annotation
-    /// </summary>
     /// <summary>
     /// Creates the Avalonia visual for this annotation
     /// </summary>
@@ -82,7 +78,7 @@ public class FreehandAnnotation : Annotation, IPointBasedAnnotation
 
             context.LineTo(new Point(Points[Points.Count - 1].X, Points[Points.Count - 1].Y));
         }
-        
+
         context.EndFigure(false);
         return geometry;
     }
