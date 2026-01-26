@@ -62,9 +62,14 @@ public class ArrowAnnotation : Annotation
             Stroke = brush,
             StrokeThickness = StrokeWidth,
             Fill = brush, // Fill arrowhead
-            Data = new PathGeometry(),
             Tag = this
         };
+        
+        // Populate the arrow geometry using the annotation's points
+        path.Data = CreateArrowGeometry(
+            new Point(StartPoint.X, StartPoint.Y),
+            new Point(EndPoint.X, EndPoint.Y),
+            StrokeWidth * ArrowHeadWidthMultiplier);
         
         if (ShadowEnabled)
         {
