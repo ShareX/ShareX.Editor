@@ -680,9 +680,7 @@ public class EditorInputController
     private void PerformCrop()
     {
         var cropOverlay = _view.FindControl<global::Avalonia.Controls.Shapes.Rectangle>("CropOverlay");
-        // ISSUE-004 fix: Store ViewModel locally to prevent null reference if it changes
-        var vm = ViewModel;
-        if (cropOverlay == null || !cropOverlay.IsVisible || vm == null) return;
+        if (cropOverlay == null || !cropOverlay.IsVisible) return;
 
         var x = Canvas.GetLeft(cropOverlay);
         var y = Canvas.GetTop(cropOverlay);
@@ -704,7 +702,7 @@ public class EditorInputController
         var physW = (int)(w * scaling);
         var physH = (int)(h * scaling);
 
-        vm.CropImage(physX, physY, physW, physH);
+        _view.EditorCore.PerformCrop(physX, physY, physW, physH);
 
         cropOverlay.IsVisible = false;
         _currentShape = null; // Ensure we clear current shape
@@ -712,9 +710,7 @@ public class EditorInputController
 
     private void PerformCutOut(Canvas canvas)
     {
-        // ISSUE-004 fix: Store ViewModel locally to prevent null reference if it changes
-        var vm = ViewModel;
-        if (_currentShape is global::Avalonia.Controls.Shapes.Rectangle cutOverlay && vm != null)
+        if (_currentShape is global::Avalonia.Controls.Shapes.Rectangle cutOverlay)
         {
             if (cutOverlay.Width > 0 && cutOverlay.Height > 0 && _cutOutDirection.HasValue)
             {
@@ -728,7 +724,7 @@ public class EditorInputController
                     var w = cutOverlay.Width;
                     int startX = (int)(left * scaling);
                     int endX = (int)((left + w) * scaling);
-                    vm.CutOutImage(startX, endX, true);
+                    _view.EditorCore.PerformCutOut(startX, endX, true);
                 }
                 else // Horizontal
                 {
@@ -736,7 +732,7 @@ public class EditorInputController
                     var h = cutOverlay.Height;
                     int startY = (int)(top * scaling);
                     int endY = (int)((top + h) * scaling);
-                    vm.CutOutImage(startY, endY, false);
+                    _view.EditorCore.PerformCutOut(startY, endY, false);
                 }
             }
             canvas.Children.Remove(cutOverlay);

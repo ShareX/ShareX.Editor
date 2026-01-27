@@ -51,6 +51,7 @@ namespace ShareX.Editor.Views
         private readonly EditorSelectionController _selectionController;
         private readonly EditorInputController _inputController;
         private MainViewModel? _boundViewModel;
+        private bool _suppressPreviewImageReload;
 
         internal EditorCore EditorCore => _editorCore;
         // SIP0018: Hybrid Rendering
@@ -86,6 +87,7 @@ namespace ShareX.Editor.Views
                         vm.ImageWidth = w;
                         vm.ImageHeight = h;
                         vm.WindowTitle = $"ShareX - Image Editor - {w}x{h}";
+                        SyncViewModelPreviewFromCore(clearAnnotations: false);
                         UpdateViewModelHistoryState(vm);
                     }
                 }
@@ -121,6 +123,25 @@ namespace ShareX.Editor.Views
         private void UpdateViewModelHistoryState(MainViewModel vm)
         {
             vm.UpdateCoreHistoryState(_editorCore.CanUndo, _editorCore.CanRedo);
+        }
+
+        private void SyncViewModelPreviewFromCore(bool clearAnnotations)
+        {
+            if (DataContext is not MainViewModel vm) return;
+            if (_editorCore.SourceImage == null) return;
+
+            var copy = _editorCore.SourceImage.Copy();
+            if (copy == null) return;
+
+            _suppressPreviewImageReload = true;
+            try
+            {
+                vm.UpdatePreview(copy, clearAnnotations);
+            }
+            finally
+            {
+                _suppressPreviewImageReload = false;
+            }
         }
         
 
@@ -235,6 +256,10 @@ namespace ShareX.Editor.Views
                 }
                 else if (e.PropertyName == nameof(MainViewModel.PreviewImage))
                 {
+                    if (_suppressPreviewImageReload)
+                    {
+                        return;
+                    }
                     _zoomController.ResetScrollViewerOffset();
                     // During smart padding, use UpdateSourceImage to preserve history and annotations
                     if (vm.IsSmartPaddingInProgress)
@@ -873,7 +898,7 @@ namespace ShareX.Editor.Views
         public void PerformCrop()
         {
             var cropOverlay = this.FindControl<global::Avalonia.Controls.Shapes.Rectangle>("CropOverlay");
-            if (cropOverlay != null && cropOverlay.IsVisible && DataContext is MainViewModel vm)
+            if (cropOverlay != null && cropOverlay.IsVisible)
             {
                 var rect = new SkiaSharp.SKRect(
                     (float)Canvas.GetLeft(cropOverlay),
@@ -892,7 +917,7 @@ namespace ShareX.Editor.Views
                     var physW = (int)(rect.Width * scaling);
                     var physH = (int)(rect.Height * scaling);
 
-                    vm.CropImage(physX, physY, physW, physH);
+                    _editorCore.PerformCrop(physX, physY, physW, physH);
                 }
                 cropOverlay.IsVisible = false;
             }
@@ -1106,7 +1131,7 @@ namespace ShareX.Editor.Views
                 
                 dialog.ApplyRequested += (s, args) =>
                 {
-                    vm.CropImage(args.X, args.Y, args.Width, args.Height);
+                    _editorCore.PerformCrop(args.X, args.Y, args.Width, args.Height);
                     vm.CloseEffectsPanelCommand.Execute(null);
                 };
                 

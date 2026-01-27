@@ -111,6 +111,7 @@ public class EditorSelectionController
             var handleSource = e.Source as Control;
             if (handleSource != null && overlay.Children.Contains(handleSource) && handleSource is Border)
             {
+                _view.EditorCore.BeginAnnotationTransform();
                 _isDraggingHandle = true;
                 _draggedHandle = handleSource;
                 _startPoint = point; // Capture start for resize delta
@@ -175,6 +176,7 @@ public class EditorSelectionController
                         return true;
                     }
 
+                    _view.EditorCore.BeginAnnotationTransform();
                     _isDraggingShape = true;
                     _lastDragPoint = point;
                     UpdateSelectionHandles();
@@ -237,6 +239,7 @@ public class EditorSelectionController
                          }
 
                          _selectedShape = hitTarget;
+                         _view.EditorCore.BeginAnnotationTransform();
                          _isDraggingShape = true;
                          _lastDragPoint = point;
                          UpdateSelectionHandles();
@@ -266,6 +269,7 @@ public class EditorSelectionController
                               }
 
                               _selectedShape = manualHit;
+                              _view.EditorCore.BeginAnnotationTransform();
                               _isDraggingShape = true;
                               _lastDragPoint = point;
                               UpdateSelectionHandles();
@@ -318,6 +322,7 @@ public class EditorSelectionController
         {
             _isDraggingHandle = false;
             _draggedHandle = null;
+            _view.EditorCore.EndAnnotationTransform();
             e.Pointer.Capture(null);
             
             if (_selectedShape?.Tag is BaseEffectAnnotation)
@@ -330,6 +335,7 @@ public class EditorSelectionController
         if (_isDraggingShape)
         {
             _isDraggingShape = false;
+            _view.EditorCore.EndAnnotationTransform();
             e.Pointer.Capture(null);
 
             if (_selectedShape?.Tag is BaseEffectAnnotation)
@@ -1332,6 +1338,8 @@ public class EditorSelectionController
 
     private void AttachTextBoxEditHandlers(TextBox tb)
     {
+        _view.EditorCore.BeginAnnotationTransform();
+
         EventHandler<global::Avalonia.Interactivity.RoutedEventArgs>? lostFocusHandler = null;
         EventHandler<KeyEventArgs>? keyDownHandler = null;
 
@@ -1341,6 +1349,7 @@ public class EditorSelectionController
             if (keyDownHandler != null) tb.KeyDown -= keyDownHandler;
 
             tb.IsHitTestVisible = false;
+            _view.EditorCore.EndAnnotationTransform();
 
             if (tb.Tag is Annotation annotation)
             {

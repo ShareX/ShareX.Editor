@@ -241,6 +241,7 @@ public class EditorCore : IDisposable
     private bool _isResizing;
     private HandleType _activeHandle;
     private SKRect _initialBounds;
+    private bool _hasPendingTransformMemento;
 
     private const float HandleSize = 10f;
     private enum HandleType { None, TopLeft, TopMiddle, TopRight, MiddleRight, BottomRight, BottomMiddle, BottomLeft, MiddleLeft, Start, End }
@@ -369,6 +370,7 @@ public class EditorCore : IDisposable
             // Allow dragging a selected annotation even if the current tool is not Select
             if (_selectedAnnotation.HitTest(point))
             {
+                BeginAnnotationTransform();
                 _isDragging = true;
                 _lastDragPoint = point;
                 return;
@@ -382,6 +384,7 @@ public class EditorCore : IDisposable
             if (hit != null)
             {
                 _selectedAnnotation = hit;
+                BeginAnnotationTransform();
                 _lastDragPoint = point;
                 _isDragging = true;
             }
@@ -534,12 +537,14 @@ public class EditorCore : IDisposable
         {
             _isResizing = false;
             _activeHandle = HandleType.None;
+            EndAnnotationTransform();
             return;
         }
 
         if (_isDragging)
         {
             _isDragging = false;
+            EndAnnotationTransform();
             return;
         }
 
@@ -618,6 +623,7 @@ public class EditorCore : IDisposable
 
     private void BeginResize(HandleType handle, SKPoint point)
     {
+        BeginAnnotationTransform();
         _isResizing = true;
         _activeHandle = handle;
         _initialBounds = _selectedAnnotation!.GetBounds();
@@ -835,6 +841,33 @@ public class EditorCore : IDisposable
         // We don't necessarily need to render if the view already added the control,
         // but this ensures raster effects are updated if needed.
         InvalidateRequested?.Invoke();
+    }
+
+    #endregion
+
+    #region Annotation Transform History
+
+    /// <summary>
+    /// Create a single memento at the start of a drag/resize/edit operation.
+    /// </summary>
+    public void BeginAnnotationTransform()
+    {
+        if (_hasPendingTransformMemento)
+        {
+            return;
+        }
+
+        _history.CreateAnnotationsMemento(ignoreToolGuard: true);
+        _hasPendingTransformMemento = true;
+        HistoryChanged?.Invoke();
+    }
+
+    /// <summary>
+    /// Ends a drag/resize/edit operation so a new transform can create a fresh memento.
+    /// </summary>
+    public void EndAnnotationTransform()
+    {
+        _hasPendingTransformMemento = false;
     }
 
     #endregion
@@ -1183,10 +1216,31 @@ public class EditorCore : IDisposable
         if (cropAnnotation == null || SourceImage == null) return;
 
         var bounds = cropAnnotation.GetBounds();
-        int x = (int)Math.Max(0, bounds.Left);
-        int y = (int)Math.Max(0, bounds.Top);
-        int width = (int)Math.Min(SourceImage.Width - x, bounds.Width);
-        int height = (int)Math.Min(SourceImage.Height - y, bounds.Height);
+        int x = (int)Math.Round(bounds.Left);
+        int y = (int)Math.Round(bounds.Top);
+        int width = (int)Math.Round(bounds.Width);
+        int height = (int)Math.Round(bounds.Height);
+
+        PerformCropInternal(x, y, width, height, removeCropAnnotation: true);
+    }
+
+    /// <summary>
+    /// Perform crop operation using explicit bounds.
+    /// </summary>
+    public void PerformCrop(int x, int y, int width, int height)
+    {
+        PerformCropInternal(x, y, width, height, removeCropAnnotation: false);
+        HistoryChanged?.Invoke();
+    }
+
+    private void PerformCropInternal(int x, int y, int width, int height, bool removeCropAnnotation)
+    {
+        if (SourceImage == null) return;
+
+        x = Math.Max(0, x);
+        y = Math.Max(0, y);
+        width = Math.Min(SourceImage.Width - x, width);
+        height = Math.Min(SourceImage.Height - y, height);
 
         if (width <= 0 || height <= 0) return;
 
@@ -1196,21 +1250,25 @@ public class EditorCore : IDisposable
         var croppedBitmap = new SKBitmap(width, height);
         SourceImage.ExtractSubset(croppedBitmap, new SKRectI(x, y, x + width, y + height));
 
-        // Remove crop annotation
-        _annotations.Remove(cropAnnotation);
+        if (removeCropAnnotation)
+        {
+            var cropAnnotation = _annotations.OfType<CropAnnotation>().FirstOrDefault();
+            if (cropAnnotation != null)
+            {
+                _annotations.Remove(cropAnnotation);
+            }
+        }
 
         // Adjust coordinates of all remaining annotations
         var offsetX = -x;
         var offsetY = -y;
-        var newBounds = new SKRect(0, 0, width, height);
-        
         // Remove annotations that fall completely outside the cropped area
         // and adjust coordinates for those that remain
         for (int i = _annotations.Count - 1; i >= 0; i--)
         {
             var annotation = _annotations[i];
             var annotationBounds = annotation.GetBounds();
-            
+
             // Check if annotation is completely outside the cropped region
             if (annotationBounds.Right < x || annotationBounds.Left > x + width ||
                 annotationBounds.Bottom < y || annotationBounds.Top > y + height)
@@ -1218,7 +1276,7 @@ public class EditorCore : IDisposable
                 _annotations.RemoveAt(i);
                 continue;
             }
-            
+
             // Adjust annotation coordinates
             annotation.StartPoint = new SKPoint(
                 annotation.StartPoint.X + offsetX,
@@ -1226,7 +1284,7 @@ public class EditorCore : IDisposable
             annotation.EndPoint = new SKPoint(
                 annotation.EndPoint.X + offsetX,
                 annotation.EndPoint.Y + offsetY);
-            
+
             // Handle freehand annotations (they have a Points list)
             if (annotation is FreehandAnnotation freehand)
             {
@@ -1237,13 +1295,13 @@ public class EditorCore : IDisposable
                         freehand.Points[j].Y + offsetY);
                 }
             }
-            
+
             // Update effect annotations with new bounds
             if (annotation is BaseEffectAnnotation effect)
             {
                 effect.UpdateEffect(croppedBitmap);
             }
-            
+
             // Update spotlight with new canvas size
             if (annotation is SpotlightAnnotation spotlight)
             {
@@ -1270,15 +1328,52 @@ public class EditorCore : IDisposable
         if (cutOutAnnotation == null || SourceImage == null) return;
 
         var bounds = cutOutAnnotation.GetBounds();
+        int cutStart = (int)Math.Round(cutOutAnnotation.IsVertical ? bounds.MidX : bounds.MidY);
+        int cutSize = (int)Math.Max(1, Math.Round(cutOutAnnotation.IsVertical ? bounds.Width : bounds.Height));
+
+        if (PerformCutOutInternal(cutStart, cutSize, cutOutAnnotation.IsVertical))
+        {
+            _annotations.Remove(cutOutAnnotation);
+            InvalidateEffectsCache();
+
+            ImageChanged?.Invoke();
+            InvalidateRequested?.Invoke();
+        }
+    }
+
+    /// <summary>
+    /// Perform cut out operation using explicit bounds.
+    /// </summary>
+    public void PerformCutOut(int startPos, int endPos, bool isVertical)
+    {
+        int start = Math.Min(startPos, endPos);
+        int size = Math.Max(0, Math.Abs(endPos - startPos));
+
+        if (PerformCutOutInternal(start, size, isVertical))
+        {
+            InvalidateEffectsCache();
+            ImageChanged?.Invoke();
+            InvalidateRequested?.Invoke();
+            HistoryChanged?.Invoke();
+        }
+    }
+
+    private bool PerformCutOutInternal(int cutStart, int cutSize, bool isVertical)
+    {
+        if (SourceImage == null) return false;
+
+        if (cutSize <= 0)
+        {
+            return false;
+        }
 
         // Create canvas memento before destructive cutout operation
         _history.CreateCanvasMemento();
 
-        if (cutOutAnnotation.IsVertical)
+        if (isVertical)
         {
-            // Vertical cut: remove a vertical strip and join left and right parts
-            int cutX = (int)Math.Round(bounds.MidX);
-            int cutWidth = (int)Math.Max(1, Math.Round(bounds.Width));
+            int cutX = cutStart;
+            int cutWidth = cutSize;
 
             // Clamp to image bounds
             if (cutX < 0) cutX = 0;
@@ -1290,13 +1385,13 @@ public class EditorCore : IDisposable
 
             if (cutWidth <= 0)
             {
-                return;
+                return false;
             }
 
             int newWidth = SourceImage.Width - cutWidth;
             if (newWidth <= 0)
             {
-                return;
+                return false;
             }
 
             var resultBitmap = new SKBitmap(newWidth, SourceImage.Height);
@@ -1323,15 +1418,14 @@ public class EditorCore : IDisposable
             SourceImage.Dispose();
             SourceImage = resultBitmap;
             CanvasSize = new SKSize(newWidth, SourceImage.Height);
-            
+
             // Adjust annotations for vertical cut
             AdjustAnnotationsForVerticalCut(cutX, cutWidth, newWidth);
         }
         else
         {
-            // Horizontal cut: remove a horizontal strip and join top and bottom parts
-            int cutY = (int)Math.Round(bounds.MidY);
-            int cutHeight = (int)Math.Max(1, Math.Round(bounds.Height));
+            int cutY = cutStart;
+            int cutHeight = cutSize;
 
             // Clamp to image bounds
             if (cutY < 0) cutY = 0;
@@ -1343,13 +1437,13 @@ public class EditorCore : IDisposable
 
             if (cutHeight <= 0)
             {
-                return;
+                return false;
             }
 
             int newHeight = SourceImage.Height - cutHeight;
             if (newHeight <= 0)
             {
-                return;
+                return false;
             }
 
             var resultBitmap = new SKBitmap(SourceImage.Width, newHeight);
@@ -1376,17 +1470,12 @@ public class EditorCore : IDisposable
             SourceImage.Dispose();
             SourceImage = resultBitmap;
             CanvasSize = new SKSize(SourceImage.Width, newHeight);
-            
+
             // Adjust annotations for horizontal cut
             AdjustAnnotationsForHorizontalCut(cutY, cutHeight, newHeight);
         }
 
-        // Remove cutout annotation
-        _annotations.Remove(cutOutAnnotation);
-        InvalidateEffectsCache();
-
-        ImageChanged?.Invoke();
-        InvalidateRequested?.Invoke();
+        return true;
     }
 
     private void AdjustAnnotationsForVerticalCut(int cutX, int cutWidth, int newWidth)
