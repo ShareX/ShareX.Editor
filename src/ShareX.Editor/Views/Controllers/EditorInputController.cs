@@ -240,14 +240,20 @@ public class EditorInputController
                 _isCreatingEffect = true;
                 break;
             case EditorTool.SpeechBalloon:
-                 var balloonAnnotation = new SpeechBalloonAnnotation { StrokeColor = vm.SelectedColor, StrokeWidth = vm.StrokeWidth, FillColor = vm.FillColor == "#00000000" ? "#FFFFFFFF" : vm.FillColor, FontSize = vm.FontSize, ShadowEnabled = vm.ShadowEnabled, StartPoint = ToSKPoint(_startPoint), EndPoint = ToSKPoint(_startPoint) };
-                 var balloonControl = balloonAnnotation.CreateVisual();
-                 balloonControl.Width = 0;
-                 balloonControl.Height = 0;
-                 Canvas.SetLeft(balloonControl, _startPoint.X);
-                 Canvas.SetTop(balloonControl, _startPoint.Y);
-                 _currentShape = balloonControl;
-                 break;
+                var fillColor = vm.FillColor;
+                // Smart default: If user selected transparent fill, default to White or Black based on Stroke contrast
+                if (string.IsNullOrEmpty(fillColor) || fillColor == "#00000000" || fillColor == "Transparent")
+                {
+                    fillColor = IsColorLight(vm.SelectedColor) ? "#FF000000" : "#FFFFFFFF";
+                }
+                var balloonAnnotation = new SpeechBalloonAnnotation { StrokeColor = vm.SelectedColor, StrokeWidth = vm.StrokeWidth, FillColor = fillColor, FontSize = vm.FontSize, ShadowEnabled = vm.ShadowEnabled, StartPoint = ToSKPoint(_startPoint), EndPoint = ToSKPoint(_startPoint) };
+                var balloonControl = balloonAnnotation.CreateVisual();
+                balloonControl.Width = 0;
+                balloonControl.Height = 0;
+                Canvas.SetLeft(balloonControl, _startPoint.X);
+                Canvas.SetTop(balloonControl, _startPoint.Y);
+                _currentShape = balloonControl;
+                break;
             case EditorTool.Number:
                 var numberAnnotation = new NumberAnnotation
                 {
