@@ -141,6 +141,7 @@ namespace ShareX.Editor.Views
                 // Wire up View interactions
                 vm.CopyRequested += OnCopyRequested;
                 vm.SaveAsRequested += OnSaveAsRequested;
+                vm.DeselectRequested += OnDeselectRequested;
 
                 // Initial load
                 if (vm.PreviewImage != null)
@@ -159,6 +160,7 @@ namespace ShareX.Editor.Views
                 vm.PropertyChanged -= OnViewModelPropertyChanged;
                 vm.CopyRequested -= OnCopyRequested;
                 vm.SaveAsRequested -= OnSaveAsRequested;
+                vm.DeselectRequested -= OnDeselectRequested;
             }
 
             _selectionController.RequestUpdateEffect -= OnRequestUpdateEffect;
@@ -409,6 +411,11 @@ namespace ShareX.Editor.Views
             {
                 _editorCore.Redo();
             }
+        }
+
+        private void OnDeselectRequested(object? sender, EventArgs e)
+        {
+            _selectionController.ClearSelection();
         }
 
         private void OnAnnotationsRestored()
