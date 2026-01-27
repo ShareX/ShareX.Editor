@@ -991,6 +991,13 @@ namespace ShareX.Editor.Views
                         }
                     }
                     break;
+                case SpeechBalloonControl balloon:
+                    if (balloon.Annotation != null)
+                    {
+                        balloon.Annotation.StrokeWidth = width;
+                        balloon.InvalidateVisual();
+                    }
+                    break;
             }
         }
 
