@@ -81,6 +81,18 @@ Usage:
 - Update the marker after each successful merge to record the newest processed `jaex` commit SHA.
 - Optionally maintain `docs/jaex-integration/completed/features_log.md` with rows: `Date | Feature ID | Name | Jaex SHAs | Notes` for provenance.
 
+### Resume gate (required)
+Before starting Phase 0, verify you are resuming from the last completed feature:
+1. Read `docs/jaex-integration/completed/LAST_PROCESSED_JAEX_COMMIT.txt` and record it as `<LAST>`.
+2. Compare `origin/develop` vs `origin/jaex` using `<LAST>` as the base. Do **not** use `origin/develop` if `<LAST>` exists.
+3. If `<LAST>` is missing, stop and report this as blocking (do not re-start from the beginning).
+
+### Skip merged features (required)
+For each candidate JX feature:
+1. Check whether its cherry-picked SHAs already exist in `origin/develop` (or are logged in `docs/jaex-integration/completed/features_log.md`).
+2. If all SHAs are present, mark the feature as **Already merged** and **do not** create a new integration branch.
+3. Only proceed with features that are missing from `origin/develop`.
+
 ## Phase 0. Feature discovery and approval gate
 No code changes are allowed until a high level feature list is produced and explicitly approved.
 
@@ -88,7 +100,7 @@ No code changes are allowed until a high level feature list is produced and expl
 Determine the BASE for comparison:
 
 - If `docs/jaex-integration/completed/LAST_PROCESSED_JAEX_COMMIT.txt` exists, set `<BASE>` to its SHA.
-- Otherwise set `<BASE>` to `origin/develop`.
+- Otherwise stop and report missing marker as blocking (resume gate).
 
 Run the following comparisons using `<BASE>`:
 
@@ -97,6 +109,12 @@ Run the following comparisons using `<BASE>`:
 - `git diff --name-only <BASE>...origin/jaex`
 
 Group commits into coherent user visible features.
+
+### 0.1b Local state sanity check (required)
+Before any cherry-picks:
+- Ensure you are on a clean working tree (`git status -sb`).
+- Ensure `origin/develop` is up to date (`git fetch origin`).
+- Verify no local integration branches for already-merged features are being reused.
 
 ### 0.2 Produce feature list for approval
 Create `docs/jaex-integration/jaex_feature_candidates.md`.
@@ -181,6 +199,11 @@ For each approved feature:
 
 1. Create integration branch.
    - `git checkout -b integrate/jaex-<feature-id> develop`
+
+2. Branch start point rule (required).
+   - Always branch from **current** `origin/develop` (after fetch).
+   - Never re-run earlier JX branches if the feature is already merged.
+   - If resuming at JX-012, do **not** reopen JX-001..JX-011.
 
 2. Apply commits.
    - `git cherry-pick -x <sha1> <sha2> ...`
