@@ -80,7 +80,7 @@ public class NumberAnnotation : Annotation
             ? Brushes.Transparent
             : new SolidColorBrush(Color.Parse(FillColor));
             
-        var strokeBrush = new SolidColorBrush(Color.Parse(StrokeColor));
+        var strokeColor = Color.Parse(StrokeColor);
         
         var grid = new Grid
         {
@@ -92,7 +92,7 @@ public class NumberAnnotation : Annotation
         var bg = new Avalonia.Controls.Shapes.Ellipse
         {
             Fill = fillBrush,
-            Stroke = strokeBrush,
+            Stroke = new SolidColorBrush(strokeColor),
             StrokeThickness = StrokeWidth
         };
 
@@ -146,8 +146,7 @@ public class NumberAnnotation : Annotation
             
             canvas.DrawCircle(center, radius, fillPaint);
         }
-
-        // Draw circle border
+        // Draw circle border (uses actual alpha from StrokeColor)
         using var borderPaint = new SKPaint
         {
             Color = ParseColor(StrokeColor),
