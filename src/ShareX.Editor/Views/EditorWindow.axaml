@@ -9,5 +9,5 @@
         WindowStartupLocation="CenterScreen">
     
     <views:EditorView Name="EditorViewControl"/>
-    
+
 </Window>

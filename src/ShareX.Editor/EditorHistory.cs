@@ -47,8 +47,9 @@ internal class EditorHistory : IDisposable
     /// <summary>
     /// Maximum number of annotation-only mementos to keep (lightweight operations).
     /// These don't store canvas bitmaps, so we can keep more.
+    /// Default increased to 50 to prevent premature history loss causing perceived bugs.
     /// </summary>
-    private const int MaxAnnotationMementos = 20;
+    private const int MaxAnnotationMementos = 50;
 
     private readonly EditorCore _editorCore;
     private readonly Stack<EditorMemento> _undoMementoStack = new();
@@ -64,35 +65,73 @@ internal class EditorHistory : IDisposable
     /// </summary>
     private void AddMemento(EditorMemento memento)
     {
+        // Push the new memento first
         _undoMementoStack.Push(memento);
 
-        // ISSUE-003 mitigation: Limit stack depth based on memento type
-        int maxDepth = memento.Canvas != null ? MaxCanvasMementos : MaxAnnotationMementos;
-
-        // Remove oldest mementos if exceeding limit
-        if (_undoMementoStack.Count > maxDepth)
+        // Flatten stack to apply limits linearly from Newest to Oldest
+        EditorMemento[] allMementos = _undoMementoStack.ToArray(); 
+        _undoMementoStack.Clear(); // Clear and rebuild
+        
+        var keptItems = new List<EditorMemento>();
+        int keptCanvasCount = 0;
+        
+        for (int i = 0; i < allMementos.Length; i++)
         {
-            var tempStack = new Stack<EditorMemento>();
-
-            // Keep most recent N mementos
-            for (int i = 0; i < maxDepth; i++)
+            var m = allMementos[i];
+            bool keep = false;
+            
+            // Check Total Limit
+            if (keptItems.Count < MaxAnnotationMementos)
             {
-                tempStack.Push(_undoMementoStack.Pop());
+                if (m.Canvas != null)
+                {
+                    // Check Canvas Limit
+                    if (keptCanvasCount < MaxCanvasMementos)
+                    {
+                        keep = true;
+                        keptCanvasCount++;
+                    }
+                    else
+                    {
+                        System.Diagnostics.Debug.WriteLine($"[HISTORY] Canvas limit ({MaxCanvasMementos}) reached at index {i}. Disposing older items.");
+                    }
+                }
+                else
+                {
+                    // Annotation memento - keep if within total limit
+                    keep = true;
+                }
             }
-
-            // Dispose excess old mementos
-            while (_undoMementoStack.Count > 0)
+            else
             {
-                var oldMemento = _undoMementoStack.Pop();
-                oldMemento?.Dispose();
-                System.Diagnostics.Debug.WriteLine($"[HISTORY] Disposed old memento (Canvas: {oldMemento?.Canvas != null}, Stack limit: {maxDepth})");
+                System.Diagnostics.Debug.WriteLine($"[HISTORY] Total limit ({MaxAnnotationMementos}) reached at index {i}. Disposing older items.");
             }
-
-            // Restore kept mementos
-            while (tempStack.Count > 0)
+            
+            if (keep)
             {
-                _undoMementoStack.Push(tempStack.Pop());
+                keptItems.Add(m);
             }
+            else
+            {
+                // Discard this item and ALL older items (since history is linear)
+                m.Dispose();
+                
+                // Dispose the rest of the array
+                for (int j = i + 1; j < allMementos.Length; j++)
+                {
+                    allMementos[j].Dispose();
+                }
+                break; // Stop processing
+            }
+        }
+        
+        // Rebuild stack (Reverse of keptItems to restore Oldest -> Newest)
+        // keptItems[0] is Newest (Top). 
+        // Stack.Push pushes to Top. 
+        // So we push Oldest first.
+        for (int i = keptItems.Count - 1; i >= 0; i--)
+        {
+            _undoMementoStack.Push(keptItems[i]);
         }
 
         // Clear redo stack when new action is performed
@@ -102,6 +141,8 @@ internal class EditorHistory : IDisposable
         }
 
         _redoMementoStack.Clear();
+        
+        System.Diagnostics.Debug.WriteLine($"[HISTORY] Added memento. Stack size: {_undoMementoStack.Count} (Canvas: {keptCanvasCount})");
     }
 
     /// <summary>

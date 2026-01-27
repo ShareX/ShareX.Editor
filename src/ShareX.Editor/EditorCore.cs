@@ -770,6 +770,9 @@ public class EditorCore : IDisposable
             SourceImage?.Dispose();
             SourceImage = memento.Canvas.Copy();
             CanvasSize = memento.CanvasSize;
+            
+            // Notify that image has changed so UI can resize canvas control if needed
+            ImageChanged?.Invoke();
         }
 
         // ISSUE-010 fix: Restore selection state if memento captured a selected annotation
@@ -973,6 +976,20 @@ public class EditorCore : IDisposable
         if (cropAnnotation == null || SourceImage == null) return;
 
         var bounds = cropAnnotation.GetBounds();
+        Crop(bounds);
+        
+        // Remove crop annotation after processing
+        _annotations.Remove(cropAnnotation);
+        InvalidateRequested?.Invoke();
+    }
+
+    /// <summary>
+    /// Perform crop operation with specific bounds
+    /// </summary>
+    public void Crop(SKRect bounds)
+    {
+        if (SourceImage == null) return;
+
         int x = (int)Math.Max(0, bounds.Left);
         int y = (int)Math.Max(0, bounds.Top);
         int width = (int)Math.Min(SourceImage.Width - x, bounds.Width);
@@ -986,19 +1003,19 @@ public class EditorCore : IDisposable
         var croppedBitmap = new SKBitmap(width, height);
         SourceImage.ExtractSubset(croppedBitmap, new SKRectI(x, y, x + width, y + height));
 
-        // Remove crop annotation
-        _annotations.Remove(cropAnnotation);
-
         // Adjust coordinates of all remaining annotations
         var offsetX = -x;
         var offsetY = -y;
-        var newBounds = new SKRect(0, 0, width, height);
         
         // Remove annotations that fall completely outside the cropped area
         // and adjust coordinates for those that remain
         for (int i = _annotations.Count - 1; i >= 0; i--)
         {
             var annotation = _annotations[i];
+            
+            // Skip CropAnnotation as caller might handle it, or it will be removed/ignored
+            if (annotation is CropAnnotation) continue;
+
             var annotationBounds = annotation.GetBounds();
             
             // Check if annotation is completely outside the cropped region
@@ -1047,6 +1064,7 @@ public class EditorCore : IDisposable
         CanvasSize = new SKSize(width, height);
 
         ImageChanged?.Invoke();
+        HistoryChanged?.Invoke();
         InvalidateRequested?.Invoke();
     }
 

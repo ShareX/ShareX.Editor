@@ -51,6 +51,10 @@ namespace ShareX.Editor.Views
         // SIP0018: Hybrid Rendering
         private SKCanvasControl? _canvasControl;
         private readonly EditorCore _editorCore;
+        
+        // Sync flags to prevent loop between VM.PreviewImage <-> Core.SourceImage
+        private bool _isSyncingFromVM;
+        private bool _isSyncingToVM;
 
         public EditorView()
         {
@@ -78,6 +82,20 @@ namespace ShareX.Editor.Views
                     {
                         UpdateViewModelHistoryState(vm);
                         UpdateViewModelMetadata(vm);
+
+                        // Sync Core image back to VM if change originated from Core (Undo/Redo, Core Crop)
+                        if (!_isSyncingFromVM && !_isSyncingToVM && _editorCore.SourceImage != null)
+                        {
+                            try 
+                            { 
+                                _isSyncingToVM = true;
+                                vm.UpdatePreviewImageOnly(_editorCore.SourceImage);
+                            }
+                            finally 
+                            { 
+                                _isSyncingToVM = false; 
+                            }
+                        }
                     }
                 }
             });
@@ -230,17 +248,30 @@ namespace ShareX.Editor.Views
         private void LoadImageFromViewModel(MainViewModel vm)
         {
             if (vm.PreviewImage == null || _canvasControl == null) return;
+            if (_isSyncingToVM) return; // Ignore updates that we just pushed to VM
 
-            // One-time conversion from Avalonia Bitmap to SKBitmap for the Core
-            // In a full refactor, VM would hold SKBitmap source of truth
-            using var skBitmap = BitmapConversionHelpers.ToSKBitmap(vm.PreviewImage);
-            if (skBitmap != null)
+            try
             {
-                // We must copy because ToSKBitmap might return a disposable wrapper or we need ownership
-                _editorCore.LoadImage(skBitmap.Copy());
+                _isSyncingFromVM = true;
 
-                _canvasControl.Initialize(skBitmap.Width, skBitmap.Height);
-                RenderCore();
+                // One-time conversion from Avalonia Bitmap to SKBitmap for the Core
+                // In a full refactor, VM would hold SKBitmap source of truth
+                using var skBitmap = BitmapConversionHelpers.ToSKBitmap(vm.PreviewImage);
+                if (skBitmap != null)
+                {
+                    // We must copy because ToSKBitmap might return a disposable wrapper or we need ownership
+                    // ISSUE-FIX: Use UpdateSourceImage to preserve existing history/annotations
+                    // This allows VM-driven updates (Effects, Undo) to not wipe Core state.
+                    // New file loads should be preceded by Clear() from the VM/Host.
+                    _editorCore.UpdateSourceImage(skBitmap.Copy());
+    
+                    _canvasControl.Initialize(skBitmap.Width, skBitmap.Height);
+                    RenderCore();
+                }
+            }
+            finally
+            {
+                _isSyncingFromVM = false;
             }
         }
 
@@ -888,7 +919,9 @@ namespace ShareX.Editor.Views
                     var physW = (int)(rect.Width * scaling);
                     var physH = (int)(rect.Height * scaling);
 
-                    vm.CropImage(physX, physY, physW, physH);
+                    // vm.CropImage(physX, physY, physW, physH);
+                    // SIP-FIX: Use Core crop to handle annotation adjustment and history unified
+                    _editorCore.Crop(new SKRect(physX, physY, physX + physW, physY + physH));
                 }
                 cropOverlay.IsVisible = false;
             }
@@ -1084,7 +1117,10 @@ namespace ShareX.Editor.Views
 
                 dialog.ApplyRequested += (s, args) =>
                 {
-                    vm.CropImage(args.X, args.Y, args.Width, args.Height);
+                    // vm.CropImage(args.X, args.Y, args.Width, args.Height);
+                     // SIP-FIX: Use Core crop to handle annotation adjustment and history unified
+                     _editorCore.Crop(new SKRect(args.X, args.Y, args.X + args.Width, args.Y + args.Height));
+
                     vm.CloseEffectsPanelCommand.Execute(null);
                 };
 

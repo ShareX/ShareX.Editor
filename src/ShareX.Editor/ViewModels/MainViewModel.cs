@@ -1756,7 +1756,7 @@ namespace ShareX.Editor.ViewModels
             _imageRedoStack.Clear();
 
             var result = effect(_currentSourceImage);
-            UpdatePreview(result, clearAnnotations: true);
+            UpdatePreview(result, clearAnnotations: false);
             UpdateUndoRedoProperties();
         }
 
@@ -1825,7 +1825,7 @@ namespace ShareX.Editor.ViewModels
             _imageUndoStack.Push(undoCopy);
             _imageRedoStack.Clear();
 
-            UpdatePreview(result, clearAnnotations: true);
+            UpdatePreview(result, clearAnnotations: false);
             UpdateUndoRedoProperties();
 
             _preEffectImage?.Dispose();
