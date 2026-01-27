@@ -176,6 +176,12 @@ namespace ShareX.Editor.ViewModels
         /// </summary>
         private bool _isApplyingSmartPadding = false;
 
+        /// <summary>
+        /// Public accessor for _isApplyingSmartPadding. Used by EditorView to skip
+        /// LoadImageFromViewModel during smart padding operations, preventing history reset.
+        /// </summary>
+        public bool IsSmartPaddingInProgress => _isApplyingSmartPadding;
+
         public Thickness SmartPaddingThickness => AreBackgroundEffectsActive ? new Thickness(SmartPadding) : new Thickness(0);
 
         public IBrush SmartPaddingColor
@@ -843,7 +849,7 @@ namespace ShareX.Editor.ViewModels
                     _isApplyingSmartPadding = true;
                     try
                     {
-                        UpdatePreview(_originalSourceImage);
+                        UpdatePreview(_originalSourceImage, clearAnnotations: false);
                     }
                     finally
                     {

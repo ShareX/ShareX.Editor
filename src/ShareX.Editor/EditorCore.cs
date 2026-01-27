@@ -292,6 +292,20 @@ public class EditorCore : IDisposable
     }
 
     /// <summary>
+    /// Update the source image without clearing history or annotations.
+    /// Used for smart padding operations where we need to update the background
+    /// but preserve the editing state.
+    /// </summary>
+    public void UpdateSourceImage(SKBitmap bitmap)
+    {
+        SourceImage?.Dispose();
+        SourceImage = bitmap;
+        CanvasSize = new SKSize(bitmap.Width, bitmap.Height);
+        InvalidateRequested?.Invoke();
+        ImageChanged?.Invoke();
+    }
+
+    /// <summary>
     /// Clear all annotations and effects
     /// </summary>
     public void ClearAll()
