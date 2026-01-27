@@ -83,6 +83,7 @@ public class TextAnnotation : Annotation
             BorderThickness = new Avalonia.Thickness(0),
             Padding = new Avalonia.Thickness(2),
             Text = Text,
+            TextWrapping = TextWrapping.Wrap,
             Tag = this,
             MinWidth = 0
         };

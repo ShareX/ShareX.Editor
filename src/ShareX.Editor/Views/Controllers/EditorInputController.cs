@@ -807,6 +807,7 @@ public class EditorInputController
             Text = string.Empty,
             Padding = new Thickness(4),
             AcceptsReturn = false,
+            TextWrapping = TextWrapping.Wrap,
             Tag = textAnnotation,
             MinWidth = 0
         };
