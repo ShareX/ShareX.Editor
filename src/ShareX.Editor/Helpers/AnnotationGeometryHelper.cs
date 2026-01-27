@@ -150,6 +150,11 @@ public static class AnnotationGeometryHelper
         return lines;
     }
 
+    public static float CalculateNumberRadius(float fontSize)
+    {
+        return Math.Max(12f, fontSize * 0.7f);
+    }
+
     public static bool TryGetArrowPolygonPoints(SKPoint start, SKPoint end, double headSize, out SKPoint[] points)
     {
         points = Array.Empty<SKPoint>();

@@ -263,7 +263,7 @@ public class EditorInputController
                 _currentShape = numberAnnotation.CreateVisual();
 
                 // Center the number on the click point using calculated radius
-                var numberRadius = Math.Max(12, vm.FontSize * 0.7f);
+                var numberRadius = AnnotationGeometryHelper.CalculateNumberRadius(vm.FontSize);
                 Canvas.SetLeft(_currentShape, _startPoint.X - numberRadius);
                 Canvas.SetTop(_currentShape, _startPoint.Y - numberRadius);
 

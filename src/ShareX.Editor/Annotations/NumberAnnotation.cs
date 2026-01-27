@@ -26,6 +26,7 @@
 using Avalonia.Controls;
 using Avalonia.Layout;
 using Avalonia.Media;
+using ShareX.Editor.Helpers;
 using SkiaSharp;
 
 namespace ShareX.Editor.Annotations;
@@ -61,7 +62,7 @@ public class NumberAnnotation : Annotation
     {
         // Radius should be about 70% of FontSize to properly contain the number
         // with some padding around it
-        return Math.Max(12, FontSize * 0.7f);
+        return AnnotationGeometryHelper.CalculateNumberRadius(FontSize);
     }
 
     public NumberAnnotation()
