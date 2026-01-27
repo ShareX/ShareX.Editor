@@ -264,7 +264,7 @@ public class EditorInputController
                     ShadowEnabled = vm.ShadowEnabled,
                     StartPoint = ToSKPoint(_startPoint),
                     Number = vm.NumberCounter
-                }; ;
+                };
 
                 _currentShape = numberAnnotation.CreateVisual();
 
@@ -289,7 +289,6 @@ public class EditorInputController
                     IsHitTestVisible = false
                     // Data will be set on move
                 };
-
                 if (vm.ShadowEnabled && vm.ActiveTool != EditorTool.SmartEraser)
                 {
                     path.Effect = new Avalonia.Media.DropShadowEffect
@@ -300,7 +299,6 @@ public class EditorInputController
                         Color = Avalonia.Media.Color.FromArgb(128, 0, 0, 0)
                     };
                 }
-
                 path.SetValue(Panel.ZIndexProperty, 1);
 
                 if (vm.ActiveTool == EditorTool.SmartEraser)
@@ -817,7 +815,7 @@ public class EditorInputController
             Tag = textAnnotation,
             MinWidth = 0
         };
-
+        
         if (vm.ShadowEnabled)
         {
             textBox.Effect = new Avalonia.Media.DropShadowEffect

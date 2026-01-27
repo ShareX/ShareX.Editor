@@ -22,7 +22,6 @@
             <Setter Property="Background" Value="#3E83F2"/>
         </Style>
     </UserControl.Styles>
-
     <Grid>
         <!-- Dropdown Button -->
         <Button x:Name="DropdownButton"

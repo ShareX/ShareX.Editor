@@ -86,10 +86,8 @@ namespace ShareX.Editor.Controls
             {
                 SelectedFontSize = selectedSize;
                 FontSizeChanged?.Invoke(this, selectedSize);
-
                 // Update active states before closing
                 UpdateActiveStates();
-
                 // Close the popup
                 var popup = this.FindControl<Popup>("FontSizePopup");
                 if (popup != null)
