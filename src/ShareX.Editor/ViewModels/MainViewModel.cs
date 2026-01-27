@@ -44,6 +44,8 @@ namespace ShareX.Editor.ViewModels
             public required IBrush Brush { get; init; }
         }
 
+        public EditorOptions Options => EditorOptions.Instance;
+
         private const string OutputRatioAuto = "Auto";
 
         [ObservableProperty]
@@ -250,10 +252,56 @@ namespace ShareX.Editor.ViewModels
         {
             OnPropertyChanged(nameof(SelectedColorBrush));
             OnPropertyChanged(nameof(SelectedColorValue));
+            UpdateOptionsFromSelectedColor();
+        }
+
+        private void UpdateOptionsFromSelectedColor()
+        {
+            var color = SelectedColorValue;
+            switch (ActiveTool)
+            {
+                case EditorTool.Select:
+                    if (SelectedAnnotation != null)
+                    {
+                        // TODO: Update SelectedAnnotation color if needed
+                    }
+                    else
+                    {
+                        // Fallback to update generic options if no annotation is selected but tool is active?
+                        // Or just update default options.
+                        UpdateDefaultOptionsColor(color);
+                    }
+                    break;
+                default:
+                    UpdateDefaultOptionsColor(color);
+                    break;
+            }
+        }
+
+        private void UpdateDefaultOptionsColor(Color color)
+        {
+            switch (ActiveTool)
+            {
+                case EditorTool.Step:
+                case EditorTool.Number:
+                    Options.StepFillColor = color;
+                    break;
+                case EditorTool.Highlighter:
+                    Options.HighlighterColor = color;
+                    break;
+                default:
+                    Options.BorderColor = color;
+                    break;
+            }
         }
 
         [ObservableProperty]
         private int _strokeWidth = 4;
+
+        partial void OnStrokeWidthChanged(int value)
+        {
+            Options.Thickness = value;
+        }
 
         // Tool-specific options
         [ObservableProperty]
@@ -283,16 +331,61 @@ namespace ShareX.Editor.ViewModels
         {
             OnPropertyChanged(nameof(FillColorBrush));
             OnPropertyChanged(nameof(FillColorValue));
+            UpdateOptionsFromFillColor();
+        }
+
+        private void UpdateOptionsFromFillColor()
+        {
+            var color = FillColorValue;
+            switch (ActiveTool)
+            {
+                case EditorTool.Step:
+                case EditorTool.Number:
+                    Options.StepBorderColor = color;
+                    break;
+                default:
+                    Options.FillColor = color;
+                    break;
+            }
         }
 
         [ObservableProperty]
         private float _fontSize = 30;
 
+        partial void OnFontSizeChanged(float value)
+        {
+            Options.FontSize = value;
+        }
+
         [ObservableProperty]
         private float _effectStrength = 10;
 
+        partial void OnEffectStrengthChanged(float value)
+        {
+            switch (ActiveTool)
+            {
+                case EditorTool.Blur:
+                    Options.BlurStrength = value;
+                    break;
+                case EditorTool.Pixelate:
+                    Options.PixelateStrength = value;
+                    break;
+                case EditorTool.Magnify:
+                    Options.MagnifierStrength = value;
+                    break;
+                case EditorTool.Spotlight:
+                    Options.SpotlightStrength = value;
+                    break;
+            }
+        }
+
         [ObservableProperty]
         private bool _shadowEnabled = true;
+
+        partial void OnShadowEnabledChanged(bool value)
+        {
+            Options.Shadow = value;
+        }
 
         // Visibility computed properties based on ActiveTool
         public bool ShowBorderColor => ActiveTool switch
@@ -402,6 +495,60 @@ namespace ShareX.Editor.ViewModels
         partial void OnActiveToolChanged(EditorTool value)
         {
             UpdateToolOptionsVisibility();
+            LoadOptionsForTool(value);
+        }
+
+        private void LoadOptionsForTool(EditorTool tool)
+        {
+            // Prevent property change callbacks from overwriting options while loading
+            // We can just set fields directly or use a flag, but setting properties is safer for UI updates.
+            // However, setting properties triggers On...Changed which calls UpdateOptionsFrom...
+            // Use a flag to suppress updates back to Options? 
+            // Actually, if we set the property to the value from Options, updating Options back to the same value is harmless.
+            
+            switch (tool)
+            {
+                case EditorTool.Rectangle:
+                case EditorTool.Ellipse:
+                case EditorTool.Line:
+                case EditorTool.Arrow:
+                case EditorTool.Pen:
+                case EditorTool.Text:
+                case EditorTool.SpeechBalloon:
+                    SelectedColorValue = Options.BorderColor;
+                    FillColorValue = Options.FillColor;
+                    StrokeWidth = Options.Thickness;
+                    ShadowEnabled = Options.Shadow;
+                    FontSize = Options.FontSize;
+                    break;
+
+                case EditorTool.Step:
+                case EditorTool.Number:
+                    SelectedColorValue = Options.StepFillColor;
+                    FillColorValue = Options.StepBorderColor;
+                    StrokeWidth = Options.Thickness; // Or specific step thickness? EditorOptions uses generic Thickness.
+                    ShadowEnabled = Options.Shadow;
+                    FontSize = Options.FontSize;
+                    break;
+
+                case EditorTool.Highlighter:
+                    SelectedColorValue = Options.HighlighterColor;
+                    StrokeWidth = Options.Thickness;
+                    break;
+
+                case EditorTool.Blur:
+                    EffectStrength = Options.BlurStrength;
+                    break;
+                case EditorTool.Pixelate:
+                    EffectStrength = Options.PixelateStrength;
+                    break;
+                case EditorTool.Magnify:
+                    EffectStrength = Options.MagnifierStrength;
+                    break;
+                case EditorTool.Spotlight:
+                    EffectStrength = Options.SpotlightStrength;
+                    break;
+            }
         }
 
         [ObservableProperty]

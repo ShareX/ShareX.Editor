@@ -29,6 +29,8 @@ namespace ShareX.Editor
 {
     public class EditorOptions
     {
+        public static EditorOptions Instance { get; } = new EditorOptions();
+
         public Color BorderColor { get; set; } = Color.FromArgb(255, 255, 67, 67);
         public Color FillColor { get; set; } = Colors.Transparent;
         public int Thickness { get; set; } = 4;

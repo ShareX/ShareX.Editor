@@ -20,6 +20,8 @@ public partial class EditorViewModel : ObservableObject
         public required IBrush Brush { get; init; }
     }
 
+    public EditorOptions Options => EditorOptions.Instance;
+
     private const double MinZoom = 0.25;
     private const double MaxZoom = 4.0;
     private const double ZoomStep = 0.1;
@@ -154,11 +156,64 @@ public partial class EditorViewModel : ObservableObject
     [ObservableProperty]
     private string _selectedColor = "#EF4444";
 
+    partial void OnSelectedColorChanged(string value)
+    {
+        if (Color.TryParse(value, out var color))
+        {
+            switch (ActiveTool)
+            {
+                case EditorTool.Step:
+                case EditorTool.Number:
+                    Options.StepFillColor = color;
+                    break;
+                case EditorTool.Highlighter:
+                    Options.HighlighterColor = color;
+                    break;
+                default:
+                    Options.BorderColor = color;
+                    break;
+            }
+        }
+    }
+
     [ObservableProperty]
     private int _strokeWidth = 4;
 
+    partial void OnStrokeWidthChanged(int value)
+    {
+        Options.Thickness = value;
+    }
+
     [ObservableProperty]
     private EditorTool _activeTool = EditorTool.Rectangle;
+
+    partial void OnActiveToolChanged(EditorTool value)
+    {
+        switch (value)
+        {
+            case EditorTool.Rectangle:
+            case EditorTool.Ellipse:
+            case EditorTool.Line:
+            case EditorTool.Arrow:
+            case EditorTool.Pen:
+            case EditorTool.Text:
+            case EditorTool.SpeechBalloon:
+                SelectedColor = $"#{Options.BorderColor.A:X2}{Options.BorderColor.R:X2}{Options.BorderColor.G:X2}{Options.BorderColor.B:X2}";
+                StrokeWidth = Options.Thickness;
+                break;
+
+            case EditorTool.Step:
+            case EditorTool.Number:
+                SelectedColor = $"#{Options.StepFillColor.A:X2}{Options.StepFillColor.R:X2}{Options.StepFillColor.G:X2}{Options.StepFillColor.B:X2}";
+                StrokeWidth = Options.Thickness;
+                break;
+
+            case EditorTool.Highlighter:
+                SelectedColor = $"#{Options.HighlighterColor.A:X2}{Options.HighlighterColor.R:X2}{Options.HighlighterColor.G:X2}{Options.HighlighterColor.B:X2}";
+                StrokeWidth = Options.Thickness;
+                break;
+        }
+    }
 
     [ObservableProperty]
     private int _numberCounter = 1;
