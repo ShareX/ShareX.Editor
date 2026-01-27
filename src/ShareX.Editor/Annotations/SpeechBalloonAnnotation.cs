@@ -1,5 +1,6 @@
 using Avalonia.Controls;
 using ShareX.Editor.Controls;
+using ShareX.Editor.Helpers;
 using SkiaSharp;
 
 namespace ShareX.Editor.Annotations;
@@ -76,47 +77,86 @@ public class SpeechBalloonAnnotation : Annotation
             rect = new SKRect(rect.Left, rect.Top, rect.Left + width, rect.Top + height);
         }
 
-        // Default tail point if not set - match reference: rect.Right, rect.Bottom + 20
-        if (TailPoint == default)
-        {
-            TailPoint = new SKPoint(rect.Right, rect.Bottom + 20);
-        }
+        float radius = 10;
+        float baseTailWidth = 20;
+        var layout = AnnotationGeometryHelper.GetSpeechBalloonTailLayout(rect, TailPoint, radius, baseTailWidth);
+        TailPoint = layout.TailPoint;
 
-        // Use absolute coordinates for rendering
-        SKRect renderRect = rect;
-        SKPoint renderTailPoint = TailPoint;
+        bool tailOnTop = layout.Edge == SpeechBalloonTailEdge.Top;
+        bool tailOnBottom = layout.Edge == SpeechBalloonTailEdge.Bottom;
+        bool tailOnLeft = layout.Edge == SpeechBalloonTailEdge.Left;
+        bool tailOnRight = layout.Edge == SpeechBalloonTailEdge.Right;
+
+        var renderRect = rect;
+        float left = renderRect.Left;
+        float top = renderRect.Top;
+        float right = renderRect.Right;
+        float bottom = renderRect.Bottom;
+        var renderTailPoint = layout.TailPoint;
 
         using var path = new SKPath();
 
-        float radius = 10;
-
-        // Start Top-Left
-        path.MoveTo(renderRect.Left + radius, renderRect.Top);
+        path.MoveTo(left + radius, top);
 
         // Top edge
-        path.LineTo(renderRect.Right - radius, renderRect.Top);
-        path.ArcTo(new SKRect(renderRect.Right - radius * 2, renderRect.Top, renderRect.Right, renderRect.Top + radius * 2), 270, 90, false);
+        if (tailOnTop)
+        {
+            path.LineTo(layout.BaseStart.X, layout.BaseStart.Y);
+            path.LineTo(renderTailPoint);
+            path.LineTo(layout.BaseEnd.X, layout.BaseEnd.Y);
+            path.LineTo(right - radius, top);
+        }
+        else
+        {
+            path.LineTo(right - radius, top);
+        }
+
+        path.ArcTo(new SKRect(right - radius * 2, top, right, top + radius * 2), 270, 90, false);
 
         // Right edge
-        path.LineTo(renderRect.Right, renderRect.Bottom - radius);
-        path.ArcTo(new SKRect(renderRect.Right - radius * 2, renderRect.Bottom - radius * 2, renderRect.Right, renderRect.Bottom), 0, 90, false);
+        if (tailOnRight)
+        {
+            path.LineTo(layout.BaseStart.X, layout.BaseStart.Y);
+            path.LineTo(renderTailPoint);
+            path.LineTo(layout.BaseEnd.X, layout.BaseEnd.Y);
+            path.LineTo(right, bottom - radius);
+        }
+        else
+        {
+            path.LineTo(right, bottom - radius);
+        }
 
-        // Bottom edge (with tail)
-        float midBottom = renderRect.Left + renderRect.Width / 2;
-        float tailBaseWidth = 20;
+        path.ArcTo(new SKRect(right - radius * 2, bottom - radius * 2, right, bottom), 0, 90, false);
 
-        // To Tail
-        path.LineTo(midBottom + tailBaseWidth / 2, renderRect.Bottom);
-        path.LineTo(renderTailPoint);
-        path.LineTo(midBottom - tailBaseWidth / 2, renderRect.Bottom);
+        // Bottom edge
+        if (tailOnBottom)
+        {
+            path.LineTo(layout.BaseStart.X, layout.BaseStart.Y);
+            path.LineTo(renderTailPoint);
+            path.LineTo(layout.BaseEnd.X, layout.BaseEnd.Y);
+            path.LineTo(left + radius, bottom);
+        }
+        else
+        {
+            path.LineTo(left + radius, bottom);
+        }
 
-        // To Left
-        path.LineTo(renderRect.Left + radius, renderRect.Bottom);
-        path.ArcTo(new SKRect(renderRect.Left, renderRect.Bottom - radius * 2, renderRect.Left + radius * 2, renderRect.Bottom), 90, 90, false);
+        path.ArcTo(new SKRect(left, bottom - radius * 2, left + radius * 2, bottom), 90, 90, false);
 
         // Left edge
-        path.LineTo(renderRect.Left, renderRect.Top + radius);
-        path.ArcTo(new SKRect(renderRect.Left, renderRect.Top, renderRect.Left + radius * 2, renderRect.Top + radius * 2), 180, 90, false);
+        if (tailOnLeft)
+        {
+            path.LineTo(layout.BaseStart.X, layout.BaseStart.Y);
+            path.LineTo(renderTailPoint);
+            path.LineTo(layout.BaseEnd.X, layout.BaseEnd.Y);
+            path.LineTo(left, top + radius);
+        }
+        else
+        {
+            path.LineTo(left, top + radius);
+        }
+
+        path.ArcTo(new SKRect(left, top, left + radius * 2, top + radius * 2), 180, 90, false);
 
         path.Close();
 
@@ -143,17 +183,26 @@ public class SpeechBalloonAnnotation : Annotation
             };
 
             var metrics = textPaint.FontMetrics;
-            float textWidth = textPaint.MeasureText(Text);
-            float textHeight = metrics.Descent - metrics.Ascent;
+            float lineHeight = metrics.Descent - metrics.Ascent;
+            float padding = 12f;
+            float maxTextWidth = Math.Max(0, renderRect.Width - (padding * 2));
+            var lines = AnnotationGeometryHelper.WrapLines(Text, maxTextWidth, textPaint.MeasureText);
 
-            float padding = 8f;
-            float textX = renderRect.MidX - textWidth / 2;
-            float textY = renderRect.MidY - textHeight / 2 - metrics.Ascent;
+            float totalHeight = lines.Count * lineHeight;
+            float minY = renderRect.Top + padding - metrics.Ascent;
+            float maxY = renderRect.Bottom - padding - metrics.Descent - totalHeight + lineHeight;
+            float startY = renderRect.MidY - totalHeight / 2 - metrics.Ascent;
+            startY = Math.Clamp(startY, minY, maxY);
 
-            textX = Math.Max(renderRect.Left + padding, Math.Min(textX, renderRect.Right - padding - textWidth));
-            textY = Math.Max(renderRect.Top + padding - metrics.Ascent, Math.Min(textY, renderRect.Bottom - padding - metrics.Descent));
-
-            canvas.DrawText(Text, textX, textY, textPaint);
+            for (int i = 0; i < lines.Count; i++)
+            {
+                var line = lines[i];
+                float lineWidth = textPaint.MeasureText(line);
+                float textX = renderRect.MidX - lineWidth / 2;
+                textX = Math.Max(renderRect.Left + padding, Math.Min(textX, renderRect.Right - padding - lineWidth));
+                float textY = startY + (i * lineHeight);
+                canvas.DrawText(line, textX, textY, textPaint);
+            }
         }
     }
 

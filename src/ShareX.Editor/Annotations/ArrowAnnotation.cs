@@ -26,6 +26,7 @@
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Media;
+using ShareX.Editor.Helpers;
 using SkiaSharp;
 
 namespace ShareX.Editor.Annotations;
@@ -88,50 +89,18 @@ public class ArrowAnnotation : Annotation
         var geometry = new StreamGeometry();
         using (var ctx = geometry.Open())
         {
-            var d = end - start;
-            var length = Math.Sqrt(d.X * d.X + d.Y * d.Y);
-
-            if (length > 0)
+            if (AnnotationGeometryHelper.TryGetArrowPolygonPoints(
+                    new SKPoint((float)start.X, (float)start.Y),
+                    new SKPoint((float)end.X, (float)end.Y),
+                    headSize,
+                    out var points))
             {
-                var ux = d.X / length;
-                var uy = d.Y / length;
-
-                var perpX = -uy;
-                var perpY = ux;
-
-                var enlargedHeadSize = headSize * 1.5;
-                var arrowAngle = Math.PI / 5.14; // 35 degrees
-
-                var arrowBase = new Avalonia.Point(
-                    end.X - enlargedHeadSize * ux,
-                    end.Y - enlargedHeadSize * uy);
-
-                var arrowheadBaseWidth = enlargedHeadSize * Math.Tan(arrowAngle);
-
-                var arrowBaseLeft = new Avalonia.Point(
-                    arrowBase.X + perpX * arrowheadBaseWidth,
-                    arrowBase.Y + perpY * arrowheadBaseWidth);
-
-                var arrowBaseRight = new Avalonia.Point(
-                    arrowBase.X - perpX * arrowheadBaseWidth,
-                    arrowBase.Y - perpY * arrowheadBaseWidth);
-
-                var shaftEndWidth = enlargedHeadSize * 0.30;
-
-                var shaftEndLeft = new Avalonia.Point(
-                    arrowBase.X + perpX * shaftEndWidth,
-                    arrowBase.Y + perpY * shaftEndWidth);
-
-                var shaftEndRight = new Avalonia.Point(
-                    arrowBase.X - perpX * shaftEndWidth,
-                    arrowBase.Y - perpY * shaftEndWidth);
-
-                ctx.BeginFigure(start, true);
-                ctx.LineTo(shaftEndLeft);
-                ctx.LineTo(arrowBaseLeft);
-                ctx.LineTo(end);
-                ctx.LineTo(arrowBaseRight);
-                ctx.LineTo(shaftEndRight);
+                ctx.BeginFigure(new Avalonia.Point(points[0].X, points[0].Y), true);
+                ctx.LineTo(new Avalonia.Point(points[1].X, points[1].Y));
+                ctx.LineTo(new Avalonia.Point(points[2].X, points[2].Y));
+                ctx.LineTo(new Avalonia.Point(points[3].X, points[3].Y));
+                ctx.LineTo(new Avalonia.Point(points[4].X, points[4].Y));
+                ctx.LineTo(new Avalonia.Point(points[5].X, points[5].Y));
                 ctx.EndFigure(true);
             }
             else
@@ -149,44 +118,23 @@ public class ArrowAnnotation : Annotation
     public override void Render(SKCanvas canvas)
     {
         using var strokePaint = CreateStrokePaint();
-        using var fillPaint = CreateFillPaint();
-
-        // Calculate arrow head
-        var dx = EndPoint.X - StartPoint.X;
-        var dy = EndPoint.Y - StartPoint.Y;
-        var length = (float)Math.Sqrt(dx * dx + dy * dy);
-
-        if (length > 0)
+        using var fillPaint = new SKPaint
         {
-            var ux = dx / length;
-            var uy = dy / length;
+            Color = ParseColor(StrokeColor),
+            Style = SKPaintStyle.Fill,
+            IsAntialias = true
+        };
 
-            // Modern arrow: narrower angle (20 degrees instead of 30)
-            var arrowAngle = Math.PI / 9; // 20 degrees for sleeker look
-            var angle = Math.Atan2(dy, dx);
-
-            // Calculate arrowhead base point
-            var arrowBase = new SKPoint(
-                EndPoint.X - ArrowHeadSize * ux,
-                EndPoint.Y - ArrowHeadSize * uy);
-
-            // Draw line from start to arrow base
-            canvas.DrawLine(StartPoint, arrowBase, strokePaint);
-
-            // Arrow head wing points
-            var point1 = new SKPoint(
-                (float)(EndPoint.X - ArrowHeadSize * Math.Cos(angle - arrowAngle)),
-                (float)(EndPoint.Y - ArrowHeadSize * Math.Sin(angle - arrowAngle)));
-
-            var point2 = new SKPoint(
-                (float)(EndPoint.X - ArrowHeadSize * Math.Cos(angle + arrowAngle)),
-                (float)(EndPoint.Y - ArrowHeadSize * Math.Sin(angle + arrowAngle)));
-
-            // Draw filled arrow head triangle
+        var headSize = StrokeWidth * (float)ArrowHeadWidthMultiplier;
+        if (AnnotationGeometryHelper.TryGetArrowPolygonPoints(StartPoint, EndPoint, headSize, out var points))
+        {
             using var path = new SKPath();
-            path.MoveTo(EndPoint);
-            path.LineTo(point1);
-            path.LineTo(point2);
+            path.MoveTo(points[0]);
+            path.LineTo(points[1]);
+            path.LineTo(points[2]);
+            path.LineTo(points[3]);
+            path.LineTo(points[4]);
+            path.LineTo(points[5]);
             path.Close();
 
             canvas.DrawPath(path, fillPaint);

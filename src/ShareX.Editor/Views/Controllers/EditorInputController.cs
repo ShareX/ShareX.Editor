@@ -756,13 +756,17 @@ public class EditorInputController
             {
                 using var stream = await files[0].OpenReadAsync();
                 var bitmap = new global::Avalonia.Media.Imaging.Bitmap(stream);
-                var imageControl = new Image { Source = bitmap, Width = bitmap.Size.Width, Height = bitmap.Size.Height };
                 var annotation = new ImageAnnotation();
                 annotation.SetImage(BitmapConversionHelpers.ToSKBitmap(bitmap));
-                imageControl.Tag = annotation;
 
-                Canvas.SetLeft(imageControl, point.X - bitmap.Size.Width / 2);
-                Canvas.SetTop(imageControl, point.Y - bitmap.Size.Height / 2);
+                var left = point.X - bitmap.Size.Width / 2;
+                var top = point.Y - bitmap.Size.Height / 2;
+                annotation.StartPoint = new SKPoint((float)left, (float)top);
+                annotation.EndPoint = new SKPoint((float)(left + bitmap.Size.Width), (float)(top + bitmap.Size.Height));
+
+                var imageControl = annotation.CreateVisual();
+                Canvas.SetLeft(imageControl, left);
+                Canvas.SetTop(imageControl, top);
 
                 canvas.Children.Add(imageControl);
                 // ISSUE-019 fix: Dead code removed - undo handled by EditorCore

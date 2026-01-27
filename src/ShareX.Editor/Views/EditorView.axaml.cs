@@ -479,71 +479,46 @@ namespace ShareX.Editor.Views
         {
              // Factory for restoring vector visuals
              if (annotation is RectangleAnnotation rect) {
-                var r = new global::Avalonia.Controls.Shapes.Rectangle { 
-                    Stroke = new SolidColorBrush(Color.Parse(rect.StrokeColor)),
-                    StrokeThickness = rect.StrokeWidth,
-                    Tag = rect
-                };
-                Canvas.SetLeft(r, rect.GetBounds().Left);
-                Canvas.SetTop(r, rect.GetBounds().Top);
-                r.Width = rect.GetBounds().Width;
-                r.Height = rect.GetBounds().Height;
+                var bounds = rect.GetBounds();
+                var r = rect.CreateVisual();
+                Canvas.SetLeft(r, bounds.Left);
+                Canvas.SetTop(r, bounds.Top);
+                r.Width = bounds.Width;
+                r.Height = bounds.Height;
                 return r;
              }
              else if (annotation is EllipseAnnotation ellipse) {
-                var e = new global::Avalonia.Controls.Shapes.Ellipse {
-                    Stroke = new SolidColorBrush(Color.Parse(ellipse.StrokeColor)),
-                    StrokeThickness = ellipse.StrokeWidth,
-                    Tag = ellipse
-                };
-                Canvas.SetLeft(e, ellipse.GetBounds().Left);
-                Canvas.SetTop(e, ellipse.GetBounds().Top);
-                e.Width = ellipse.GetBounds().Width;
-                e.Height = ellipse.GetBounds().Height;
+                var bounds = ellipse.GetBounds();
+                var e = ellipse.CreateVisual();
+                Canvas.SetLeft(e, bounds.Left);
+                Canvas.SetTop(e, bounds.Top);
+                e.Width = bounds.Width;
+                e.Height = bounds.Height;
                 return e;
              }
              else if (annotation is LineAnnotation line) {
-                var l = new global::Avalonia.Controls.Shapes.Line {
-                    StartPoint = new Point(line.StartPoint.X, line.StartPoint.Y),
-                    EndPoint = new Point(line.EndPoint.X, line.EndPoint.Y),
-                    Stroke = new SolidColorBrush(Color.Parse(line.StrokeColor)),
-                    StrokeThickness = line.StrokeWidth,
-                    Tag = line
-                };
-                return l;
+                return line.CreateVisual();
              }
              else if (annotation is ArrowAnnotation arrow) {
-                var path = new global::Avalonia.Controls.Shapes.Path {
-                    Fill = new SolidColorBrush(Color.Parse(arrow.StrokeColor)),
-                    Stroke = new SolidColorBrush(Color.Parse(arrow.StrokeColor)),
-                    StrokeThickness = 1, // Arrow handles thickness in geometry
-                    Tag = arrow
-                };
+                var path = (global::Avalonia.Controls.Shapes.Path)arrow.CreateVisual();
                 // ISSUE-005/006 fix: Use constant for arrow head width
                 path.Data = arrow.CreateArrowGeometry(new Point(arrow.StartPoint.X, arrow.StartPoint.Y), new Point(arrow.EndPoint.X, arrow.EndPoint.Y), arrow.StrokeWidth * ArrowAnnotation.ArrowHeadWidthMultiplier);
                 return path;
              }
              else if (annotation is TextAnnotation text) {
-                // For text, we might need a TextBox with IsReadOnly or similar
-                // For now, restoring as a TextBox
-                var tb = new TextBox {
-                    Text = text.Text,
-                    Foreground = new SolidColorBrush(Color.Parse(text.StrokeColor)),
-                    Background = Brushes.Transparent,
-                    BorderThickness = new Thickness(0),
-                    FontSize = Math.Max(12, text.StrokeWidth * 4),
-                    Padding = new Thickness(4),
-                    Tag = text,
-                    IsHitTestVisible = false
-                };
+                var bounds = text.GetBounds();
+                var tb = (TextBox)text.CreateVisual();
+                tb.IsHitTestVisible = false;
                 tb.LostFocus += (s, e) => { if (s is TextBox t) t.IsHitTestVisible = false; };
-                Canvas.SetLeft(tb, text.StartPoint.X);
-                Canvas.SetTop(tb, text.StartPoint.Y);
+                Canvas.SetLeft(tb, bounds.Left);
+                Canvas.SetTop(tb, bounds.Top);
+                tb.Width = bounds.Width;
+                tb.Height = bounds.Height;
                 return tb;
 
              }
              else if (annotation is SpotlightAnnotation spotlight) {
-                var s = new SpotlightControl { Annotation = spotlight, Tag = spotlight, IsHitTestVisible = false };
+                var s = spotlight.CreateVisual();
                 Canvas.SetLeft(s, 0);
                 Canvas.SetTop(s, 0);
                 s.Width = spotlight.CanvasSize.Width;
@@ -576,74 +551,37 @@ namespace ShareX.Editor.Views
                  }
              }
              else if (annotation is SpeechBalloonAnnotation balloon) {
-                var b = new SpeechBalloonControl { Annotation = balloon, Tag = balloon };
-                Canvas.SetLeft(b, balloon.GetBounds().Left);
-                Canvas.SetTop(b, balloon.GetBounds().Top);
-                b.Width = balloon.GetBounds().Width;
-                b.Height = balloon.GetBounds().Height;
+                var bounds = balloon.GetBounds();
+                var b = balloon.CreateVisual();
+                Canvas.SetLeft(b, bounds.Left);
+                Canvas.SetTop(b, bounds.Top);
+                b.Width = bounds.Width;
+                b.Height = bounds.Height;
                 return b;
              }
              else if (annotation is NumberAnnotation number) {
-                var brush = new SolidColorBrush(Color.Parse(number.StrokeColor));
-                var grid = new Grid
-                {
-                    Width = number.Radius * 2,
-                    Height = number.Radius * 2,
-                    Tag = number
-                };
-
-                var bg = new Avalonia.Controls.Shapes.Ellipse
-                {
-                    Fill = brush,
-                    Stroke = Brushes.White,
-                    StrokeThickness = 2
-                };
-
-                var numText = new TextBlock
-                {
-                    Text = number.Number.ToString(),
-                    Foreground = Brushes.White,
-                    HorizontalAlignment = HorizontalAlignment.Center,
-                    VerticalAlignment = VerticalAlignment.Center,
-                    FontWeight = FontWeight.Bold,
-                    FontSize = number.FontSize / 2
-                };
-
-                grid.Children.Add(bg);
-                grid.Children.Add(numText);
-
-                Canvas.SetLeft(grid, number.StartPoint.X - 15);
-                Canvas.SetTop(grid, number.StartPoint.Y - 15);
+                var bounds = number.GetBounds();
+                var grid = number.CreateVisual();
+                Canvas.SetLeft(grid, bounds.Left);
+                Canvas.SetTop(grid, bounds.Top);
+                grid.Width = bounds.Width;
+                grid.Height = bounds.Height;
                 return grid;
              }
              else if (annotation is ImageAnnotation imgAnn) {
-                 var img = new Image { Tag = imgAnn };
-                 if (imgAnn.ImageBitmap != null) {
-                    img.Source = BitmapConversionHelpers.ToAvaloniBitmap(imgAnn.ImageBitmap);
-                    img.Width = imgAnn.ImageBitmap.Width;
-                    img.Height = imgAnn.ImageBitmap.Height;
-                 }
-                 Canvas.SetLeft(img, imgAnn.StartPoint.X);
-                 Canvas.SetTop(img, imgAnn.StartPoint.Y);
+                 var bounds = imgAnn.GetBounds();
+                 var img = imgAnn.CreateVisual();
+                 Canvas.SetLeft(img, bounds.Left);
+                 Canvas.SetTop(img, bounds.Top);
+                 if (bounds.Width > 0) img.Width = bounds.Width;
+                 if (bounds.Height > 0) img.Height = bounds.Height;
                  return img;
              }
              else if (annotation is FreehandAnnotation freehand) {
-                 var polyline = new Polyline {
-                    Stroke = new SolidColorBrush(Color.Parse(freehand.StrokeColor)),
-                    StrokeThickness = freehand.StrokeWidth,
-                    Points = new Points(freehand.Points.Select(p => new Point(p.X, p.Y))),
-                    Tag = freehand
-                 };
-                 return polyline;
+                 return freehand.CreateVisual();
              }
              else if (annotation is SmartEraserAnnotation eraser) {
-                 var polyline = new Polyline {
-                    Stroke = new SolidColorBrush(Color.Parse(eraser.StrokeColor)),
-                    StrokeThickness = 10, // hardcoded in input logic
-                    Points = new Points(eraser.Points.Select(p => new Point(p.X, p.Y))),
-                    Tag = eraser
-                 };
-                 return polyline;
+                 return eraser.CreateVisual();
              }
              
              return null; 

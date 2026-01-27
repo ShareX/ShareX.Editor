@@ -1,3 +1,5 @@
+using Avalonia.Controls;
+using ShareX.Editor.Helpers;
 using SkiaSharp;
 
 namespace ShareX.Editor.Annotations;
@@ -43,6 +45,18 @@ public class ImageAnnotation : Annotation, IDisposable
     {
         _imageBitmap?.Dispose();
         _imageBitmap = bitmap;
+    }
+
+    public Control CreateVisual()
+    {
+        var image = new Image { Tag = this };
+        if (_imageBitmap != null)
+        {
+            image.Source = BitmapConversionHelpers.ToAvaloniBitmap(_imageBitmap);
+            image.Width = _imageBitmap.Width;
+            image.Height = _imageBitmap.Height;
+        }
+        return image;
     }
 
     public override void Render(SKCanvas canvas)
