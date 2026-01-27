@@ -250,6 +250,20 @@ Before PR:
 3. Confirm no removals or regressions
 4. Perform manual UI smoke test
 
+## PR summary artifact (required before merge)
+For each JX feature PR, create a summary file under:
+- `docs/jaex-integration/completed/jaex-JX-<feature-id>.md`
+
+The summary must include:
+- PR link
+- Feature name and one-paragraph change summary
+- Source jaex SHAs (from candidates)
+- Files touched (high level)
+- Tests run (or "Not run")
+- UI snapshot references (if applicable)
+
+Do **not** merge or delete the feature branch until this summary file exists.
+
 ## Readiness signal
 Once the integration branch is verified end-to-end:
 
