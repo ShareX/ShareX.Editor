@@ -34,5 +34,12 @@ namespace ShareX.Editor
         public int Thickness { get; set; } = 4;
         public float FontSize { get; set; } = 30;
         public bool Shadow { get; set; } = true;
+
+        public Color HighlighterColor { get; set; } = Colors.Yellow;
+
+        public float BlurStrength { get; set; } = 30;
+        public float PixelateStrength { get; set; } = 20;
+        public float MagnifierStrength { get; set; } = 2;
+        public float SpotlightStrength { get; set; } = 15;
     }
 }

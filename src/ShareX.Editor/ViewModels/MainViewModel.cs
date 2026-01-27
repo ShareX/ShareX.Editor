@@ -230,7 +230,7 @@ namespace ShareX.Editor.ViewModels
             {
                 if (value is SolidColorBrush solidBrush)
                 {
-                    SelectedColor = $"#{solidBrush.Color.R:X2}{solidBrush.Color.G:X2}{solidBrush.Color.B:X2}";
+                    SelectedColor = $"#{solidBrush.Color.A:X2}{solidBrush.Color.R:X2}{solidBrush.Color.G:X2}{solidBrush.Color.B:X2}";
                 }
             }
         }
@@ -239,7 +239,7 @@ namespace ShareX.Editor.ViewModels
         public Color SelectedColorValue
         {
             get => Color.Parse(SelectedColor);
-            set => SelectedColor = $"#{value.R:X2}{value.G:X2}{value.B:X2}";
+            set => SelectedColor = $"#{value.A:X2}{value.R:X2}{value.G:X2}{value.B:X2}";
         }
 
         partial void OnSelectedColorChanged(string value)
