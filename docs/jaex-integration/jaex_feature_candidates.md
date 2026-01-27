@@ -149,6 +149,80 @@
 - UI impact statement: Touches .axaml files (FontSizePickerDropdown.axaml, WidthPickerDropdown.axaml). No menu or command definitions changed; EffectsMenuDropdown.axaml is untouched, so Import Preset... and Export Preset... are not modified.
 - Suggested import method: Clean cherry pick
 
+## JX-012 Annotation rendering parity fixes
+- Feature ID: JX-012
+- Feature name: Annotation rendering parity fixes
+- User-visible outcome: Aligns annotation visuals (arrow geometry, text padding/properties, number radius) and standardizes visual creation.
+- Primary areas touched: src/ShareX.Editor/Annotations (ArrowAnnotation.cs, TextAnnotation.cs, NumberAnnotation.cs), src/ShareX.Editor/Views/EditorView.axaml.cs
+- Commits:
+  - eebf982 Refactor annotation visual creation to use CreateVisual
+  - a622384 Set arrow geometry in ArrowAnnotation path
+  - 82f4b97 Update TextAnnotation padding and properties
+  - 3c43e83 Fix number annotation radius usage in editor
+- Risk rating: Medium
+- UI impact statement: Touches .axaml.cs (EditorView.axaml.cs). No menu or command definitions changed; EffectsMenuDropdown.axaml is untouched, so Import Preset... and Export Preset... are not modified.
+- Suggested import method: Cherry pick with conflict risk (overlaps with local refactors)
+
+## JX-013 EditorOptions configuration + color alpha
+- Feature ID: JX-013
+- Feature name: EditorOptions configuration + color alpha
+- User-visible outcome: Adds configurable editor options (including step border/fill), preserves alpha in color selection, and syncs view models with options.
+- Primary areas touched: src/ShareX.Editor/EditorOptions.cs, src/ShareX.Editor/ViewModels (EditorViewModel.cs, MainViewModel.cs), src/ShareX.Editor/Views/Controllers/EditorInputController.cs
+- Commits:
+  - 5474a7a Add EditorOptions class for editor configuration
+  - fc50445 Preserve alpha in color selection and add editor options
+  - 134203d Add step border and fill color options to EditorOptions
+  - 449556d Sync EditorViewModel and MainViewModel with EditorOptions
+  - fb7c7c9 Fix swapped step fill and border color assignments
+- Risk rating: Medium
+- UI impact statement: No .axaml files touched; no menu or command definitions changed; EffectsMenuDropdown.axaml is untouched, so Import Preset... and Export Preset... are not modified.
+- Suggested import method: Clean cherry pick
+
+## JX-014 Speech balloon stroke width + transparent fill handling
+- Feature ID: JX-014
+- Feature name: Speech balloon stroke width + transparent fill handling
+- User-visible outcome: Ensures speech balloon respects stroke width and handles transparent fill color correctly.
+- Primary areas touched: src/ShareX.Editor/Controls/SpeechBalloonControl.cs, src/ShareX.Editor/Views/Controllers/EditorInputController.cs
+- Commits:
+  - cccfede Handle transparent fill color for speech balloon tool
+  - b0f4cf2 Add stroke width support for SpeechBalloonControl
+- Risk rating: Low
+- UI impact statement: No .axaml files touched; no menu or command definitions changed; EffectsMenuDropdown.axaml is untouched, so Import Preset... and Export Preset... are not modified.
+- Suggested import method: Clean cherry pick
+
+## JX-015 Smart padding edit-state preservation
+- Feature ID: JX-015
+- Feature name: Smart padding edit-state preservation
+- User-visible outcome: Preserves editing state when smart padding is applied to avoid losing active edits.
+- Primary areas touched: src/ShareX.Editor/ViewModels/MainViewModel.cs
+- Commits:
+  - 8c71db0 Preserve editing state during smart padding
+- Risk rating: Low
+- UI impact statement: No .axaml files touched; no menu or command definitions changed; EffectsMenuDropdown.axaml is untouched, so Import Preset... and Export Preset... are not modified.
+- Suggested import method: Clean cherry pick
+
+## JX-016 Selection handling for tool change
+- Feature ID: JX-016
+- Feature name: Selection handling for tool change
+- User-visible outcome: Adds deselect event handling to cleanly exit selection when switching tools.
+- Primary areas touched: src/ShareX.Editor/ViewModels/MainViewModel.cs, src/ShareX.Editor/Views/EditorView.axaml.cs
+- Commits:
+  - 306c3fe Add DeselectRequested event to handle tool selection
+- Risk rating: Low
+- UI impact statement: Touches .axaml.cs (EditorView.axaml.cs). No menu or command definitions changed; EffectsMenuDropdown.axaml is untouched, so Import Preset... and Export Preset... are not modified.
+- Suggested import method: Clean cherry pick
+
+## JX-017 Effect visual refresh consistency
+- Feature ID: JX-017
+- Feature name: Effect visual refresh consistency
+- User-visible outcome: Ensures effect visuals refresh reliably after interactions across annotation types.
+- Primary areas touched: src/ShareX.Editor/Views/Controllers/EditorInputController.cs, src/ShareX.Editor/Views/EditorView.axaml.cs
+- Commits:
+  - e12fd73 Update effect visual trigger for all annotations
+- Risk rating: Low
+- UI impact statement: Touches .axaml.cs (EditorView.axaml.cs). No menu or command definitions changed; EffectsMenuDropdown.axaml is untouched, so Import Preset... and Export Preset... are not modified.
+- Suggested import method: Clean cherry pick
+
 | Feature ID | Name | Risk | UI touched | Approved (Y/N) | Notes |
 | --- | --- | --- | --- | --- | --- |
 | JX-001 | Annotation styling controls and color picker UI | Medium | Yes (.axaml) | Y |  |
@@ -162,3 +236,9 @@
 | JX-009 | Minimum shape size validation for annotation tools | Medium | No | Y | Approved |
 | JX-010 | Color picker palette customization | Low | Yes (.axaml) | Y | Approved |
 | JX-011 | Picker dropdown active styling and default font size | Low | Yes (.axaml) | Y | Approved |
+| JX-012 | Annotation rendering parity fixes | Medium | No (.axaml.cs only) | Y | Manual re-implementation to preserve shared geometry/parity |
+| JX-013 | EditorOptions configuration + color alpha | Medium | No | Y | Approved |
+| JX-014 | Speech balloon stroke width + transparent fill handling | Low | No | Y | Approved |
+| JX-015 | Smart padding edit-state preservation | Low | No | Y | Approved |
+| JX-016 | Selection handling for tool change | Low | No (.axaml.cs only) | Y | Approved |
+| JX-017 | Effect visual refresh consistency | Low | No (.axaml.cs only) | Y | Approved |

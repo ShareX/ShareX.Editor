@@ -147,6 +147,18 @@ After creating `docs/jaex_feature_candidates.md`:
 - No broken builds
  - If any conflict occurs, prefer `develop` behaviour across code and assets
 
+## Geometry/parity protection (new)
+The repository now has shared geometry/parity logic (e.g., `AnnotationGeometryHelper`) and unified
+annotation visual creation. When importing `jaex` changes, do **not** overwrite or regress this work.
+If a `jaex` commit touches these areas, prefer **manual re-implementation** that preserves:
+- Shared geometry helpers and parity logic
+- `CreateVisual()` usage for annotation restoration
+- Any alignment between UI and snapshot renderers
+
+If a `jaex` feature overlaps parity work (e.g., arrow/text/number/speech balloon geometry or
+`EditorView.axaml.cs` annotation restoration), treat the feature as **manual re-implementation** only.
+Cherry-pick is allowed only when it does not undo parity changes.
+
 ## Pre flight UI protection
 Before importing any approved feature:
 
@@ -178,6 +190,9 @@ For each approved feature:
 - Re apply only logic changes from `jaex`
 - Do not remove or rename menu items
  - If conflicts arise, prefer `develop` behaviour; do not hide UI
+ - **Geometry/parity overlap rule:** If changes touch annotation geometry/layout or shared helpers,
+   do not accept `jaex` diffs that remove or bypass parity logic. Manually fold in the desired
+   behavior while keeping the shared infrastructure intact.
 
 4. **Branch isolation rule (critical)**:
    - Do **NOT** merge these changes into `develop` locally before creating the PR.
