@@ -280,7 +280,7 @@ namespace ShareX.Editor.ViewModels
             {
                 case EditorTool.Step:
                 case EditorTool.Number:
-                    Options.StepFillColor = color;
+                    Options.StepBorderColor = color;
                     break;
                 case EditorTool.Highlighter:
                     Options.HighlighterColor = color;
@@ -337,7 +337,7 @@ namespace ShareX.Editor.ViewModels
             {
                 case EditorTool.Step:
                 case EditorTool.Number:
-                    Options.StepBorderColor = color;
+                    Options.StepFillColor = color;
                     break;
                 default:
                     Options.FillColor = color;
@@ -517,8 +517,8 @@ namespace ShareX.Editor.ViewModels
 
                 case EditorTool.Step:
                 case EditorTool.Number:
-                    SelectedColorValue = Options.StepFillColor;
-                    FillColorValue = Options.StepBorderColor;
+                    SelectedColorValue = Options.StepBorderColor;
+                    FillColorValue = Options.StepFillColor;
                     StrokeWidth = Options.Thickness; // Or specific step thickness? EditorOptions uses generic Thickness.
                     ShadowEnabled = Options.Shadow;
                     FontSize = Options.FontSize;
