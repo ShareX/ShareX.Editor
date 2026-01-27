@@ -64,6 +64,7 @@ namespace ShareX.Editor.ViewModels
         public event EventHandler? RedoRequested;
         public event EventHandler? DeleteRequested;
         public event EventHandler? ClearAnnotationsRequested;
+        public event EventHandler? DeselectRequested;
 
         private Bitmap? _previewImage;
         public Bitmap? PreviewImage
@@ -1136,6 +1137,7 @@ namespace ShareX.Editor.ViewModels
         [RelayCommand]
         private void SelectTool(EditorTool tool)
         {
+            DeselectRequested?.Invoke(this, EventArgs.Empty);
             ActiveTool = tool;
         }
 
