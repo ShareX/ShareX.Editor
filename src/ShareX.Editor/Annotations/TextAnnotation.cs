@@ -25,6 +25,7 @@
 
 using Avalonia.Controls;
 using Avalonia.Media;
+using ShareX.Editor.Helpers;
 using SkiaSharp;
 
 namespace ShareX.Editor.Annotations;
@@ -133,11 +134,27 @@ public class TextAnnotation : Annotation
                 IsItalic ? SKFontStyleSlant.Italic : SKFontStyleSlant.Upright)
         };
 
-        // Treat StartPoint as the top-left of the text box with a small padding like the Avalonia TextBox.
         var metrics = paint.FontMetrics;
+        float lineHeight = metrics.Descent - metrics.Ascent;
+        float maxWidth = Math.Max(0, rect.Width - (padding * 2));
+        var lines = AnnotationGeometryHelper.WrapLines(Text, maxWidth, paint.MeasureText);
+        if (lines.Count == 0)
+        {
+            return;
+        }
+
+        // Treat StartPoint as the top-left of the text box with a small padding like the Avalonia TextBox.
         float baseline = rect.Top + padding - metrics.Ascent; // ascent is negative
 
-        canvas.DrawText(Text, rect.Left + padding, baseline, paint);
+        for (int i = 0; i < lines.Count; i++)
+        {
+            float y = baseline + (i * lineHeight);
+            if (y > rect.Bottom - padding)
+            {
+                break;
+            }
+            canvas.DrawText(lines[i], rect.Left + padding, y, paint);
+        }
     }
 
     public override bool HitTest(SKPoint point, float tolerance = 5)
