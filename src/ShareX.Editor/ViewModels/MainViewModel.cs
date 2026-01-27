@@ -1163,7 +1163,7 @@ namespace ShareX.Editor.ViewModels
                         _imageUndoStack.Push(copy);
                     }
                 }
-                UpdatePreview(next, clearAnnotations: true);
+                UpdatePreview(next, clearAnnotations: false);
                 UpdateUndoRedoProperties();
                 return;
             }
