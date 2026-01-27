@@ -196,6 +196,7 @@ namespace ShareX.Editor.Views
             vm.SavePresetRequested += OnSavePresetRequested;
             vm.LoadPresetRequested += OnLoadPresetRequested;
             vm.ShowErrorDialog += OnShowErrorDialog;
+            vm.DeselectRequested += OnDeselectRequested;
 
             if (vm.PreviewImage != null)
             {
@@ -217,6 +218,7 @@ namespace ShareX.Editor.Views
             vm.SavePresetRequested -= OnSavePresetRequested;
             vm.LoadPresetRequested -= OnLoadPresetRequested;
             vm.ShowErrorDialog -= OnShowErrorDialog;
+            vm.DeselectRequested -= OnDeselectRequested;
             _boundViewModel = null;
         }
         private void OnViewModelPropertyChanged(object? sender, PropertyChangedEventArgs e)
@@ -434,6 +436,11 @@ namespace ShareX.Editor.Views
             {
                 _editorCore.Redo();
             }
+        }
+
+        private void OnDeselectRequested(object? sender, EventArgs e)
+        {
+            _selectionController.ClearSelection();
         }
 
         private void OnAnnotationsRestored()
