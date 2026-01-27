@@ -81,11 +81,13 @@ public class TextAnnotation : Annotation
             FontFamily = new FontFamily(FontFamily),
             BorderBrush = Brushes.Transparent,
             BorderThickness = new Avalonia.Thickness(0),
-            Padding = new Avalonia.Thickness(2),
+            Padding = new Avalonia.Thickness(4),
             Text = Text,
+            AcceptsReturn = false,
             TextWrapping = TextWrapping.Wrap,
             Tag = this,
-            MinWidth = 0
+            MinWidth = 0,
+            IsHitTestVisible = false
         };
         
         if (ShadowEnabled)
