@@ -700,7 +700,7 @@ namespace ShareX.Editor.Views
         {
             if (DataContext is MainViewModel vm && color is SolidColorBrush solidBrush)
             {
-                var hexColor = $"#{solidBrush.Color.R:X2}{solidBrush.Color.G:X2}{solidBrush.Color.B:X2}";
+                var hexColor = $"#{solidBrush.Color.A:X2}{solidBrush.Color.R:X2}{solidBrush.Color.G:X2}{solidBrush.Color.B:X2}";
                 vm.SetColorCommand.Execute(hexColor);
             }
         }
