@@ -2,7 +2,7 @@
 
 /*
     ShareX.Editor - The UI-agnostic Editor library for ShareX
-    Copyright (c) 2007-2025 ShareX Team
+    Copyright (c) 2007-2026 ShareX Team
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -24,6 +24,7 @@
 #endregion License Information (GPL v3)
 
 using ShareX.Editor.Annotations;
+using ShareX.Editor.ImageEffects;
 using SkiaSharp;
 
 namespace ShareX.Editor;
@@ -34,13 +35,24 @@ namespace ShareX.Editor;
 /// - Mouse/pointer input processing
 /// - Undo/redo operations
 /// - Rendering to SKCanvas
-/// 
+///
 /// Platform hosts (Avalonia, WinForms) provide:
 /// - SKCanvas surface for rendering
 /// - Forward input events to this core
 /// - Display rendered results
+///
+/// <para><strong>THREADING CONTRACT (ISSUE-007 fix):</strong></para>
+/// <para>
+/// All events (<see cref="InvalidateRequested"/>, <see cref="ImageChanged"/>,
+/// <see cref="AnnotationsRestored"/>, <see cref="HistoryChanged"/>, etc.) are fired
+/// on the calling thread, which may NOT be the UI thread.
+/// </para>
+/// <para>
+/// Subscribers MUST dispatch to the UI thread when performing UI operations.
+/// Example: <c>Dispatcher.UIThread.Post(() => { /* UI update */ });</c>
+/// </para>
 /// </summary>
-public class EditorCore
+public class EditorCore : IDisposable
 {
     #region Events
 
@@ -49,12 +61,23 @@ public class EditorCore
     /// </summary>
     public event Action? InvalidateRequested;
 
-    /// <summary>
-    /// Raised when the status text should be updated
-    /// </summary>
-    public event Action<string>? StatusTextChanged;
     public event Action? ImageChanged;
     public event Action<Annotation>? EditAnnotationRequested;
+
+    /// <summary>
+    /// Raised when annotations are restored from history and the UI needs to fully sync
+    /// </summary>
+    public event Action? AnnotationsRestored;
+
+    /// <summary>
+    /// Raised when undo/redo history state changes
+    /// </summary>
+    public event Action? HistoryChanged;
+
+    /// <summary>
+    /// Raised when the image effects list changes (add, remove, toggle, undo/redo)
+    /// </summary>
+    public event Action? EffectsChanged;
 
     #endregion
 
@@ -97,11 +120,117 @@ public class EditorCore
 
     #endregion
 
+    #region Image Effects
+
+    private readonly List<ImageEffect> _effects = new();
+    private SKBitmap? _effectsCache;
+    private bool _effectsCacheDirty = true;
+    private ImageEffect? _previewEffect;
+
+    /// <summary>
+    /// All image effects currently configured
+    /// </summary>
+    public IReadOnlyList<ImageEffect> Effects => _effects;
+
+    /// <summary>
+    /// Gets the composited image with all enabled effects applied.
+    /// Uses a cached bitmap that is only recomputed when effects or source change.
+    /// Includes the temporary preview effect if one is set.
+    /// </summary>
+    internal SKBitmap? GetCompositedImage()
+    {
+        if (SourceImage == null) return null;
+
+        var enabledEffects = _effects.Where(e => e.IsEnabled).ToList();
+        if (_previewEffect != null) enabledEffects.Add(_previewEffect);
+        if (enabledEffects.Count == 0) return SourceImage;
+
+        if (!_effectsCacheDirty && _effectsCache != null) return _effectsCache;
+
+        _effectsCache?.Dispose();
+        _effectsCache = SourceImage.Copy();
+
+        foreach (var effect in enabledEffects)
+        {
+            var processed = effect.Apply(_effectsCache);
+            if (processed != _effectsCache)
+            {
+                _effectsCache.Dispose();
+                _effectsCache = processed;
+            }
+        }
+
+        _effectsCacheDirty = false;
+        return _effectsCache;
+    }
+
+    private void InvalidateEffectsCache()
+    {
+        _effectsCacheDirty = true;
+        _effectsCache?.Dispose();
+        _effectsCache = null;
+    }
+
+    /// <summary>
+    /// Set a temporary preview effect for real-time visual feedback.
+    /// This effect is composited onto the canvas but not committed to the undo stack.
+    /// </summary>
+    public void SetPreviewEffect(ImageEffect? effect)
+    {
+        _previewEffect = effect;
+        InvalidateEffectsCache();
+        InvalidateRequested?.Invoke();
+    }
+
+    /// <summary>
+    /// Set a temporary preview effect from a function.
+    /// Used by effect dialogs that provide a Func&lt;SKBitmap, SKBitmap&gt; for preview.
+    /// </summary>
+    public void SetPreviewEffect(Func<SKBitmap, SKBitmap> applyFunc)
+    {
+        SetPreviewEffect(new FuncImageEffect(applyFunc));
+    }
+
+    /// <summary>
+    /// Clear the temporary preview effect without committing.
+    /// </summary>
+    public void ClearPreviewEffect()
+    {
+        if (_previewEffect == null) return;
+        _previewEffect = null;
+        InvalidateEffectsCache();
+        InvalidateRequested?.Invoke();
+    }
+
+    /// <summary>
+    /// Commit the preview effect to the effects list with proper undo support.
+    /// </summary>
+    public void CommitPreviewEffect()
+    {
+        if (_previewEffect == null) return;
+        var effect = _previewEffect;
+        _previewEffect = null;
+        AddEffect(effect);
+    }
+
+    /// <summary>
+    /// Internal wrapper that adapts a Func&lt;SKBitmap, SKBitmap&gt; to an ImageEffect for preview.
+    /// </summary>
+    private sealed class FuncImageEffect : ImageEffect
+    {
+        private readonly Func<SKBitmap, SKBitmap> _applyFunc;
+        public override string Name => "Preview";
+        public override ImageEffectCategory Category => ImageEffectCategory.Adjustments;
+        public FuncImageEffect(Func<SKBitmap, SKBitmap> applyFunc) => _applyFunc = applyFunc;
+        public override SKBitmap Apply(SKBitmap source) => _applyFunc(source);
+    }
+
+    #endregion
+
     #region Annotations
 
     private readonly List<Annotation> _annotations = new();
-    private readonly Stack<Annotation> _undoStack = new();
-    private readonly Stack<Annotation> _redoStack = new();
+    private EditorHistory _history;
 
     private Annotation? _currentAnnotation;
     private Annotation? _selectedAnnotation;
@@ -112,6 +241,7 @@ public class EditorCore
     private bool _isResizing;
     private HandleType _activeHandle;
     private SKRect _initialBounds;
+    private bool _hasPendingTransformMemento;
 
     private const float HandleSize = 10f;
     private enum HandleType { None, TopLeft, TopMiddle, TopRight, MiddleRight, BottomRight, BottomMiddle, BottomLeft, MiddleLeft, Start, End }
@@ -129,6 +259,14 @@ public class EditorCore
     #endregion
 
     #region Initialization
+
+    /// <summary>
+    /// Initialize the editor core
+    /// </summary>
+    public EditorCore()
+    {
+        _history = new EditorHistory(this);
+    }
 
     /// <summary>
     /// Load an image into the editor
@@ -155,18 +293,36 @@ public class EditorCore
     }
 
     /// <summary>
-    /// Clear all annotations
+    /// Update the source image without clearing history or annotations.
+    /// Used for smart padding operations where we need to update the background
+    /// but preserve the editing state.
+    /// </summary>
+    public void UpdateSourceImage(SKBitmap bitmap)
+    {
+        SourceImage?.Dispose();
+        SourceImage = bitmap;
+        CanvasSize = new SKSize(bitmap.Width, bitmap.Height);
+        InvalidateRequested?.Invoke();
+        ImageChanged?.Invoke();
+    }
+
+    /// <summary>
+    /// Clear all annotations and effects
     /// </summary>
     public void ClearAll()
     {
         _annotations.Clear();
-        _undoStack.Clear();
-        _redoStack.Clear();
+        _effects.Clear();
+        InvalidateEffectsCache();
+        _history?.Dispose();
+        _history = new EditorHistory(this);
         _currentAnnotation = null;
         _selectedAnnotation = null;
         _isDrawing = false;
         NumberCounter = 1;
         InvalidateRequested?.Invoke();
+        HistoryChanged?.Invoke();
+        EffectsChanged?.Invoke();
     }
 
     #endregion
@@ -186,17 +342,12 @@ public class EditorCore
             var hitAnnotation = HitTest(point);
             if (hitAnnotation != null)
             {
-                _annotations.Remove(hitAnnotation);
-                if (_selectedAnnotation == hitAnnotation)
-                    _selectedAnnotation = null;
-                StatusTextChanged?.Invoke("Annotation deleted");
-                InvalidateRequested?.Invoke();
+                RemoveAnnotation(hitAnnotation);
             }
             return;
         }
 
         _startPoint = point;
-        _redoStack.Clear();
 
         string? sampledSmartEraserColor = null;
 
@@ -219,6 +370,7 @@ public class EditorCore
             // Allow dragging a selected annotation even if the current tool is not Select
             if (_selectedAnnotation.HitTest(point))
             {
+                BeginAnnotationTransform();
                 _isDragging = true;
                 _lastDragPoint = point;
                 return;
@@ -232,6 +384,7 @@ public class EditorCore
             if (hit != null)
             {
                 _selectedAnnotation = hit;
+                BeginAnnotationTransform();
                 _lastDragPoint = point;
                 _isDragging = true;
             }
@@ -349,6 +502,17 @@ public class EditorCore
         {
             freehandDraw.Points.Add(point);
         }
+        else if (_currentAnnotation is CutOutAnnotation cutOut)
+        {
+            // Determine direction based on drag distance
+            var deltaX = Math.Abs(point.X - _startPoint.X);
+            var deltaY = Math.Abs(point.Y - _startPoint.Y);
+
+            // Vertical cut if horizontal drag is greater
+            cutOut.IsVertical = deltaX > deltaY;
+
+            _currentAnnotation.EndPoint = point;
+        }
         else
         {
             _currentAnnotation.EndPoint = point;
@@ -373,12 +537,14 @@ public class EditorCore
         {
             _isResizing = false;
             _activeHandle = HandleType.None;
+            EndAnnotationTransform();
             return;
         }
 
         if (_isDragging)
         {
             _isDragging = false;
+            EndAnnotationTransform();
             return;
         }
 
@@ -394,11 +560,23 @@ public class EditorCore
         {
             PerformCrop();
             _currentAnnotation = null;
+            HistoryChanged?.Invoke(); 
             return;
         }
 
-        // Add to undo stack
-        _undoStack.Push(_currentAnnotation);
+        // CutOut executes immediately
+        if (_currentAnnotation is CutOutAnnotation)
+        {
+            PerformCutOut();
+            _currentAnnotation = null;
+            HistoryChanged?.Invoke();
+            return;
+        }
+
+        // Create annotation memento for undo/redo
+        // We exclude the current annotation because the undo stack must contain the state BEFORE this addition
+        _history.CreateAnnotationsMemento(excludeAnnotation: _currentAnnotation);
+        HistoryChanged?.Invoke();
 
         // Request edit for text/speech annotations
         if (_currentAnnotation is TextAnnotation || _currentAnnotation is SpeechBalloonAnnotation)
@@ -419,7 +597,6 @@ public class EditorCore
             effect.UpdateEffect(SourceImage);
         }
 
-        StatusTextChanged?.Invoke($"{ActiveTool} created");
         InvalidateRequested?.Invoke();
     }
 
@@ -446,6 +623,7 @@ public class EditorCore
 
     private void BeginResize(HandleType handle, SKPoint point)
     {
+        BeginAnnotationTransform();
         _isResizing = true;
         _activeHandle = handle;
         _initialBounds = _selectedAnnotation!.GetBounds();
@@ -603,41 +781,247 @@ public class EditorCore
     {
         if (_selectedAnnotation != null)
         {
-            _annotations.Remove(_selectedAnnotation);
-            _selectedAnnotation = null;
-            InvalidateRequested?.Invoke();
+            RemoveAnnotation(_selectedAnnotation);
         }
+    }
+
+    /// <summary>
+    /// Removes a specific annotation and handles history/renumbering
+    /// </summary>
+    public void RemoveAnnotation(Annotation annotation)
+    {
+        if (annotation == null || !_annotations.Contains(annotation)) return;
+
+        // Capture state BEFORE deleting (so Undo reverts to state with this annotation)
+        _history.CreateAnnotationsMemento();
+
+        bool renumbered = false;
+        if (annotation is NumberAnnotation num)
+        {
+            HandleStepRenumbering(num.Number);
+            renumbered = true;
+        }
+
+        _annotations.Remove(annotation);
+        if (_selectedAnnotation == annotation)
+            _selectedAnnotation = null;
+
+        HistoryChanged?.Invoke();
+        InvalidateRequested?.Invoke();
+
+        if (renumbered)
+        {
+            AnnotationsRestored?.Invoke();
+        }
+    }
+
+    private void HandleStepRenumbering(int deletedNumber)
+    {
+        foreach (var annotation in _annotations)
+        {
+            if (annotation is NumberAnnotation numberAnnotation && numberAnnotation.Number > deletedNumber)
+            {
+                numberAnnotation.Number--;
+            }
+        }
+    }
+
+    /// <summary>
+    /// Add an annotation from an external controller (e.g. InputController)
+    /// This captures the history state BEFORE adding the annotation.
+    /// </summary>
+    public void AddAnnotation(Annotation annotation)
+    {
+        // Capture state BEFORE adding the new annotation (Undo will revert to this state)
+        _history.CreateAnnotationsMemento();
+        
+        _annotations.Add(annotation);
+        
+        HistoryChanged?.Invoke();
+        // We don't necessarily need to render if the view already added the control,
+        // but this ensures raster effects are updated if needed.
+        InvalidateRequested?.Invoke();
+    }
+
+    #endregion
+
+    #region Annotation Transform History
+
+    /// <summary>
+    /// Create a single memento at the start of a drag/resize/edit operation.
+    /// </summary>
+    public void BeginAnnotationTransform()
+    {
+        if (_hasPendingTransformMemento)
+        {
+            return;
+        }
+
+        _history.CreateAnnotationsMemento(ignoreToolGuard: true);
+        _hasPendingTransformMemento = true;
+        HistoryChanged?.Invoke();
+    }
+
+    /// <summary>
+    /// Ends a drag/resize/edit operation so a new transform can create a fresh memento.
+    /// </summary>
+    public void EndAnnotationTransform()
+    {
+        _hasPendingTransformMemento = false;
+    }
+
+    #endregion
+
+    #region Effects Management
+
+    /// <summary>
+    /// Add an image effect, creating a memento before the change.
+    /// </summary>
+    public void AddEffect(ImageEffect effect)
+    {
+        _history.CreateEffectsMemento();
+        _effects.Add(effect);
+        InvalidateEffectsCache();
+        HistoryChanged?.Invoke();
+        EffectsChanged?.Invoke();
+        InvalidateRequested?.Invoke();
+    }
+
+    /// <summary>
+    /// Remove an image effect, creating a memento before the change.
+    /// </summary>
+    public void RemoveEffect(ImageEffect effect)
+    {
+        _history.CreateEffectsMemento();
+        _effects.Remove(effect);
+        InvalidateEffectsCache();
+        HistoryChanged?.Invoke();
+        EffectsChanged?.Invoke();
+        InvalidateRequested?.Invoke();
+    }
+
+    /// <summary>
+    /// Toggle an image effect's IsEnabled state, creating a memento before the change.
+    /// </summary>
+    public void ToggleEffect(ImageEffect effect)
+    {
+        _history.CreateEffectsMemento();
+        effect.IsEnabled = !effect.IsEnabled;
+        InvalidateEffectsCache();
+        HistoryChanged?.Invoke();
+        EffectsChanged?.Invoke();
+        InvalidateRequested?.Invoke();
+    }
+
+    /// <summary>
+    /// Replace the entire effects list (e.g. from preset import), creating a memento before the change.
+    /// </summary>
+    public void SetEffects(List<ImageEffect> effects)
+    {
+        _history.CreateEffectsMemento();
+        _effects.Clear();
+        _effects.AddRange(effects);
+        InvalidateEffectsCache();
+        HistoryChanged?.Invoke();
+        EffectsChanged?.Invoke();
+        InvalidateRequested?.Invoke();
+    }
+
+    /// <summary>
+    /// Set effects without creating a memento (for initial load).
+    /// </summary>
+    public void LoadEffects(List<ImageEffect> effects)
+    {
+        _effects.Clear();
+        _effects.AddRange(effects);
+        InvalidateEffectsCache();
+        EffectsChanged?.Invoke();
+        InvalidateRequested?.Invoke();
+    }
+
+    /// <summary>
+    /// Get a deep-copy snapshot of the current effects list.
+    /// </summary>
+    internal List<ImageEffect> GetEffectsSnapshot()
+    {
+        return _effects.Select(e => e.Clone()).ToList();
     }
 
     #endregion
 
     #region Undo/Redo
 
-    public bool CanUndo => _undoStack.Count > 0;
-    public bool CanRedo => _redoStack.Count > 0;
+    public bool CanUndo => _history?.CanUndo ?? false;
+    public bool CanRedo => _history?.CanRedo ?? false;
 
     public void Undo()
     {
-        if (_undoStack.Count > 0)
-        {
-            var annotation = _undoStack.Pop();
-            _annotations.Remove(annotation);
-            _redoStack.Push(annotation);
-            if (_selectedAnnotation == annotation)
-                _selectedAnnotation = null;
-            InvalidateRequested?.Invoke();
-        }
+        _history?.Undo();
+        HistoryChanged?.Invoke();
     }
 
     public void Redo()
     {
-        if (_redoStack.Count > 0)
+        _history?.Redo();
+        HistoryChanged?.Invoke();
+    }
+
+    /// <summary>
+    /// Get a snapshot of current annotations (deep copy for memento)
+    /// </summary>
+    /// <param name="excludeAnnotation">Optional annotation to exclude from the snapshot (e.g. current one being drawn)</param>
+    internal List<Annotation> GetAnnotationsSnapshot(Annotation? excludeAnnotation = null)
+    {
+        var source = excludeAnnotation != null 
+            ? _annotations.Where(a => a != excludeAnnotation) 
+            : _annotations;
+        return source.Select(a => a.Clone()).ToList();
+    }
+
+    /// <summary>
+    /// Restore editor state from a memento
+    /// ISSUE-010 fix: Restores selection state along with annotations
+    /// </summary>
+    internal void RestoreState(EditorMemento memento)
+    {
+        // Clear current annotations
+        _annotations.Clear();
+
+        // Restore annotation list
+        _annotations.AddRange(memento.Annotations);
+
+        // If memento has a canvas bitmap, restore it (for crop/cutout/rotate undo)
+        if (memento.Canvas != null)
         {
-            var annotation = _redoStack.Pop();
-            _annotations.Add(annotation);
-            _undoStack.Push(annotation);
-            InvalidateRequested?.Invoke();
+            SourceImage?.Dispose();
+            SourceImage = memento.Canvas.Copy();
+            CanvasSize = memento.CanvasSize;
+            InvalidateEffectsCache();
+            ImageChanged?.Invoke();
         }
+
+        // ISSUE-010 fix: Restore selection state if memento captured a selected annotation
+        if (memento.SelectedAnnotationId.HasValue)
+        {
+            _selectedAnnotation = _annotations.FirstOrDefault(a => a.Id == memento.SelectedAnnotationId.Value);
+        }
+        else
+        {
+            _selectedAnnotation = null;
+        }
+
+        // Restore effects if the memento captured them
+        if (memento.Effects != null)
+        {
+            _effects.Clear();
+            _effects.AddRange(memento.Effects);
+            InvalidateEffectsCache();
+            EffectsChanged?.Invoke();
+        }
+
+        // Trigger redraw
+        InvalidateRequested?.Invoke();
+        AnnotationsRestored?.Invoke();
     }
 
     #endregion
@@ -647,27 +1031,56 @@ public class EditorCore
     /// <summary>
     /// Render the entire editor canvas to an SKCanvas
     /// </summary>
-    public void Render(SKCanvas canvas)
+    /// <param name="canvas">Target canvas</param>
+    /// <param name="renderVectorAnnotations">If true, renders all annotations. If false, skips vector annotations (for hybrid rendering).</param>
+    public void Render(SKCanvas canvas, bool renderVectorAnnotations = true)
     {
         canvas.Clear(SKColors.Transparent);
 
-        // Draw source image
-        if (SourceImage != null)
+        // Draw source image with effects composited
+        var composited = GetCompositedImage();
+        if (composited != null)
         {
-            canvas.DrawBitmap(SourceImage, 0, 0);
+            canvas.DrawBitmap(composited, 0, 0);
         }
 
-        // Draw all annotations
+        // Draw annotations
         foreach (var annotation in _annotations)
         {
+            // In hybrid mode, we skip vector annotations as they are handled by Avalonia
+            if (!renderVectorAnnotations && IsVectorAnnotation(annotation))
+            {
+                continue;
+            }
+
             annotation.Render(canvas);
         }
 
-        // Draw selection handles for selected annotation
-        if (_selectedAnnotation != null)
+        // Draw selection handles only if we are rendering everything (or strictly debugging)
+        // Usually handles are vectors in the hybrid view
+        if (renderVectorAnnotations && _selectedAnnotation != null)
         {
             DrawSelectionHandles(canvas, _selectedAnnotation);
         }
+    }
+
+    private bool IsVectorAnnotation(Annotation annotation)
+    {
+        // Define what counts as a 'Vector' annotation that Avalonia handles
+        // Effect annotations (Blur, Pixelate, Magnify, Highlight) are also vector in the hybrid model
+        // because they render their effect bitmaps directly as ImageBrush fills in Avalonia controls
+        return annotation is RectangleAnnotation ||
+               annotation is EllipseAnnotation ||
+               annotation is LineAnnotation ||
+               annotation is ArrowAnnotation ||
+               annotation is TextAnnotation ||
+               annotation is SpeechBalloonAnnotation ||
+               annotation is NumberAnnotation ||
+               annotation is BaseEffectAnnotation ||
+               annotation is FreehandAnnotation ||
+               annotation is SmartEraserAnnotation ||
+               annotation is ImageAnnotation ||
+               annotation is SpotlightAnnotation;
     }
 
     /// <summary>
@@ -677,6 +1090,8 @@ public class EditorCore
     {
         if (SourceImage == null) return null;
 
+        Console.WriteLine($"[GetSnapshot] Starting snapshot - Image: {SourceImage.Width}x{SourceImage.Height}, Annotations: {_annotations.Count}");
+
         var bitmap = new SKBitmap(SourceImage.Width, SourceImage.Height);
         using var canvas = new SKCanvas(bitmap);
 
@@ -684,9 +1099,12 @@ public class EditorCore
         canvas.DrawBitmap(SourceImage, 0, 0);
         foreach (var annotation in _annotations)
         {
+            var bounds = annotation.GetBounds();
+            Console.WriteLine($"[GetSnapshot] Rendering {annotation.GetType().Name}: Bounds=({bounds.Left:F0},{bounds.Top:F0},{bounds.Right:F0},{bounds.Bottom:F0})");
             annotation.Render(canvas);
         }
 
+        Console.WriteLine($"[GetSnapshot] Snapshot complete");
         return bitmap;
     }
 
@@ -780,6 +1198,7 @@ public class EditorCore
             EditorTool.Magnify => new MagnifyAnnotation(),
             EditorTool.SpeechBalloon => new SpeechBalloonAnnotation(),
             EditorTool.Crop => new CropAnnotation(),
+            EditorTool.CutOut => new CutOutAnnotation(),
             _ => null
         };
     }
@@ -797,27 +1216,638 @@ public class EditorCore
         if (cropAnnotation == null || SourceImage == null) return;
 
         var bounds = cropAnnotation.GetBounds();
-        int x = (int)Math.Max(0, bounds.Left);
-        int y = (int)Math.Max(0, bounds.Top);
-        int width = (int)Math.Min(SourceImage.Width - x, bounds.Width);
-        int height = (int)Math.Min(SourceImage.Height - y, bounds.Height);
+        int x = (int)Math.Round(bounds.Left);
+        int y = (int)Math.Round(bounds.Top);
+        int width = (int)Math.Round(bounds.Width);
+        int height = (int)Math.Round(bounds.Height);
+
+        PerformCropInternal(x, y, width, height, removeCropAnnotation: true);
+    }
+
+    /// <summary>
+    /// Perform crop operation using explicit bounds.
+    /// </summary>
+    public void PerformCrop(int x, int y, int width, int height)
+    {
+        PerformCropInternal(x, y, width, height, removeCropAnnotation: false);
+        HistoryChanged?.Invoke();
+    }
+
+    private void PerformCropInternal(int x, int y, int width, int height, bool removeCropAnnotation)
+    {
+        if (SourceImage == null) return;
+
+        x = Math.Max(0, x);
+        y = Math.Max(0, y);
+        width = Math.Min(SourceImage.Width - x, width);
+        height = Math.Min(SourceImage.Height - y, height);
 
         if (width <= 0 || height <= 0) return;
+
+        // Create canvas memento before destructive crop operation
+        _history.CreateCanvasMemento();
 
         var croppedBitmap = new SKBitmap(width, height);
         SourceImage.ExtractSubset(croppedBitmap, new SKRectI(x, y, x + width, y + height));
 
-        // Remove crop annotation
-        _annotations.Remove(cropAnnotation);
+        if (removeCropAnnotation)
+        {
+            var cropAnnotation = _annotations.OfType<CropAnnotation>().FirstOrDefault();
+            if (cropAnnotation != null)
+            {
+                _annotations.Remove(cropAnnotation);
+            }
+        }
+
+        // Adjust coordinates of all remaining annotations
+        var offsetX = -x;
+        var offsetY = -y;
+        // Remove annotations that fall completely outside the cropped area
+        // and adjust coordinates for those that remain
+        for (int i = _annotations.Count - 1; i >= 0; i--)
+        {
+            var annotation = _annotations[i];
+            var annotationBounds = annotation.GetBounds();
+
+            // Check if annotation is completely outside the cropped region
+            if (annotationBounds.Right < x || annotationBounds.Left > x + width ||
+                annotationBounds.Bottom < y || annotationBounds.Top > y + height)
+            {
+                _annotations.RemoveAt(i);
+                continue;
+            }
+
+            // Adjust annotation coordinates
+            annotation.StartPoint = new SKPoint(
+                annotation.StartPoint.X + offsetX,
+                annotation.StartPoint.Y + offsetY);
+            annotation.EndPoint = new SKPoint(
+                annotation.EndPoint.X + offsetX,
+                annotation.EndPoint.Y + offsetY);
+
+            // Handle freehand annotations (they have a Points list)
+            if (annotation is FreehandAnnotation freehand)
+            {
+                for (int j = 0; j < freehand.Points.Count; j++)
+                {
+                    freehand.Points[j] = new SKPoint(
+                        freehand.Points[j].X + offsetX,
+                        freehand.Points[j].Y + offsetY);
+                }
+            }
+
+            // Update effect annotations with new bounds
+            if (annotation is BaseEffectAnnotation effect)
+            {
+                effect.UpdateEffect(croppedBitmap);
+            }
+
+            // Update spotlight with new canvas size
+            if (annotation is SpotlightAnnotation spotlight)
+            {
+                spotlight.CanvasSize = new SKSize(width, height);
+            }
+        }
 
         // Replace source image
         SourceImage.Dispose();
         SourceImage = croppedBitmap;
         CanvasSize = new SKSize(width, height);
+        InvalidateEffectsCache();
 
-        StatusTextChanged?.Invoke("Image cropped");
         ImageChanged?.Invoke();
         InvalidateRequested?.Invoke();
+    }
+
+    /// <summary>
+    /// Perform cut out operation using the current cut out annotation
+    /// </summary>
+    public void PerformCutOut()
+    {
+        var cutOutAnnotation = _annotations.OfType<CutOutAnnotation>().FirstOrDefault();
+        if (cutOutAnnotation == null || SourceImage == null) return;
+
+        var bounds = cutOutAnnotation.GetBounds();
+        int cutStart = (int)Math.Round(cutOutAnnotation.IsVertical ? bounds.MidX : bounds.MidY);
+        int cutSize = (int)Math.Max(1, Math.Round(cutOutAnnotation.IsVertical ? bounds.Width : bounds.Height));
+
+        if (PerformCutOutInternal(cutStart, cutSize, cutOutAnnotation.IsVertical))
+        {
+            _annotations.Remove(cutOutAnnotation);
+            InvalidateEffectsCache();
+
+            ImageChanged?.Invoke();
+            InvalidateRequested?.Invoke();
+        }
+    }
+
+    /// <summary>
+    /// Perform cut out operation using explicit bounds.
+    /// </summary>
+    public void PerformCutOut(int startPos, int endPos, bool isVertical)
+    {
+        int start = Math.Min(startPos, endPos);
+        int size = Math.Max(0, Math.Abs(endPos - startPos));
+
+        if (PerformCutOutInternal(start, size, isVertical))
+        {
+            InvalidateEffectsCache();
+            ImageChanged?.Invoke();
+            InvalidateRequested?.Invoke();
+            HistoryChanged?.Invoke();
+        }
+    }
+
+    private bool PerformCutOutInternal(int cutStart, int cutSize, bool isVertical)
+    {
+        if (SourceImage == null) return false;
+
+        if (cutSize <= 0)
+        {
+            return false;
+        }
+
+        // Create canvas memento before destructive cutout operation
+        _history.CreateCanvasMemento();
+
+        if (isVertical)
+        {
+            int cutX = cutStart;
+            int cutWidth = cutSize;
+
+            // Clamp to image bounds
+            if (cutX < 0) cutX = 0;
+            if (cutX >= SourceImage.Width) cutX = SourceImage.Width - 1;
+
+            // Ensure we don't cut past the end of the image
+            int maxCutWidth = SourceImage.Width - cutX;
+            if (cutWidth > maxCutWidth) cutWidth = maxCutWidth;
+
+            if (cutWidth <= 0)
+            {
+                return false;
+            }
+
+            int newWidth = SourceImage.Width - cutWidth;
+            if (newWidth <= 0)
+            {
+                return false;
+            }
+
+            var resultBitmap = new SKBitmap(newWidth, SourceImage.Height);
+            using (var canvas = new SKCanvas(resultBitmap))
+            {
+                // Draw left part
+                if (cutX > 0)
+                {
+                    var sourceRect = new SKRect(0, 0, cutX, SourceImage.Height);
+                    var destRect = new SKRect(0, 0, cutX, SourceImage.Height);
+                    canvas.DrawBitmap(SourceImage, sourceRect, destRect);
+                }
+
+                // Draw right part
+                int rightStart = cutX + cutWidth;
+                if (rightStart < SourceImage.Width)
+                {
+                    var sourceRect = new SKRect(rightStart, 0, SourceImage.Width, SourceImage.Height);
+                    var destRect = new SKRect(cutX, 0, newWidth, SourceImage.Height);
+                    canvas.DrawBitmap(SourceImage, sourceRect, destRect);
+                }
+            }
+
+            SourceImage.Dispose();
+            SourceImage = resultBitmap;
+            CanvasSize = new SKSize(newWidth, SourceImage.Height);
+
+            // Adjust annotations for vertical cut
+            AdjustAnnotationsForVerticalCut(cutX, cutWidth, newWidth);
+        }
+        else
+        {
+            int cutY = cutStart;
+            int cutHeight = cutSize;
+
+            // Clamp to image bounds
+            if (cutY < 0) cutY = 0;
+            if (cutY >= SourceImage.Height) cutY = SourceImage.Height - 1;
+
+            // Ensure we don't cut past the end of the image
+            int maxCutHeight = SourceImage.Height - cutY;
+            if (cutHeight > maxCutHeight) cutHeight = maxCutHeight;
+
+            if (cutHeight <= 0)
+            {
+                return false;
+            }
+
+            int newHeight = SourceImage.Height - cutHeight;
+            if (newHeight <= 0)
+            {
+                return false;
+            }
+
+            var resultBitmap = new SKBitmap(SourceImage.Width, newHeight);
+            using (var canvas = new SKCanvas(resultBitmap))
+            {
+                // Draw top part
+                if (cutY > 0)
+                {
+                    var sourceRect = new SKRect(0, 0, SourceImage.Width, cutY);
+                    var destRect = new SKRect(0, 0, SourceImage.Width, cutY);
+                    canvas.DrawBitmap(SourceImage, sourceRect, destRect);
+                }
+
+                // Draw bottom part
+                int bottomStart = cutY + cutHeight;
+                if (bottomStart < SourceImage.Height)
+                {
+                    var sourceRect = new SKRect(0, bottomStart, SourceImage.Width, SourceImage.Height);
+                    var destRect = new SKRect(0, cutY, SourceImage.Width, newHeight);
+                    canvas.DrawBitmap(SourceImage, sourceRect, destRect);
+                }
+            }
+
+            SourceImage.Dispose();
+            SourceImage = resultBitmap;
+            CanvasSize = new SKSize(SourceImage.Width, newHeight);
+
+            // Adjust annotations for horizontal cut
+            AdjustAnnotationsForHorizontalCut(cutY, cutHeight, newHeight);
+        }
+
+        return true;
+    }
+
+    private void AdjustAnnotationsForVerticalCut(int cutX, int cutWidth, int newWidth)
+    {
+        int cutEnd = cutX + cutWidth;
+        
+        // Process annotations in reverse to allow safe removal
+        for (int i = _annotations.Count - 1; i >= 0; i--)
+        {
+            var annotation = _annotations[i];
+            var bounds = annotation.GetBounds();
+            
+            // Remove annotations completely within the cut area
+            if (bounds.Left >= cutX && bounds.Right <= cutEnd)
+            {
+                _annotations.RemoveAt(i);
+                continue;
+            }
+            
+            // Adjust annotations that cross or are to the right of the cut
+            bool needsAdjustment = false;
+            float offsetX = 0;
+            
+            // Annotations to the right of the cut area: shift left by cutWidth
+            if (bounds.Left >= cutEnd)
+            {
+                offsetX = -cutWidth;
+                needsAdjustment = true;
+            }
+            // Annotations that span across the cut: shift right portion left
+            else if (bounds.Right > cutEnd)
+            {
+                offsetX = -cutWidth;
+                needsAdjustment = true;
+                // Clamp the left edge to not go into the cut area
+                if (annotation.StartPoint.X > cutX && annotation.StartPoint.X < cutEnd)
+                {
+                    annotation.StartPoint = new SKPoint(cutX, annotation.StartPoint.Y);
+                }
+                if (annotation.EndPoint.X > cutX && annotation.EndPoint.X < cutEnd)
+                {
+                    annotation.EndPoint = new SKPoint(cutX, annotation.EndPoint.Y);
+                }
+            }
+            
+            if (needsAdjustment)
+            {
+                annotation.StartPoint = new SKPoint(annotation.StartPoint.X + offsetX, annotation.StartPoint.Y);
+                annotation.EndPoint = new SKPoint(annotation.EndPoint.X + offsetX, annotation.EndPoint.Y);
+                
+                // Handle freehand annotations
+                if (annotation is FreehandAnnotation freehand)
+                {
+                    for (int j = 0; j < freehand.Points.Count; j++)
+                    {
+                        var pt = freehand.Points[j];
+                        if (pt.X >= cutEnd)
+                        {
+                            freehand.Points[j] = new SKPoint(pt.X - cutWidth, pt.Y);
+                        }
+                        else if (pt.X > cutX)
+                        {
+                            freehand.Points[j] = new SKPoint(cutX, pt.Y);
+                        }
+                    }
+                }
+                
+                // Update effect annotations
+                if (annotation is BaseEffectAnnotation effect && SourceImage != null)
+                {
+                    effect.UpdateEffect(SourceImage);
+                }
+            }
+        }
+    }
+
+    private void AdjustAnnotationsForHorizontalCut(int cutY, int cutHeight, int newHeight)
+    {
+        int cutEnd = cutY + cutHeight;
+        
+        // Process annotations in reverse to allow safe removal
+        for (int i = _annotations.Count - 1; i >= 0; i--)
+        {
+            var annotation = _annotations[i];
+            var bounds = annotation.GetBounds();
+            
+            // Remove annotations completely within the cut area
+            if (bounds.Top >= cutY && bounds.Bottom <= cutEnd)
+            {
+                _annotations.RemoveAt(i);
+                continue;
+            }
+            
+            // Adjust annotations that cross or are below the cut
+            bool needsAdjustment = false;
+            float offsetY = 0;
+            
+            // Annotations below the cut area: shift up by cutHeight
+            if (bounds.Top >= cutEnd)
+            {
+                offsetY = -cutHeight;
+                needsAdjustment = true;
+            }
+            // Annotations that span across the cut: shift bottom portion up
+            else if (bounds.Bottom > cutEnd)
+            {
+                offsetY = -cutHeight;
+                needsAdjustment = true;
+                // Clamp the top edge to not go into the cut area
+                if (annotation.StartPoint.Y > cutY && annotation.StartPoint.Y < cutEnd)
+                {
+                    annotation.StartPoint = new SKPoint(annotation.StartPoint.X, cutY);
+                }
+                if (annotation.EndPoint.Y > cutY && annotation.EndPoint.Y < cutEnd)
+                {
+                    annotation.EndPoint = new SKPoint(annotation.EndPoint.X, cutY);
+                }
+            }
+            
+            if (needsAdjustment)
+            {
+                annotation.StartPoint = new SKPoint(annotation.StartPoint.X, annotation.StartPoint.Y + offsetY);
+                annotation.EndPoint = new SKPoint(annotation.EndPoint.X, annotation.EndPoint.Y + offsetY);
+                
+                // Handle freehand annotations
+                if (annotation is FreehandAnnotation freehand)
+                {
+                    for (int j = 0; j < freehand.Points.Count; j++)
+                    {
+                        var pt = freehand.Points[j];
+                        if (pt.Y >= cutEnd)
+                        {
+                            freehand.Points[j] = new SKPoint(pt.X, pt.Y - cutHeight);
+                        }
+                        else if (pt.Y > cutY)
+                        {
+                            freehand.Points[j] = new SKPoint(pt.X, cutY);
+                        }
+                    }
+                }
+                
+                // Update effect annotations
+                if (annotation is BaseEffectAnnotation effect && SourceImage != null)
+                {
+                    effect.UpdateEffect(SourceImage);
+                }
+            }
+        }
+    }
+
+    #endregion
+
+    #region Rotate/Flip
+
+    /// <summary>
+    /// Rotate the source image 90° clockwise. Creates a canvas memento for undo.
+    /// </summary>
+    public void PerformRotate90CW()
+    {
+        if (SourceImage == null) return;
+        _history.CreateCanvasMemento();
+
+        var rotated = RotateBitmap(SourceImage, 90);
+        var newSize = new SKSize(rotated.Width, rotated.Height);
+        var matrix = BuildRotateMatrix(90, SourceImage.Width, SourceImage.Height);
+        SourceImage.Dispose();
+        SourceImage = rotated;
+        CanvasSize = newSize;
+        TransformAnnotations(matrix, newSize);
+        InvalidateEffectsCache();
+        HistoryChanged?.Invoke();
+        ImageChanged?.Invoke();
+        AnnotationsRestored?.Invoke();
+        InvalidateRequested?.Invoke();
+    }
+
+    /// <summary>
+    /// Rotate the source image 90° counter-clockwise. Creates a canvas memento for undo.
+    /// </summary>
+    public void PerformRotate90CCW()
+    {
+        if (SourceImage == null) return;
+        _history.CreateCanvasMemento();
+
+        var rotated = RotateBitmap(SourceImage, -90);
+        var newSize = new SKSize(rotated.Width, rotated.Height);
+        var matrix = BuildRotateMatrix(-90, SourceImage.Width, SourceImage.Height);
+        SourceImage.Dispose();
+        SourceImage = rotated;
+        CanvasSize = newSize;
+        TransformAnnotations(matrix, newSize);
+        InvalidateEffectsCache();
+        HistoryChanged?.Invoke();
+        ImageChanged?.Invoke();
+        AnnotationsRestored?.Invoke();
+        InvalidateRequested?.Invoke();
+    }
+
+    /// <summary>
+    /// Rotate the source image 180°. Creates a canvas memento for undo.
+    /// </summary>
+    public void PerformRotate180()
+    {
+        if (SourceImage == null) return;
+        _history.CreateCanvasMemento();
+
+        var rotated = RotateBitmap(SourceImage, 180);
+        var newSize = new SKSize(rotated.Width, rotated.Height);
+        var matrix = BuildRotateMatrix(180, SourceImage.Width, SourceImage.Height);
+        SourceImage.Dispose();
+        SourceImage = rotated;
+        CanvasSize = newSize;
+        TransformAnnotations(matrix, newSize);
+        InvalidateEffectsCache();
+        HistoryChanged?.Invoke();
+        ImageChanged?.Invoke();
+        AnnotationsRestored?.Invoke();
+        InvalidateRequested?.Invoke();
+    }
+
+    /// <summary>
+    /// Flip the source image horizontally. Creates a canvas memento for undo.
+    /// </summary>
+    public void PerformFlipHorizontal()
+    {
+        if (SourceImage == null) return;
+        _history.CreateCanvasMemento();
+
+        var matrix = BuildFlipMatrix(true, SourceImage.Width, SourceImage.Height);
+        var flipped = FlipBitmap(SourceImage, horizontal: true);
+        var newSize = new SKSize(flipped.Width, flipped.Height);
+        SourceImage.Dispose();
+        SourceImage = flipped;
+        TransformAnnotations(matrix, newSize);
+        InvalidateEffectsCache();
+        HistoryChanged?.Invoke();
+        ImageChanged?.Invoke();
+        AnnotationsRestored?.Invoke();
+        InvalidateRequested?.Invoke();
+    }
+
+    /// <summary>
+    /// Flip the source image vertically. Creates a canvas memento for undo.
+    /// </summary>
+    public void PerformFlipVertical()
+    {
+        if (SourceImage == null) return;
+        _history.CreateCanvasMemento();
+
+        var matrix = BuildFlipMatrix(false, SourceImage.Width, SourceImage.Height);
+        var flipped = FlipBitmap(SourceImage, horizontal: false);
+        var newSize = new SKSize(flipped.Width, flipped.Height);
+        SourceImage.Dispose();
+        SourceImage = flipped;
+        TransformAnnotations(matrix, newSize);
+        InvalidateEffectsCache();
+        HistoryChanged?.Invoke();
+        ImageChanged?.Invoke();
+        AnnotationsRestored?.Invoke();
+        InvalidateRequested?.Invoke();
+    }
+
+    /// <summary>
+    /// Transform all annotation coordinates using the given matrix and update canvas size.
+    /// </summary>
+    private void TransformAnnotations(SKMatrix matrix, SKSize newCanvasSize)
+    {
+        for (int i = _annotations.Count - 1; i >= 0; i--)
+        {
+            var annotation = _annotations[i];
+
+            annotation.StartPoint = matrix.MapPoint(annotation.StartPoint);
+            annotation.EndPoint = matrix.MapPoint(annotation.EndPoint);
+
+            if (annotation is FreehandAnnotation freehand)
+            {
+                for (int j = 0; j < freehand.Points.Count; j++)
+                {
+                    freehand.Points[j] = matrix.MapPoint(freehand.Points[j]);
+                }
+            }
+
+            if (annotation is SpotlightAnnotation spotlight)
+            {
+                spotlight.CanvasSize = newCanvasSize;
+            }
+
+            if (annotation is BaseEffectAnnotation effect && SourceImage != null)
+            {
+                effect.UpdateEffect(SourceImage);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Build the same transform matrix that RotateBitmap uses, for mapping annotation points.
+    /// </summary>
+    private static SKMatrix BuildRotateMatrix(float degrees, int sourceWidth, int sourceHeight)
+    {
+        bool is90or270 = Math.Abs(degrees % 180) == 90;
+        int newWidth = is90or270 ? sourceHeight : sourceWidth;
+        int newHeight = is90or270 ? sourceWidth : sourceHeight;
+
+        var matrix = SKMatrix.CreateTranslation(-sourceWidth / 2f, -sourceHeight / 2f);
+        matrix = matrix.PostConcat(SKMatrix.CreateRotationDegrees(degrees));
+        matrix = matrix.PostConcat(SKMatrix.CreateTranslation(newWidth / 2f, newHeight / 2f));
+        return matrix;
+    }
+
+    /// <summary>
+    /// Build the same transform matrix that FlipBitmap uses, for mapping annotation points.
+    /// </summary>
+    private static SKMatrix BuildFlipMatrix(bool horizontal, int sourceWidth, int sourceHeight)
+    {
+        if (horizontal)
+        {
+            // Scale(-1, 1) centered at (width/2, 0) → reflects around x = width/2
+            return SKMatrix.CreateScale(-1, 1, sourceWidth / 2f, sourceHeight / 2f);
+        }
+        else
+        {
+            // Scale(1, -1) centered at (0, height/2) → reflects around y = height/2
+            return SKMatrix.CreateScale(1, -1, sourceWidth / 2f, sourceHeight / 2f);
+        }
+    }
+
+    private static SKBitmap RotateBitmap(SKBitmap source, float degrees)
+    {
+        bool is90or270 = Math.Abs(degrees % 180) == 90;
+        int newWidth = is90or270 ? source.Height : source.Width;
+        int newHeight = is90or270 ? source.Width : source.Height;
+
+        var result = new SKBitmap(newWidth, newHeight, source.ColorType, source.AlphaType);
+        using var canvas = new SKCanvas(result);
+        canvas.Clear(SKColors.Transparent);
+        canvas.Translate(newWidth / 2f, newHeight / 2f);
+        canvas.RotateDegrees(degrees);
+        canvas.Translate(-source.Width / 2f, -source.Height / 2f);
+        canvas.DrawBitmap(source, 0, 0);
+        return result;
+    }
+
+    private static SKBitmap FlipBitmap(SKBitmap source, bool horizontal)
+    {
+        var result = new SKBitmap(source.Width, source.Height, source.ColorType, source.AlphaType);
+        using var canvas = new SKCanvas(result);
+        canvas.Clear(SKColors.Transparent);
+        if (horizontal)
+        {
+            canvas.Scale(-1, 1, source.Width / 2f, 0);
+        }
+        else
+        {
+            canvas.Scale(1, -1, 0, source.Height / 2f);
+        }
+        canvas.DrawBitmap(source, 0, 0);
+        return result;
+    }
+
+    #endregion
+
+    #region IDisposable
+
+    /// <summary>
+    /// Dispose editor resources
+    /// </summary>
+    public void Dispose()
+    {
+        _history?.Dispose();
+        _effectsCache?.Dispose();
+        _effectsCache = null;
+        SourceImage?.Dispose();
     }
 
     #endregion

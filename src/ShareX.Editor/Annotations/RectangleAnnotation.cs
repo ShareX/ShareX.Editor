@@ -2,7 +2,7 @@
 
 /*
     ShareX.Editor - The UI-agnostic Editor library for ShareX
-    Copyright (c) 2007-2025 ShareX Team
+    Copyright (c) 2007-2026 ShareX Team
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -44,21 +44,46 @@ public class RectangleAnnotation : Annotation
     /// </summary>
     public Control CreateVisual()
     {
-        var brush = new SolidColorBrush(Color.Parse(StrokeColor));
-        return new Avalonia.Controls.Shapes.Rectangle
+        var strokeBrush = new SolidColorBrush(Color.Parse(StrokeColor));
+        IBrush fillBrush = string.IsNullOrEmpty(FillColor) || FillColor == "#00000000"
+            ? Brushes.Transparent
+            : new SolidColorBrush(Color.Parse(FillColor));
+        var rect = new Avalonia.Controls.Shapes.Rectangle
         {
-            Stroke = brush,
+            Stroke = strokeBrush,
             StrokeThickness = StrokeWidth,
-            Fill = Brushes.Transparent,
+            Fill = fillBrush,
             Tag = this
         };
+        
+        if (ShadowEnabled)
+        {
+            rect.Effect = new Avalonia.Media.DropShadowEffect
+            {
+                OffsetX = 3,
+                OffsetY = 3,
+                BlurRadius = 4,
+                Color = Avalonia.Media.Color.FromArgb(128, 0, 0, 0)
+            };
+        }
+        
+        return rect;
     }
 
     public override void Render(SKCanvas canvas)
     {
         var rect = GetBounds();
-        using var paint = CreateStrokePaint();
-        canvas.DrawRect(rect, paint);
+        
+        // Draw fill first (if not transparent)
+        if (!string.IsNullOrEmpty(FillColor) && FillColor != "#00000000")
+        {
+            using var fillPaint = CreateFillPaint();
+            canvas.DrawRect(rect, fillPaint);
+        }
+        
+        // Draw stroke on top
+        using var strokePaint = CreateStrokePaint();
+        canvas.DrawRect(rect, strokePaint);
     }
 
     public override bool HitTest(SKPoint point, float tolerance = 5)

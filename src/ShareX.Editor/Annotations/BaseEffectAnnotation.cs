@@ -5,7 +5,7 @@ namespace ShareX.Editor.Annotations;
 /// <summary>
 /// Base class for effect annotations (Blur, Pixelate, Highlight)
 /// </summary>
-public abstract class BaseEffectAnnotation : Annotation
+public abstract class BaseEffectAnnotation : Annotation, IDisposable
 {
     /// <summary>
     /// Effect radius / strength
@@ -38,6 +38,15 @@ public abstract class BaseEffectAnnotation : Annotation
         return inflatedBounds.Contains(point);
     }
 
+    public override Annotation Clone()
+    {
+        var clone = (BaseEffectAnnotation)base.Clone();
+        // Don't copy the bitmap - it will be regenerated when needed
+        // This avoids shared bitmap references and potential disposal issues
+        clone.EffectBitmap = null;
+        return clone;
+    }
+
     /// <summary>
     /// Updates the effect bitmap based on the source image
     /// </summary>
@@ -50,5 +59,14 @@ public abstract class BaseEffectAnnotation : Annotation
     {
         EffectBitmap?.Dispose();
         EffectBitmap = null;
+    }
+
+    /// <summary>
+    /// Dispose unmanaged resources (EffectBitmap)
+    /// </summary>
+    public void Dispose()
+    {
+        DisposeEffect();
+        GC.SuppressFinalize(this);
     }
 }

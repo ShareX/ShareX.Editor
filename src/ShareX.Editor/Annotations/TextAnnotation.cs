@@ -2,7 +2,7 @@
 
 /*
     ShareX.Editor - The UI-agnostic Editor library for ShareX
-    Copyright (c) 2007-2025 ShareX Team
+    Copyright (c) 2007-2026 ShareX Team
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -25,6 +25,7 @@
 
 using Avalonia.Controls;
 using Avalonia.Media;
+using ShareX.Editor.Helpers;
 using SkiaSharp;
 
 namespace ShareX.Editor.Annotations;
@@ -70,7 +71,7 @@ public class TextAnnotation : Annotation
     public Control CreateVisual()
     {
         var brush = new SolidColorBrush(Color.Parse(StrokeColor));
-        return new TextBox
+        var textBox = new TextBox
         {
             Foreground = brush,
             Background = Brushes.Transparent,
@@ -80,11 +81,27 @@ public class TextAnnotation : Annotation
             FontFamily = new FontFamily(FontFamily),
             BorderBrush = Brushes.Transparent,
             BorderThickness = new Avalonia.Thickness(0),
-            Padding = new Avalonia.Thickness(2),
-            MinWidth = 100,
+            Padding = new Avalonia.Thickness(4),
             Text = Text,
-            Tag = this
+            AcceptsReturn = false,
+            TextWrapping = TextWrapping.Wrap,
+            Tag = this,
+            MinWidth = 0,
+            IsHitTestVisible = false
         };
+        
+        if (ShadowEnabled)
+        {
+            textBox.Effect = new Avalonia.Media.DropShadowEffect
+            {
+                OffsetX = 3,
+                OffsetY = 3,
+                BlurRadius = 4,
+                Color = Avalonia.Media.Color.FromArgb(128, 0, 0, 0)
+            };
+        }
+        
+        return textBox;
     }
 
     public override void Render(SKCanvas canvas)
@@ -120,11 +137,27 @@ public class TextAnnotation : Annotation
                 IsItalic ? SKFontStyleSlant.Italic : SKFontStyleSlant.Upright)
         };
 
-        // Treat StartPoint as the top-left of the text box with a small padding like the Avalonia TextBox.
         var metrics = paint.FontMetrics;
+        float lineHeight = metrics.Descent - metrics.Ascent;
+        float maxWidth = Math.Max(0, rect.Width - (padding * 2));
+        var lines = AnnotationGeometryHelper.WrapLines(Text, maxWidth, paint.MeasureText);
+        if (lines.Count == 0)
+        {
+            return;
+        }
+
+        // Treat StartPoint as the top-left of the text box with a small padding like the Avalonia TextBox.
         float baseline = rect.Top + padding - metrics.Ascent; // ascent is negative
 
-        canvas.DrawText(Text, rect.Left + padding, baseline, paint);
+        for (int i = 0; i < lines.Count; i++)
+        {
+            float y = baseline + (i * lineHeight);
+            if (y > rect.Bottom - padding)
+            {
+                break;
+            }
+            canvas.DrawText(lines[i], rect.Left + padding, y, paint);
+        }
     }
 
     public override bool HitTest(SKPoint point, float tolerance = 5)
@@ -143,31 +176,12 @@ public class TextAnnotation : Annotation
         float bottom = Math.Max(StartPoint.Y, EndPoint.Y);
 
         // Ensure minimum size for visibility
-        const float minSize = 50f;
+        // Ensure minimum size for visibility
+        const float minSize = 10f;
         if (right - left < minSize) right = left + minSize;
         if (bottom - top < minSize) bottom = top + minSize;
 
-        // If text exists, calculate based on text metrics instead
-        if (!string.IsNullOrEmpty(Text))
-        {
-            using var paint = new SKPaint
-            {
-                TextSize = FontSize,
-                Typeface = SKTypeface.FromFamilyName(FontFamily)
-            };
-
-            var textWidth = paint.MeasureText(Text);
-            var metrics = paint.FontMetrics;
-            var textHeight = metrics.Descent - metrics.Ascent;
-
-            const float padding = 4f;
-            return new SKRect(
-                StartPoint.X,
-                StartPoint.Y,
-                StartPoint.X + textWidth + padding * 2,
-                StartPoint.Y + textHeight + padding * 2);
-        }
-
+        // Return the bounds defined by StartPoint and EndPoint
         return new SKRect(left, top, right, bottom);
     }
 }

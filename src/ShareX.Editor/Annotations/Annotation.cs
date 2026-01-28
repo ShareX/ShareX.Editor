@@ -2,7 +2,7 @@
 
 /*
     ShareX.Editor - The UI-agnostic Editor library for ShareX
-    Copyright (c) 2007-2025 ShareX Team
+    Copyright (c) 2007-2026 ShareX Team
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -70,6 +70,16 @@ public abstract class Annotation
     public float StrokeWidth { get; set; } = 4;
 
     /// <summary>
+    /// Fill color (hex color string, transparent by default for stroke-only shapes)
+    /// </summary>
+    public string FillColor { get; set; } = "#00000000";
+
+    /// <summary>
+    /// Whether shadow is enabled for this annotation
+    /// </summary>
+    public bool ShadowEnabled { get; set; }
+
+    /// <summary>
     /// Starting point (top-left for rectangles, start for lines/arrows)
     /// </summary>
     public SKPoint StartPoint { get; set; }
@@ -101,7 +111,7 @@ public abstract class Annotation
     /// <param name="point">Point to test</param>
     /// <param name="tolerance">Hit test tolerance in pixels</param>
     /// <returns>True if the point hits this annotation</returns>
-    public abstract bool HitTest(SKPoint point, float tolerance = 5);
+    public abstract bool HitTest(SKPoint point, float tolerance = 10);
 
     /// <summary>
     /// Get the bounding rectangle for this annotation
@@ -113,6 +123,19 @@ public abstract class Annotation
             Math.Min(StartPoint.Y, EndPoint.Y),
             Math.Max(StartPoint.X, EndPoint.X),
             Math.Max(StartPoint.Y, EndPoint.Y));
+    }
+
+    /// <summary>
+    /// Creates a deep clone of this annotation for undo/redo history.
+    /// Derived classes should override to handle reference-type properties.
+    /// </summary>
+    public virtual Annotation Clone()
+    {
+        // MemberwiseClone handles value types (SKPoint, float, int, etc.) correctly
+        // Derived classes override to deep copy reference types (lists, bitmaps)
+        var clone = (Annotation)MemberwiseClone();
+        clone.Id = Guid.NewGuid(); // New identity for the clone
+        return clone;
     }
 
     /// <summary>
@@ -128,7 +151,7 @@ public abstract class Annotation
     /// </summary>
     protected SKPaint CreateStrokePaint()
     {
-        return new SKPaint
+        var paint = new SKPaint
         {
             Color = ParseColor(StrokeColor),
             StrokeWidth = StrokeWidth,
@@ -137,6 +160,15 @@ public abstract class Annotation
             StrokeCap = SKStrokeCap.Round,
             StrokeJoin = SKStrokeJoin.Round
         };
+        if (ShadowEnabled)
+        {
+            paint.ImageFilter = SKImageFilter.CreateDropShadow(
+                3, 3, // X and Y offset
+                2, 2, // X and Y blur sigma
+                new SKColor(0, 0, 0, 128) // Semi-transparent black shadow
+            );
+        }
+        return paint;
     }
 
     /// <summary>
@@ -144,11 +176,20 @@ public abstract class Annotation
     /// </summary>
     protected SKPaint CreateFillPaint()
     {
-        return new SKPaint
+        var paint = new SKPaint
         {
-            Color = ParseColor(StrokeColor),
+            Color = ParseColor(FillColor),
             Style = SKPaintStyle.Fill,
             IsAntialias = true
         };
+        if (ShadowEnabled)
+        {
+            paint.ImageFilter = SKImageFilter.CreateDropShadow(
+                3, 3, // X and Y offset
+                2, 2, // X and Y blur sigma
+                new SKColor(0, 0, 0, 128) // Semi-transparent black shadow
+            );
+        }
+        return paint;
     }
 }

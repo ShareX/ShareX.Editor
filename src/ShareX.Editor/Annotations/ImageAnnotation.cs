@@ -1,3 +1,5 @@
+using Avalonia.Controls;
+using ShareX.Editor.Helpers;
 using SkiaSharp;
 
 namespace ShareX.Editor.Annotations;
@@ -5,7 +7,7 @@ namespace ShareX.Editor.Annotations;
 /// <summary>
 /// Image annotation - stickers or inserted images
 /// </summary>
-public class ImageAnnotation : Annotation
+public class ImageAnnotation : Annotation, IDisposable
 {
     private SKBitmap? _imageBitmap;
 
@@ -13,6 +15,11 @@ public class ImageAnnotation : Annotation
     /// File path to the image (if external)
     /// </summary>
     public string ImagePath { get; set; } = "";
+
+    /// <summary>
+    /// The loaded image bitmap
+    /// </summary>
+    public SKBitmap? ImageBitmap => _imageBitmap;
 
     public ImageAnnotation()
     {
@@ -38,6 +45,18 @@ public class ImageAnnotation : Annotation
     {
         _imageBitmap?.Dispose();
         _imageBitmap = bitmap;
+    }
+
+    public Control CreateVisual()
+    {
+        var image = new Image { Tag = this };
+        if (_imageBitmap != null)
+        {
+            image.Source = BitmapConversionHelpers.ToAvaloniBitmap(_imageBitmap);
+            image.Width = _imageBitmap.Width;
+            image.Height = _imageBitmap.Height;
+        }
+        return image;
     }
 
     public override void Render(SKCanvas canvas)
@@ -89,5 +108,24 @@ public class ImageAnnotation : Annotation
         var bounds = GetBounds();
         var inflated = SKRect.Inflate(bounds, tolerance, tolerance);
         return inflated.Contains(point);
+    }
+
+    /// <summary>
+    /// Dispose unmanaged resources (ImageBitmap)
+    /// </summary>
+    public void Dispose()
+    {
+        _imageBitmap?.Dispose();
+        _imageBitmap = null;
+        GC.SuppressFinalize(this);
+    }
+
+    public override Annotation Clone()
+    {
+        var clone = (ImageAnnotation)base.Clone();
+        // Don't copy the bitmap reference - caller should reload or set new bitmap
+        // This avoids shared bitmap references and disposal issues
+        clone._imageBitmap = null;
+        return clone;
     }
 }

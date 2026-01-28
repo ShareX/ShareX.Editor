@@ -1,8 +1,8 @@
 #region License Information (GPL v3)
 
 /*
-    ShareX.Ava - The Avalonia UI implementation of ShareX
-    Copyright (c) 2007-2025 ShareX Team
+    ShareX.Editor - The UI-agnostic Editor library for ShareX
+    Copyright (c) 2007-2026 ShareX Team
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -97,7 +97,11 @@ namespace ShareX.Editor.Controls
                 );
 
                 // Calculate centered text position with padding
-                var padding = 8;
+                var padding = 12; // Adjusted to match TextBox padding
+                
+                // Allow wrapping
+                var maxTextWidth = Math.Max(0, width - (padding * 2));
+                formattedText.MaxTextWidth = maxTextWidth;
                 var textX = Math.Max(padding, (width - formattedText.Width) / 2);
                 var textY = Math.Max(padding, (height - formattedText.Height) / 2);
 

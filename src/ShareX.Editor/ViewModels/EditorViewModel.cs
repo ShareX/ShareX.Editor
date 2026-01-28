@@ -20,6 +20,8 @@ public partial class EditorViewModel : ObservableObject
         public required IBrush Brush { get; init; }
     }
 
+    public EditorOptions Options => EditorOptions.Instance;
+
     private const double MinZoom = 0.25;
     private const double MaxZoom = 4.0;
     private const double ZoomStep = 0.1;
@@ -62,11 +64,25 @@ public partial class EditorViewModel : ObservableObject
         }
     }
 
-    [ObservableProperty]
     private Bitmap? _previewImage;
+    public Bitmap? PreviewImage
+    {
+        get => _previewImage;
+        set
+        {
+            if (SetProperty(ref _previewImage, value))
+            {
+                OnPreviewImageChanged(value);
+            }
+        }
+    }
 
-    [ObservableProperty]
     private bool _hasPreviewImage;
+    public bool HasPreviewImage
+    {
+        get => _hasPreviewImage;
+        set => SetProperty(ref _hasPreviewImage, value);
+    }
 
     [ObservableProperty]
     private double _imageWidth;
@@ -74,7 +90,7 @@ public partial class EditorViewModel : ObservableObject
     [ObservableProperty]
     private double _imageHeight;
 
-    partial void OnPreviewImageChanged(Bitmap? value)
+    private void OnPreviewImageChanged(Bitmap? value)
     {
         if (value != null)
         {
@@ -107,14 +123,14 @@ public partial class EditorViewModel : ObservableObject
     {
         get
         {
-            if (_previewImage == null || _smartPadding <= 0)
+            if (PreviewImage == null || SmartPadding <= 0)
             {
                 return Brushes.Transparent;
             }
 
             try
             {
-                var skBitmap = _previewImage.ToSKBitmap();
+                var skBitmap = PreviewImage.ToSKBitmap();
                 if (skBitmap == null) return Brushes.Transparent;
 
                 var color = skBitmap.GetPixel(0, 0);
@@ -138,22 +154,66 @@ public partial class EditorViewModel : ObservableObject
     private double _zoom = 1.0;
 
     [ObservableProperty]
-    private string _statusText = "Ready";
-
-    [ObservableProperty]
     private string _selectedColor = "#EF4444";
+
+    partial void OnSelectedColorChanged(string value)
+    {
+        if (Color.TryParse(value, out var color))
+        {
+            switch (ActiveTool)
+            {
+                case EditorTool.Step:
+                case EditorTool.Number:
+                    Options.StepFillColor = color;
+                    break;
+                case EditorTool.Highlighter:
+                    Options.HighlighterColor = color;
+                    break;
+                default:
+                    Options.BorderColor = color;
+                    break;
+            }
+        }
+    }
 
     [ObservableProperty]
     private int _strokeWidth = 4;
 
+    partial void OnStrokeWidthChanged(int value)
+    {
+        Options.Thickness = value;
+    }
+
     [ObservableProperty]
     private EditorTool _activeTool = EditorTool.Rectangle;
 
-    [ObservableProperty]
-    private EffectsPanelViewModel _effectsPanel = new();
+    partial void OnActiveToolChanged(EditorTool value)
+    {
+        switch (value)
+        {
+            case EditorTool.Rectangle:
+            case EditorTool.Ellipse:
+            case EditorTool.Line:
+            case EditorTool.Arrow:
+            case EditorTool.Pen:
+            case EditorTool.Text:
+            case EditorTool.SpeechBalloon:
+                SelectedColor = $"#{Options.BorderColor.A:X2}{Options.BorderColor.R:X2}{Options.BorderColor.G:X2}{Options.BorderColor.B:X2}";
+                StrokeWidth = Options.Thickness;
+                break;
 
-    [ObservableProperty]
-    private bool _isEffectsPanelOpen;
+            case EditorTool.Step:
+            case EditorTool.Number:
+                SelectedColor = $"#{Options.StepFillColor.A:X2}{Options.StepFillColor.R:X2}{Options.StepFillColor.G:X2}{Options.StepFillColor.B:X2}";
+                StrokeWidth = Options.Thickness;
+                break;
+
+            case EditorTool.Highlighter:
+                SelectedColor = $"#{Options.HighlighterColor.A:X2}{Options.HighlighterColor.R:X2}{Options.HighlighterColor.G:X2}{Options.HighlighterColor.B:X2}";
+                StrokeWidth = Options.Thickness;
+                break;
+        }
+    }
 
     [ObservableProperty]
     private int _numberCounter = 1;
@@ -190,7 +250,7 @@ public partial class EditorViewModel : ObservableObject
     private void SetOutputRatio(string ratioKey)
     {
         SelectedOutputRatio = string.IsNullOrWhiteSpace(ratioKey) ? OutputRatioAuto : ratioKey;
-        _targetOutputAspectRatio = ParseAspectRatio(ratioKey);
+        TargetOutputAspectRatio = ParseAspectRatio(ratioKey);
         UpdateCanvasProperties();
     }
 
@@ -198,7 +258,6 @@ public partial class EditorViewModel : ObservableObject
     private void ApplyGradientPreset(GradientPreset preset)
     {
         CanvasBackground = CopyBrush(preset.Brush);
-        StatusText = $"Gradient set to {preset.Name}";
     }
 
     [RelayCommand]
@@ -209,9 +268,6 @@ public partial class EditorViewModel : ObservableObject
 
     [RelayCommand]
     private void SetStrokeWidth(int width) => StrokeWidth = width;
-
-    [RelayCommand]
-    private void ToggleEffectsPanel() => IsEffectsPanelOpen = !IsEffectsPanelOpen;
 
     [RelayCommand]
     private void ZoomIn() => Zoom = Math.Clamp(Zoom + ZoomStep, MinZoom, MaxZoom);
@@ -263,7 +319,7 @@ public partial class EditorViewModel : ObservableObject
 
     private void UpdateCanvasProperties()
     {
-        CanvasPadding = CalculateOutputPadding(PreviewPadding, _targetOutputAspectRatio);
+        CanvasPadding = CalculateOutputPadding(PreviewPadding, TargetOutputAspectRatio);
         CanvasShadow = new BoxShadows(new BoxShadow
         {
             Blur = ShadowBlur,

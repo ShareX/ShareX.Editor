@@ -2,7 +2,7 @@
 
 /*
     ShareX.Editor - The UI-agnostic Editor library for ShareX
-    Copyright (c) 2007-2025 ShareX Team
+    Copyright (c) 2007-2026 ShareX Team
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -23,6 +23,8 @@
 
 #endregion License Information (GPL v3)
 
+using ShareX.Editor.ImageEffects.Filters;
+using ShareX.Editor.ImageEffects.Manipulations;
 using SkiaSharp;
 
 namespace ShareX.Editor.Helpers;
@@ -168,4 +170,161 @@ public static class ImageHelpers
             _ => SKEncodedImageFormat.Png
         };
     }
+
+    /// <summary>
+    /// Resize a bitmap to the specified dimensions with optional aspect ratio preservation
+    /// </summary>
+    /// <param name="source">Source bitmap to resize</param>
+    /// <param name="width">Target width</param>
+    /// <param name="height">Target height</param>
+    /// <param name="maintainAspectRatio">If true, scales proportionally to fit within width/height</param>
+    /// <param name="quality">Filter quality for scaling</param>
+    /// <returns>New resized bitmap</returns>
+    public static SKBitmap Resize(SKBitmap source, int width, int height, bool maintainAspectRatio = false, SKFilterQuality quality = SKFilterQuality.High)
+    {
+        // Quality ignored in Effect currently or hardcoded to High
+        return new ResizeImageEffect(width, height, maintainAspectRatio).Apply(source);
+    }
+
+    /// <summary>
+    /// Rotate bitmap 90 degrees clockwise
+    /// </summary>
+    public static SKBitmap Rotate90Clockwise(SKBitmap source)
+    {
+        return RotateImageEffect.Clockwise90.Apply(source);
+    }
+
+    /// <summary>
+    /// Rotate bitmap 90 degrees counter-clockwise
+    /// </summary>
+    public static SKBitmap Rotate90CounterClockwise(SKBitmap source)
+    {
+        return RotateImageEffect.CounterClockwise90.Apply(source);
+    }
+
+    /// <summary>
+    /// Rotate bitmap 180 degrees
+    /// </summary>
+    public static SKBitmap Rotate180(SKBitmap source)
+    {
+        return RotateImageEffect.Rotate180.Apply(source);
+    }
+
+    /// <summary>
+    /// Flip bitmap horizontally (mirror left-to-right)
+    /// </summary>
+    /// <summary>
+    /// Flip bitmap horizontally (mirror left-to-right)
+    /// </summary>
+    public static SKBitmap FlipHorizontal(SKBitmap source)
+    {
+        return FlipImageEffect.Horizontal.Apply(source);
+    }
+
+    /// <summary>
+    /// Flip bitmap vertically (mirror top-to-bottom)
+    /// </summary>
+    /// <summary>
+    /// Flip bitmap vertically (mirror top-to-bottom)
+    /// </summary>
+    public static SKBitmap FlipVertical(SKBitmap source)
+    {
+        return FlipImageEffect.Vertical.Apply(source);
+    }
+
+    /// <summary>
+    /// Resize canvas by adding padding around the image
+    /// </summary>
+    /// <param name="source">Source bitmap</param>
+    /// <param name="left">Left padding in pixels</param>
+    /// <param name="top">Top padding in pixels</param>
+    /// <param name="right">Right padding in pixels</param>
+    /// <param name="bottom">Bottom padding in pixels</param>
+    /// <param name="backgroundColor">Background color for the padding</param>
+    /// <returns>New bitmap with padding</returns>
+    public static SKBitmap ResizeCanvas(SKBitmap source, int left, int top, int right, int bottom, SKColor backgroundColor)
+    {
+        if (source is null) throw new ArgumentNullException(nameof(source));
+
+        int newWidth = source.Width + left + right;
+        int newHeight = source.Height + top + bottom;
+
+        if (newWidth <= 0 || newHeight <= 0)
+        {
+            throw new ArgumentException("Canvas size after padding must be greater than 0");
+        }
+
+        SKBitmap result = new SKBitmap(newWidth, newHeight, source.ColorType, source.AlphaType);
+        using (SKCanvas canvas = new SKCanvas(result))
+        {
+            canvas.Clear(backgroundColor);
+            canvas.DrawBitmap(source, left, top);
+        }
+        return result;
+    }
+
+    /// <summary>
+    /// Auto-crops the image by removing edges that match the specified color within tolerance
+    /// </summary>
+    /// <param name="source">Source bitmap</param>
+    /// <param name="color">Color to match for cropping</param>
+    /// <param name="tolerance">Color tolerance (0-255)</param>
+    /// <returns>Cropped bitmap</returns>
+    public static SKBitmap AutoCrop(SKBitmap source, SKColor color, int tolerance = 0)
+    {
+        return new AutoCropImageEffect(color, tolerance).Apply(source);
+    }
+
+    internal static bool ColorsMatch(SKColor c1, SKColor c2, int tolerance)
+    {
+        return Math.Abs(c1.Red - c2.Red) <= tolerance &&
+               Math.Abs(c1.Green - c2.Green) <= tolerance &&
+               Math.Abs(c1.Blue - c2.Blue) <= tolerance &&
+               Math.Abs(c1.Alpha - c2.Alpha) <= tolerance;
+    }
+
+
+
+    // ============== FILTERS ==============
+
+    public enum BorderType { Outside, Inside }
+    public enum DashStyle { Solid, Dash, Dot, DashDot }
+
+    public static SKBitmap ApplyBorder(SKBitmap source, BorderType type, int size, DashStyle dashStyle, SKColor color)
+    {
+        return new BorderImageEffect(type, size, dashStyle, color).Apply(source);
+    }
+
+    public static SKBitmap ApplyOutline(SKBitmap source, int size, int padding, SKColor color)
+    {
+        return new OutlineImageEffect(size, padding, color).Apply(source);
+    }
+
+    public static SKBitmap ApplyShadow(SKBitmap source, float opacity, int size, float darkness, SKColor color, int offsetX, int offsetY, bool autoResize)
+    {
+        return new ShadowImageEffect(opacity, size, darkness, color, offsetX, offsetY, autoResize).Apply(source);
+    }
+
+    public static SKBitmap ApplyGlow(SKBitmap source, int size, float strength, SKColor color, int offsetX, int offsetY)
+    {
+        return new GlowImageEffect(size, strength, color, offsetX, offsetY).Apply(source);
+    }
+
+    public static SKBitmap ApplyReflection(SKBitmap source, int percentage, int maxAlpha, int minAlpha, int offset, bool skew, int skewSize)
+    {
+        return new ReflectionImageEffect(percentage, maxAlpha, minAlpha, offset, skew, skewSize).Apply(source);
+    }
+
+    public static SKBitmap ApplyTornEdge(SKBitmap source, int depth, int range, bool top, bool right, bool bottom, bool left, bool curved)
+    {
+        return new TornEdgeImageEffect(depth, range, top, right, bottom, left, curved).Apply(source);
+    }
+
+    public static SKBitmap ApplySlice(SKBitmap source, int minHeight, int maxHeight, int minShift, int maxShift)
+    {
+        return new SliceImageEffect(minHeight, maxHeight, minShift, maxShift).Apply(source);
+    }
+
 }
+
+

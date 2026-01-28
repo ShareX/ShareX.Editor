@@ -2,7 +2,7 @@
 
 /*
     ShareX.Editor - The UI-agnostic Editor library for ShareX
-    Copyright (c) 2007-2025 ShareX Team
+    Copyright (c) 2007-2026 ShareX Team
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -57,7 +57,6 @@ namespace ShareX.Editor;
  *            _canvas.MouseUp += OnMouseUp;
  *    
  *            _editor.InvalidateRequested += () => _canvas.Invalidate();
- *            _editor.StatusTextChanged += text => Text = $"Editor - {text}";
  *        }
  *    
  *        public void LoadImage(string path) => _editor.LoadImage(path);

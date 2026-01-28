@@ -2,7 +2,7 @@
 
 /*
     ShareX.Editor - The UI-agnostic Editor library for ShareX
-    Copyright (c) 2007-2025 ShareX Team
+    Copyright (c) 2007-2026 ShareX Team
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -44,21 +44,46 @@ public class EllipseAnnotation : Annotation
     /// </summary>
     public Control CreateVisual()
     {
-        var brush = new SolidColorBrush(Color.Parse(StrokeColor));
-        return new Avalonia.Controls.Shapes.Ellipse
+        var strokeBrush = new SolidColorBrush(Color.Parse(StrokeColor));
+        IBrush fillBrush = string.IsNullOrEmpty(FillColor) || FillColor == "#00000000"
+            ? Brushes.Transparent
+            : new SolidColorBrush(Color.Parse(FillColor));
+        var ellipse = new Avalonia.Controls.Shapes.Ellipse
         {
-            Stroke = brush,
+            Stroke = strokeBrush,
             StrokeThickness = StrokeWidth,
-            Fill = Brushes.Transparent,
+            Fill = fillBrush,
             Tag = this
         };
+        
+        if (ShadowEnabled)
+        {
+            ellipse.Effect = new Avalonia.Media.DropShadowEffect
+            {
+                OffsetX = 3,
+                OffsetY = 3,
+                BlurRadius = 4,
+                Color = Avalonia.Media.Color.FromArgb(128, 0, 0, 0)
+            };
+        }
+        
+        return ellipse;
     }
 
     public override void Render(SKCanvas canvas)
     {
         var rect = GetBounds();
-        using var paint = CreateStrokePaint();
-        canvas.DrawOval(rect, paint);
+        
+        // Draw fill first (if not transparent)
+        if (!string.IsNullOrEmpty(FillColor) && FillColor != "#00000000")
+        {
+            using var fillPaint = CreateFillPaint();
+            canvas.DrawOval(rect, fillPaint);
+        }
+        
+        // Draw stroke on top
+        using var strokePaint = CreateStrokePaint();
+        canvas.DrawOval(rect, strokePaint);
     }
 
     public override bool HitTest(SKPoint point, float tolerance = 5)
@@ -68,18 +93,21 @@ public class EllipseAnnotation : Annotation
 
         if (!expanded.Contains(point)) return false;
 
+        // Get ellipse center and radii (original bounds, not expanded)
         var centerX = rect.MidX;
         var centerY = rect.MidY;
-        var radiusX = expanded.Width / 2;
-        var radiusY = expanded.Height / 2;
+        var radiusX = rect.Width / 2 + tolerance;
+        var radiusY = rect.Height / 2 + tolerance;
 
         if (radiusX <= 0 || radiusY <= 0) return false;
 
-        // Normalize point relative to expanded ellipse center
-        var dx = (point.X - centerX) / radiusX;
-        var dy = (point.Y - centerY) / radiusY;
+        // Normalize point relative to center
+        var dx = point.X - centerX;
+        var dy = point.Y - centerY;
 
-        // Check if point is inside unit circle
-        return (dx * dx + dy * dy) <= 1.0f;
+        // Check if point is inside the ellipse (with tolerance)
+        // Point is inside if (dx/rx)^2 + (dy/ry)^2 <= 1
+        var normalizedDist = (dx * dx) / (radiusX * radiusX) + (dy * dy) / (radiusY * radiusY);
+        return normalizedDist <= 1.0f;
     }
 }
