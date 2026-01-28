@@ -17,6 +17,17 @@ public class TornEdgeImageEffect : ImageEffect
     public override string Name => "Torn edge";
     public override ImageEffectCategory Category => ImageEffectCategory.Filters;
 
+    public TornEdgeImageEffect()
+    {
+        Depth = 10;
+        Range = 10;
+        Top = true;
+        Right = true;
+        Bottom = true;
+        Left = true;
+        Curved = false;
+    }
+
     public TornEdgeImageEffect(int depth, int range, bool top, bool right, bool bottom, bool left, bool curved)
     {
         Depth = depth;

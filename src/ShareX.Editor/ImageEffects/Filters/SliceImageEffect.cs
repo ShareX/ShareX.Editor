@@ -13,6 +13,14 @@ public class SliceImageEffect : ImageEffect
     public override string Name => "Slice";
     public override ImageEffectCategory Category => ImageEffectCategory.Filters;
 
+    public SliceImageEffect()
+    {
+        MinHeight = 10;
+        MaxHeight = 50;
+        MinShift = -10;
+        MaxShift = 10;
+    }
+
     public SliceImageEffect(int minHeight, int maxHeight, int minShift, int maxShift)
     {
         MinHeight = minHeight;

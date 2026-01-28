@@ -15,6 +15,15 @@ public class GlowImageEffect : ImageEffect
 
     public override ImageEffectCategory Category => ImageEffectCategory.Filters;
 
+    public GlowImageEffect()
+    {
+        Size = 10;
+        Strength = 50;
+        Color = SKColors.White;
+        OffsetX = 0;
+        OffsetY = 0;
+    }
+
     public GlowImageEffect(int size, float strength, SKColor color, int offsetX, int offsetY)
     {
         Size = size;

@@ -13,6 +13,14 @@ public class BorderImageEffect : ImageEffect
     public override string Name => "Border";
     public override ImageEffectCategory Category => ImageEffectCategory.Filters;
 
+    public BorderImageEffect()
+    {
+        Type = ImageHelpers.BorderType.Inside;
+        Size = 8;
+        DashStyle = ImageHelpers.DashStyle.Solid;
+        Color = SKColors.Gold;
+    }
+
     public BorderImageEffect(ImageHelpers.BorderType type, int size, ImageHelpers.DashStyle dashStyle, SKColor color)
     {
         Type = type;

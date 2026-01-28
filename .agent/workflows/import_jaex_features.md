@@ -68,7 +68,7 @@ All documentation artifacts produced by this workflow must live under [docs/jaex
 - UI snapshots (after feature): [docs/jaex-integration/ui-snapshots/ui_snapshot_after_<feature-id>.md](ShareX.Editor/docs/jaex-integration/ui-snapshots/ui_snapshot_after_<feature-id>.md)
 - State markers and provenance: [docs/jaex-integration/completed/LAST_PROCESSED_JAEX_COMMIT.txt](ShareX.Editor/docs/jaex-integration/completed/LAST_PROCESSED_JAEX_COMMIT.txt) and [docs/jaex-integration/completed/features_log.md](ShareX.Editor/docs/jaex-integration/completed/features_log.md)
 
-Note: The readiness signal file [integrate/jaex-JX-<feature-id>.md](ShareX.Editor/integrate/jaex-JX-<feature-id>.md) remains at the repository root as a non-documentation marker per AGENTS.md.
+Note: The readiness signal file [integrate/ready.md](ShareX.Editor/integrate/ready.md) remains at the repository root as a non-documentation marker per AGENTS.md.
 
 ## State tracking and resume
 To avoid re-processing older `jaex` commits across runs, maintain a simple state marker:
@@ -198,7 +198,7 @@ Before importing any approved feature:
 For each approved feature:
 
 1. Create integration branch.
-   - `git checkout -b integrate/jaex-<feature-id> develop`
+   - `git checkout -b integrate/jaex develop`
 
 2. Branch start point rule (required).
    - Always branch from **current** `origin/develop` (after fetch).
@@ -242,6 +242,10 @@ After applying changes:
 - Run tests
 - Ensure zero new warnings
 
+5. Verify Image Effects.
+   - Ensure all `ImageEffect` classes have public parameterless constructors.
+   - Verify `Border`, `Glow`, `Outline`, `Reflection`, `Shadow`, `Slice`, `TornEdge` are present in the `AvailableEffects` list.
+
 ## UI regression gate
 Before PR:
 
@@ -268,7 +272,7 @@ Do **not** merge or delete the feature branch until this summary file exists.
 Once the integration branch is verified end-to-end:
 
 1. Create readiness marker file in the repository root:
-   - `integrate/jaex-JX-<feature-id>.md`
+   - `integrate/ready.md`
    - The existence of this file signals that the branch is ready for PR.
 
 2. Proceed to create the PR targeting `develop`.
@@ -285,7 +289,7 @@ PR description must include:
 
 ## Merge and cleanup
 - Merge the PR into `develop` (do not pre-merge locally).
-- Delete `integrate/jaex-<feature-id>` branch only after PR merge.
+- Delete `integrate/jaex` branch only after PR merge.
 - Do not delete any other branches.
 - Prioritise merging the PR once checks pass.
 - Ensure the PR merge actually introduces the feature diff (no “empty” merges).
