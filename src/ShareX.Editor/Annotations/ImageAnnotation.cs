@@ -50,6 +50,17 @@ public class ImageAnnotation : Annotation, IDisposable
     public Control CreateVisual()
     {
         var image = new Image { Tag = this };
+
+        // Robustness fix: If bitmap is null (e.g. from Undo/Redo clone or disposal), try reloading from path
+        if (_imageBitmap == null && !string.IsNullOrEmpty(ImagePath) && File.Exists(ImagePath))
+        {
+            try
+            {
+                _imageBitmap = SKBitmap.Decode(ImagePath);
+            }
+            catch { }
+        }
+
         if (_imageBitmap != null)
         {
             image.Source = BitmapConversionHelpers.ToAvaloniBitmap(_imageBitmap);

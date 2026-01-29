@@ -481,7 +481,7 @@ public class EditorSelectionController
              return;
         }
 
-        if (_selectedShape is global::Avalonia.Controls.Shapes.Rectangle || _selectedShape is global::Avalonia.Controls.Shapes.Ellipse || _selectedShape is Grid)
+        if (_selectedShape is global::Avalonia.Controls.Shapes.Rectangle || _selectedShape is global::Avalonia.Controls.Shapes.Ellipse || _selectedShape is Grid || _selectedShape is Image)
         {
              double newLeft = left;
              double newTop = top;

@@ -49,6 +49,7 @@
         <x:String x:Key="IconThumbtack">&#xf08d;</x:String>
         <x:String x:Key="IconMoon">&#xf186;</x:String>
         <x:String x:Key="IconHardDrive">&#xf0a0;</x:String>
+        <x:String x:Key="IconFolderOpen">&#xf07c;</x:String>
 
         <FontFamily x:Key="AppFontFamily">Segoe UI</FontFamily>
         <x:Double x:Key="AppFontSize">14</x:Double>
@@ -161,9 +162,15 @@
 
     <Grid RowDefinitions="Auto,Auto,*">
         <!-- Row 0: Menu Bar -->
-        <Border Grid.Row="0" Background="#2E2E2E" Padding="0,4">
+        <Border Grid.Row="0" Background="#2E2E2E">
             <Menu Background="Transparent">
                 <MenuItem Header="File">
+                    <MenuItem Header="Open file..." Command="{Binding OpenImageCommand}" InputGesture="Ctrl+O">
+                        <MenuItem.Icon>
+                            <TextBlock Text="{StaticResource IconFolderOpen}" FontFamily="{StaticResource FontAwesome}"/>
+                        </MenuItem.Icon>
+                    </MenuItem>
+                    <Separator/>
                     <MenuItem Header="Save" Command="{Binding QuickSaveCommand}" InputGesture="Ctrl+S">
                         <MenuItem.Icon>
                             <TextBlock Text="{StaticResource IconSave}" FontFamily="{StaticResource FontAwesome}"/>

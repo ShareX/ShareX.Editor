@@ -218,6 +218,8 @@ namespace ShareX.Editor.Views
             vm.LoadPresetRequested += OnLoadPresetRequested;
             vm.ShowErrorDialog += OnShowErrorDialog;
             vm.DeselectRequested += OnDeselectRequested;
+            vm.OpenImageRequested += OnOpenImageRequested;
+            vm.AddImageAnnotationRequested += OnAddImageAnnotationRequested;
 
             if (vm.PreviewImage != null)
             {
@@ -240,6 +242,8 @@ namespace ShareX.Editor.Views
             vm.LoadPresetRequested -= OnLoadPresetRequested;
             vm.ShowErrorDialog -= OnShowErrorDialog;
             vm.DeselectRequested -= OnDeselectRequested;
+            vm.OpenImageRequested -= OnOpenImageRequested;
+            vm.AddImageAnnotationRequested -= OnAddImageAnnotationRequested;
             _boundViewModel = null;
         }
         private void OnViewModelPropertyChanged(object? sender, PropertyChangedEventArgs e)
@@ -500,12 +504,16 @@ namespace ShareX.Editor.Views
             var canvas = this.FindControl<Canvas>("AnnotationCanvas");
             if (canvas == null) return;
 
-            // Dispose old annotations before clearing
+            // Dispose old annotations ONLY if they are no longer in the Core
+            // This prevents disposing the bitmap of an annotation that persists across a refresh
             foreach (var child in canvas.Children)
             {
-                if (child is Control control)
+                if (child is Control control && control.Tag is Annotation annotation)
                 {
-                    (control.Tag as IDisposable)?.Dispose();
+                    if (!_editorCore.Annotations.Where(a => a.Id == annotation.Id).Any())
+                    {
+                        (annotation as IDisposable)?.Dispose();
+                    }
                 }
             }
 
@@ -513,6 +521,7 @@ namespace ShareX.Editor.Views
             _selectionController.ClearSelection();
 
             // 2. Re-create UI for all vector annotations in Core
+            Control? selectedControl = null;
             foreach (var annotation in _editorCore.Annotations)
             {
                 // Only create UI for vector annotations (Hybrid model)
@@ -520,7 +529,19 @@ namespace ShareX.Editor.Views
                 if (shape != null)
                 {
                     canvas.Children.Add(shape);
+
+                    // Track the control mapping for the selected annotation
+                    if (_editorCore.SelectedAnnotation != null && annotation.Id == _editorCore.SelectedAnnotation.Id)
+                    {
+                        selectedControl = shape;
+                    }
                 }
+            }
+
+            // Restore selection in the controller
+            if (selectedControl != null)
+            {
+                _selectionController.SetSelectedShape(selectedControl);
             }
 
             RenderCore();
@@ -1247,6 +1268,74 @@ namespace ShareX.Editor.Views
                 vm.CloseModalCommand.Execute(null);
             }
         }
+
+
+        private async Task<string?> OnOpenImageRequested()
+        {
+            var topLevel = TopLevel.GetTopLevel(this);
+            if (topLevel?.StorageProvider == null)
+            {
+                return null;
+            }
+
+            var files = await topLevel.StorageProvider.OpenFilePickerAsync(new Avalonia.Platform.Storage.FilePickerOpenOptions
+            {
+                Title = "Open Image",
+                AllowMultiple = false,
+                FileTypeFilter = new[] { Avalonia.Platform.Storage.FilePickerFileTypes.ImageAll }
+            });
+
+            return files.Count > 0 ? files[0].Path.LocalPath : null;
+        }
+
+        private void OnAddImageAnnotationRequested(string path)
+        {
+            if (!File.Exists(path) || _editorCore == null) return;
+
+            try
+            {
+                using var stream = File.OpenRead(path);
+                var bitmap = new Avalonia.Media.Imaging.Bitmap(stream);
+                
+                // Add logic specific to annotation creation
+                var canvas = this.FindControl<Canvas>("AnnotationCanvas");
+                if (canvas == null) return;
+
+                var skBitmap = BitmapConversionHelpers.ToSKBitmap(bitmap);
+                if (skBitmap == null) return;
+
+                var annotation = new ImageAnnotation();
+                annotation.SetImage(skBitmap);
+                annotation.ImagePath = path;
+
+                double canvasWidth = _editorCore.CanvasSize.Width;
+                double canvasHeight = _editorCore.CanvasSize.Height;
+                if (canvasWidth <= 0 || canvasHeight <= 0)
+                {
+                    canvasWidth = bitmap.Size.Width;
+                    canvasHeight = bitmap.Size.Height;
+                }
+
+                var left = (canvasWidth - bitmap.Size.Width) / 2;
+                var top = (canvasHeight - bitmap.Size.Height) / 2;
+                annotation.StartPoint = new SKPoint((float)left, (float)top);
+                annotation.EndPoint = new SKPoint((float)(left + bitmap.Size.Width), (float)(top + bitmap.Size.Height));
+
+                var imageControl = annotation.CreateVisual();
+                Canvas.SetLeft(imageControl, left);
+                Canvas.SetTop(imageControl, top);
+                canvas.Children.Add(imageControl);
+
+                _editorCore.AddAnnotation(annotation);
+                _selectionController.SetSelectedShape(imageControl);
+                UpdateHasAnnotationsState();
+            }
+            catch (Exception ex)
+            {
+                 _ = OnShowErrorDialog("Add Image Failed", ex.Message);
+            }
+        }
+
         private async Task OnCopyRequested(Avalonia.Media.Imaging.Bitmap bitmap)
         {
             if (ShareX.Editor.Services.EditorServices.Clipboard != null)

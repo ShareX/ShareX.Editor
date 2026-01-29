@@ -21,12 +21,14 @@ namespace ShareX.Editor.Views
             InitializeComponent();
 
             _viewModel = new MainViewModel();
+
             DataContext = _viewModel;
 
             // Hook up ViewModel events
             _viewModel.SaveAsRequested += OnSaveAsRequested;
             _viewModel.SavePresetRequested += OnSavePresetRequested;
             _viewModel.LoadPresetRequested += OnLoadPresetRequested;
+            _viewModel.CloseRequested += Close;
             
             // If the window is closed, we might want to clean up
             this.Closed += OnClosed;
@@ -57,6 +59,7 @@ namespace ShareX.Editor.Views
                 _viewModel.SaveAsRequested -= OnSaveAsRequested;
                 _viewModel.SavePresetRequested -= OnSavePresetRequested;
                 _viewModel.LoadPresetRequested -= OnLoadPresetRequested;
+                _viewModel.CloseRequested -= Close;
             }
         }
 

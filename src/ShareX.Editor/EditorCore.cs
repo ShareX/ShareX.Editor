@@ -830,16 +830,23 @@ public class EditorCore : IDisposable
     /// Add an annotation from an external controller (e.g. InputController)
     /// This captures the history state BEFORE adding the annotation.
     /// </summary>
+    /// <summary>
+    /// Adds an annotation programmatically and records it in history
+    /// </summary>
     public void AddAnnotation(Annotation annotation)
     {
-        // Capture state BEFORE adding the new annotation (Undo will revert to this state)
+        if (annotation == null || _annotations.Contains(annotation)) return;
+
+        // Capture state BEFORE adding (so Undo removes this annotation)
         _history.CreateAnnotationsMemento();
-        
+
         _annotations.Add(annotation);
         
+        // Select the new annotation
+        _selectedAnnotation = annotation;
+        
+        // Notify changes
         HistoryChanged?.Invoke();
-        // We don't necessarily need to render if the view already added the control,
-        // but this ensures raster effects are updated if needed.
         InvalidateRequested?.Invoke();
     }
 
@@ -1851,4 +1858,6 @@ public class EditorCore : IDisposable
     }
 
     #endregion
+
+
 }

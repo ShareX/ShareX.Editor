@@ -219,6 +219,19 @@ namespace ShareX.Editor.ViewModels
         [ObservableProperty]
         private double _zoom = 1.0;
 
+        [RelayCommand]
+        private void SetZoom(object parameter)
+        {
+            if (parameter is double d)
+            {
+                Zoom = Math.Clamp(d, MinZoom, MaxZoom);
+            }
+            else if (parameter is string s && double.TryParse(s, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out double result))
+            {
+                Zoom = Math.Clamp(result, MinZoom, MaxZoom);
+            }
+        }
+
         [ObservableProperty]
         private string _imageDimensions = "No image";
 
@@ -723,6 +736,50 @@ namespace ShareX.Editor.ViewModels
         // Event for View to show preset save/load dialogs and return selected path
         public event Func<Task<string?>>? SavePresetRequested;
         public event Func<Task<string?>>? LoadPresetRequested;
+        
+        // Event for View/Window to close the editor
+        public event Action? CloseRequested;
+        
+
+
+        // Event for View to open image file since picking file is UI operation
+        public event Func<Task<string?>>? OpenImageRequested;
+        public event Action<string>? AddImageAnnotationRequested;
+
+        [RelayCommand]
+        private async Task OpenImage()
+        {
+            if (OpenImageRequested != null)
+            {
+                var path = await OpenImageRequested.Invoke();
+                if (!string.IsNullOrEmpty(path))
+                {
+                    if (PreviewImage == null)
+                    {
+                        try
+                        {
+                            // Load as new image
+                            PreviewImage = new Avalonia.Media.Imaging.Bitmap(path);
+                        }
+                        catch (Exception ex)
+                        {
+                            ShowErrorDialog?.Invoke("Error", $"Failed to load image: {ex.Message}");
+                        }
+                    }
+                    else
+                    {
+                        // Add as annotation
+                        AddImageAnnotationRequested?.Invoke(path);
+                    }
+                }
+            }
+        }
+
+        [RelayCommand]
+        private void Close()
+        {
+            CloseRequested?.Invoke();
+        }
 
         [ObservableProperty]
         private string? _lastSavedPath;

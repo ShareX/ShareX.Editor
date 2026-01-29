@@ -1,0 +1,26 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="ShareX.Editor.Views.Dialogs.OpenImageChoiceDialog">
+    <Border Background="#2E2E2E" BorderBrush="#1F1F1F" BorderThickness="1" CornerRadius="6" Padding="16">
+        <StackPanel Spacing="12" Width="400">
+            <TextBlock Text="An image is already open"
+                       FontSize="16"
+                       FontWeight="SemiBold"
+                       Foreground="#E7E9EA"/>
+            <TextBlock Text="Do you want to replace the current image or add the new image to the canvas?"
+                       TextWrapping="Wrap"
+                       Foreground="#C9CDD1"/>
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8">
+                <Button Classes="editor-button"
+                        Content="Add"
+                        Click="OnAddClick"/>
+                <Button Classes="editor-button"
+                        Content="Replace"
+                        Click="OnReplaceClick"/>
+                <Button Classes="editor-button"
+                        Content="Cancel"
+                        Click="OnCancelClick"/>
+            </StackPanel>
+        </StackPanel>
+    </Border>
+</UserControl>
