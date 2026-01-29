@@ -43,12 +43,6 @@ namespace ShareX.Editor.Views
             _viewModel = new MainViewModel();
             DataContext = _viewModel;
 
-            // Hook up ViewModel events
-            _viewModel.SaveAsRequested += OnSaveAsRequested;
-
-            // If the window is closed, we might want to clean up
-            this.Closed += OnClosed;
-
             // Defer image loading until EditorView is loaded and subscribed
             this.Loaded += OnWindowLoaded;
         }
@@ -65,14 +59,6 @@ namespace ShareX.Editor.Views
             {
                 LoadImageInternal(_pendingFilePath);
                 _pendingFilePath = null;
-            }
-        }
-
-        private void OnClosed(object? sender, EventArgs e)
-        {
-            if (_viewModel != null)
-            {
-                _viewModel.SaveAsRequested -= OnSaveAsRequested;
             }
         }
 
@@ -162,35 +148,6 @@ namespace ShareX.Editor.Views
 
             using var data = bitmap.Encode(format, quality);
             return data.ToArray();
-        }
-
-        private async Task<string?> OnSaveAsRequested()
-        {
-            var storageProvider = StorageProvider;
-            if (storageProvider == null) return null;
-
-            var file = await storageProvider.SaveFilePickerAsync(new Avalonia.Platform.Storage.FilePickerSaveOptions
-            {
-                Title = "Save Image",
-                DefaultExtension = "png",
-                FileTypeChoices = new[]
-                {
-                    new Avalonia.Platform.Storage.FilePickerFileType("PNG Image")
-                    {
-                        Patterns = new[] { "*.png" }
-                    },
-                    new Avalonia.Platform.Storage.FilePickerFileType("JPEG Image")
-                    {
-                        Patterns = new[] { "*.jpg", "*.jpeg" }
-                    },
-                    new Avalonia.Platform.Storage.FilePickerFileType("All Files")
-                    {
-                        Patterns = new[] { "*.*" }
-                    }
-                }
-            });
-
-            return file?.Path.LocalPath;
         }
     }
 }

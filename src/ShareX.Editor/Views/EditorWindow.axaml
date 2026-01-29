@@ -5,7 +5,8 @@
         xmlns:views="using:ShareX.Editor.Views"
         mc:Ignorable="d" d:DesignWidth="1280" d:DesignHeight="720"
         x:Class="ShareX.Editor.Views.EditorWindow"
-        Title="ShareX Editor"
+        Title="{Binding WindowTitle}"
+        WindowState="Maximized"
         WindowStartupLocation="CenterScreen">
     
     <views:EditorView Name="EditorViewControl"/>

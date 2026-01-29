@@ -26,6 +26,10 @@
 using Avalonia;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Markup.Xaml;
+using ShareX.Editor.ViewModels;
+using SkiaSharp;
+using System;
+using System.IO;
 
 namespace ShareX.Editor.Loader
 {
@@ -44,10 +48,64 @@ namespace ShareX.Editor.Loader
         {
             if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
             {
-                desktop.MainWindow = new MainWindow();
+                var window = new ShareX.Editor.Views.EditorWindow();
+                desktop.MainWindow = window;
+
+                if (window.DataContext is MainViewModel vm)
+                {
+                    LoadExampleImage(vm);
+                }
             }
 
             base.OnFrameworkInitializationCompleted();
+        }
+
+        private void LoadExampleImage(MainViewModel vm)
+        {
+            try
+            {
+                // Path to the asset - since we set CopyToOutputDirectory, it should be in the bin folder under Assets/
+                var location = AppDomain.CurrentDomain.BaseDirectory;
+                var path = Path.Combine(location, "Assets", "Sample.png");
+
+                if (File.Exists(path))
+                {
+                    using (var stream = File.OpenRead(path))
+                    {
+                        // Use SKBitmap.Decode to load file
+                        var skBitmap = SKBitmap.Decode(stream);
+                        vm.UpdatePreview(skBitmap);
+                    }
+                }
+                else
+                {
+                    // Fallback to generated if file missing
+                    GenerateSampleImage(vm);
+                }
+            }
+            catch (Exception)
+            {
+                GenerateSampleImage(vm);
+            }
+        }
+
+        private void GenerateSampleImage(MainViewModel vm)
+        {
+            // Create a sample SKBitmap
+            var width = 800;
+            var height = 600;
+            var info = new SKImageInfo(width, height);
+            var skBitmap = new SKBitmap(info);
+
+            using (var canvas = new SKCanvas(skBitmap))
+            {
+                canvas.Clear(SKColors.Transparent);
+                using (var paint = new SKPaint { Color = SKColors.LightBlue, IsAntialias = true })
+                {
+                    canvas.DrawCircle(width / 2, height / 2, 100, paint);
+                }
+            }
+            vm.UpdatePreview(skBitmap);
         }
     }
 }
