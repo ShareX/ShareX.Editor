@@ -273,9 +273,11 @@ public class EditorCore : IDisposable
     /// </summary>
     public void LoadImage(SKBitmap bitmap)
     {
+        Console.WriteLine($"[DEBUG EditorCore] LoadImage called with {bitmap.Width}x{bitmap.Height} bitmap");
         SourceImage?.Dispose();
         SourceImage = bitmap;
         CanvasSize = new SKSize(bitmap.Width, bitmap.Height);
+        Console.WriteLine($"[DEBUG EditorCore] SourceImage set, CanvasSize: {CanvasSize}");
         ClearAll();
         InvalidateRequested?.Invoke();
     }
@@ -884,11 +886,14 @@ public class EditorCore : IDisposable
     /// <summary>
     /// Add an image effect, creating a memento before the change.
     /// </summary>
-    public void AddEffect(ImageEffect effect)
+    public void AddEffect(ImageEffect? effect)
     {
+        if (effect == null) return;
+        Console.WriteLine($"[DEBUG EditorCore] AddEffect called with effect: {effect.GetType().Name}, SourceImage: {(SourceImage == null ? "NULL" : "SET")}");
         _history.CreateEffectsMemento();
         _effects.Add(effect);
         InvalidateEffectsCache();
+        Console.WriteLine($"[DEBUG EditorCore] Effect added, total effects: {_effects.Count}");
         HistoryChanged?.Invoke();
         EffectsChanged?.Invoke();
         InvalidateRequested?.Invoke();

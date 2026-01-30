@@ -749,29 +749,90 @@ namespace ShareX.Editor.ViewModels
         [RelayCommand]
         private async Task OpenImage()
         {
+            Console.WriteLine("[DEBUG] OpenImage() called");
             if (OpenImageRequested != null)
             {
                 var path = await OpenImageRequested.Invoke();
+                Console.WriteLine($"[DEBUG] Selected path: {path}");
                 if (!string.IsNullOrEmpty(path))
                 {
                     if (PreviewImage == null)
                     {
+                        // No image loaded yet - load directly
                         try
                         {
-                            // Load as new image
-                            PreviewImage = new Avalonia.Media.Imaging.Bitmap(path);
+                            Console.WriteLine($"[DEBUG] Loading as new image, _currentSourceImage is: {(_currentSourceImage == null ? "NULL" : "SET")}");
+                            LoadImageFromPath(path);
+                            Console.WriteLine($"[DEBUG] After LoadImageFromPath, _currentSourceImage is: {(_currentSourceImage == null ? "NULL" : "SET")}");
                         }
                         catch (Exception ex)
                         {
+                            Console.WriteLine($"[DEBUG] Failed to load image: {ex.Message}");
                             ShowErrorDialog?.Invoke("Error", $"Failed to load image: {ex.Message}");
                         }
                     }
                     else
                     {
-                        // Add as annotation
-                        AddImageAnnotationRequested?.Invoke(path);
+                        // Image already exists - show choice dialog
+                        Console.WriteLine("[DEBUG] Image already exists, showing OpenImageChoiceDialog");
+                        var dialog = new Views.Dialogs.OpenImageChoiceDialog();
+                        
+                        string? selectedPath = path; // Capture path for use in event handlers
+                        
+                        dialog.ReplaceRequested += (s, e) =>
+                        {
+                            Console.WriteLine("[DEBUG] Replace option selected");
+                            try
+                            {
+                                LoadImageFromPath(selectedPath);
+                                Console.WriteLine($"[DEBUG] After Replace, _currentSourceImage is: {(_currentSourceImage == null ? "NULL" : "SET")}");
+                            }
+                            catch (Exception ex)
+                            {
+                                Console.WriteLine($"[DEBUG] Failed to replace image: {ex.Message}");
+                                ShowErrorDialog?.Invoke("Error", $"Failed to load image: {ex.Message}");
+                            }
+                        };
+                        
+                        dialog.AddRequested += (s, e) =>
+                        {
+                            Console.WriteLine("[DEBUG] Add as annotation option selected");
+                            AddImageAnnotationRequested?.Invoke(selectedPath);
+                        };
+                        
+                        dialog.CancelRequested += (s, e) =>
+                        {
+                            Console.WriteLine("[DEBUG] Cancel option selected");
+                        };
+                        
+                        ModalContent = dialog;
+                        IsModalOpen = true;
                     }
                 }
+            }
+            else
+            {
+                Console.WriteLine("[DEBUG] OpenImageRequested is NULL");
+            }
+        }
+
+        private void LoadImageFromPath(string path)
+        {
+            Console.WriteLine($"[DEBUG] LoadImageFromPath called with: {path}");
+            // Load the image as SKBitmap first to set _currentSourceImage
+            using var stream = System.IO.File.OpenRead(path);
+            var skBitmap = SkiaSharp.SKBitmap.Decode(stream);
+            
+            if (skBitmap != null)
+            {
+                Console.WriteLine($"[DEBUG] Decoded SKBitmap {skBitmap.Width}x{skBitmap.Height}");
+                // UpdatePreview takes ownership and sets _currentSourceImage
+                UpdatePreview(skBitmap, clearAnnotations: true);
+            }
+            else
+            {
+                Console.WriteLine("[DEBUG] Failed to decode SKBitmap from path");
+                throw new Exception("Failed to decode image");
             }
         }
 
@@ -1303,6 +1364,14 @@ namespace ShareX.Editor.ViewModels
         private void ResetZoom()
         {
             Zoom = 1.0;
+        }
+
+        public event EventHandler? ZoomToFitRequested;
+
+        [RelayCommand]
+        public void ZoomToFit()
+        {
+            ZoomToFitRequested?.Invoke(this, EventArgs.Empty);
         }
 
         [RelayCommand]
@@ -2168,7 +2237,12 @@ namespace ShareX.Editor.ViewModels
         /// </summary>
         public void StartEffectPreview()
         {
-            if (_currentSourceImage == null) return;
+            Console.WriteLine($"[DEBUG] StartEffectPreview() called, _currentSourceImage is: {(_currentSourceImage == null ? "NULL" : "SET")}");
+            if (_currentSourceImage == null)
+            {
+                Console.WriteLine("[DEBUG] StartEffectPreview() returning early because _currentSourceImage is NULL");
+                return;
+            }
 
             _isPreviewingEffect = true;
             OnPropertyChanged(nameof(AreBackgroundEffectsActive));

@@ -220,6 +220,7 @@ namespace ShareX.Editor.Views
             vm.DeselectRequested += OnDeselectRequested;
             vm.OpenImageRequested += OnOpenImageRequested;
             vm.AddImageAnnotationRequested += OnAddImageAnnotationRequested;
+            vm.ZoomToFitRequested += OnZoomToFitRequested;
 
             if (vm.PreviewImage != null)
             {
@@ -244,6 +245,7 @@ namespace ShareX.Editor.Views
             vm.DeselectRequested -= OnDeselectRequested;
             vm.OpenImageRequested -= OnOpenImageRequested;
             vm.AddImageAnnotationRequested -= OnAddImageAnnotationRequested;
+            vm.ZoomToFitRequested -= OnZoomToFitRequested;
             _boundViewModel = null;
         }
         private void OnViewModelPropertyChanged(object? sender, PropertyChangedEventArgs e)
@@ -260,6 +262,7 @@ namespace ShareX.Editor.Views
                 }
                 else if (e.PropertyName == nameof(MainViewModel.PreviewImage))
                 {
+                    Console.WriteLine($"[DEBUG EditorView] PreviewImage property changed, _suppressPreviewImageReload: {_suppressPreviewImageReload}");
                     if (_suppressPreviewImageReload)
                     {
                         return;
@@ -268,10 +271,12 @@ namespace ShareX.Editor.Views
                     // During smart padding, use UpdateSourceImage to preserve history and annotations
                     if (vm.IsSmartPaddingInProgress)
                     {
+                        Console.WriteLine("[DEBUG EditorView] Smart padding in progress, calling UpdateSourceImageFromViewModel");
                         UpdateSourceImageFromViewModel(vm);
                     }
                     else
                     {
+                        Console.WriteLine("[DEBUG EditorView] Calling LoadImageFromViewModel");
                         LoadImageFromViewModel(vm);
                     }
                 }
@@ -313,6 +318,7 @@ namespace ShareX.Editor.Views
 
         private void LoadImageFromViewModel(MainViewModel vm)
         {
+            Console.WriteLine($"[DEBUG EditorView] LoadImageFromViewModel called, PreviewImage: {(vm.PreviewImage == null ? "NULL" : "SET")}");
             if (vm.PreviewImage == null || _canvasControl == null) return;
 
             // One-time conversion from Avalonia Bitmap to SKBitmap for the Core
@@ -320,11 +326,16 @@ namespace ShareX.Editor.Views
             using var skBitmap = BitmapConversionHelpers.ToSKBitmap(vm.PreviewImage);
             if (skBitmap != null)
             {
+                Console.WriteLine($"[DEBUG EditorView] Loading SKBitmap {skBitmap.Width}x{skBitmap.Height} into EditorCore");
                 // We must copy because ToSKBitmap might return a disposable wrapper or we need ownership
                 _editorCore.LoadImage(skBitmap.Copy());
                 
                 _canvasControl.Initialize(skBitmap.Width, skBitmap.Height);
                 RenderCore();
+            }
+            else
+            {
+                Console.WriteLine("[DEBUG EditorView] Failed to convert Avalonia Bitmap to SKBitmap");
             }
         }
 
@@ -1450,5 +1461,34 @@ namespace ShareX.Editor.Views
                 System.Diagnostics.Debug.WriteLine(message);
             }
         }
+
+
+        private void OnZoomToFitRequested(object? sender, EventArgs e)
+        {
+            var scrollViewer = this.FindControl<ScrollViewer>("CanvasScrollViewer");
+            if (scrollViewer == null || DataContext is not MainViewModel vm) return;
+            
+            // Get available size (use Bounds to account for visible area including scrollbars if any, but Viewport is better for content area)
+            // Wait, if we use Viewport, it changes as we zoom.
+            // Bounds is the size of the control on screen.
+            // We want to fit into the AVAILABLE space.
+            // Let's use Bounds.Width/Height minus some padding
+            
+            double availableWidth = scrollViewer.Bounds.Width - 40; // 20px padding each side
+            double availableHeight = scrollViewer.Bounds.Height - 40;
+            
+            if (availableWidth <= 0 || availableHeight <= 0) return;
+            if (vm.ImageWidth <= 0 || vm.ImageHeight <= 0) return;
+            
+            double zoomX = availableWidth / vm.ImageWidth;
+            double zoomY = availableHeight / vm.ImageHeight;
+            
+            // Use the smaller ratio to fit both dimensions
+            double fitZoom = Math.Min(zoomX, zoomY);
+            
+            // Clamp to reasonable limits if needed, but MainViewModel.Zoom setter handles Min/Max
+            vm.Zoom = fitZoom;
+        }
+
     }
 }

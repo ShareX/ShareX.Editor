@@ -89,7 +89,7 @@
         </Style>
 
         <Style Selector="Button.editor-button">
-            <Setter Property="Width" Value="40"/>
+            <Setter Property="MinWidth" Value="40"/>
             <Setter Property="Height" Value="40"/>
             <Setter Property="Background" Value="#2E2E2E"/>
             <Setter Property="BorderBrush" Value="#1F1F1F"/>
@@ -211,9 +211,14 @@
                         </MenuItem.Icon>
                     </MenuItem>
                     <MenuItem Header="Reset Zoom" Command="{Binding ResetZoomCommand}" InputGesture="Ctrl+0"/>
+                    <MenuItem Header="Zoom to Fit" Command="{Binding ZoomToFitCommand}" InputGesture="Ctrl+D9"/>
                     <Separator/>
+                    <MenuItem Header="50%" Command="{Binding SetZoomCommand}" CommandParameter="0.5"/>
+                    <MenuItem Header="75%" Command="{Binding SetZoomCommand}" CommandParameter="0.75"/>
                     <MenuItem Header="100%" Command="{Binding SetZoomCommand}" CommandParameter="1.0"/>
-                     <MenuItem Header="200%" Command="{Binding SetZoomCommand}" CommandParameter="2.0"/>
+                    <MenuItem Header="125%" Command="{Binding SetZoomCommand}" CommandParameter="1.25"/>
+                    <MenuItem Header="150%" Command="{Binding SetZoomCommand}" CommandParameter="1.5"/>
+                    <MenuItem Header="200%" Command="{Binding SetZoomCommand}" CommandParameter="2.0"/>
                 </MenuItem>
             </Menu>
         </Border>
