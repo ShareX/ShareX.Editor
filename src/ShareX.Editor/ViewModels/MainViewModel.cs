@@ -775,6 +775,10 @@ namespace ShareX.Editor.ViewModels
                     {
                         // Image already exists - show choice dialog
                         Console.WriteLine("[DEBUG] Image already exists, showing OpenImageChoiceDialog");
+                        
+                        // Ensure any previous modal content is cleared to detach it from visual tree
+                        ModalContent = null;
+                        
                         var dialog = new Views.Dialogs.OpenImageChoiceDialog();
                         
                         string? selectedPath = path; // Capture path for use in event handlers
