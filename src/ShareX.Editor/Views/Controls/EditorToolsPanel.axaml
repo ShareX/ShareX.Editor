@@ -1,0 +1,90 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:models="using:ShareX.Editor.Annotations"
+             xmlns:converters="using:ShareX.Editor.Converters"
+             xmlns:controls="using:ShareX.Editor.Controls"
+             mc:Ignorable="d" d:DesignWidth="200" d:DesignHeight="40"
+             x:Class="ShareX.Editor.Views.Controls.EditorToolsPanel"
+             x:Name="EditorToolsPanelRoot">
+
+    <UserControl.Resources>
+        <converters:EqualsConverter x:Key="EqualsConverter" />
+        <FontFamily x:Key="FontAwesome">avares://ShareX.Editor/Assets#Font Awesome 7 Free</FontFamily>
+        <x:String x:Key="IconCrop">&#xf125;</x:String>
+        <x:String x:Key="IconCutOut">&#xf0c4;</x:String>
+        <x:String x:Key="IconBackground">&#xf03e;</x:String>
+
+        <SolidColorBrush x:Key="TextColor">#E7E9EA</SolidColorBrush>
+        <LinearGradientBrush x:Key="AccentColor" StartPoint="0%,0%" EndPoint="100%,100%">
+            <GradientStop Color="#3E83F2" Offset="0"/>
+            <GradientStop Color="#3975D5" Offset="1"/>
+        </LinearGradientBrush>
+    </UserControl.Resources>
+
+    <UserControl.Styles>
+        <Style Selector="Button.editor-button">
+            <Setter Property="MinWidth" Value="40"/>
+            <Setter Property="Height" Value="40"/>
+            <Setter Property="Background" Value="#2E2E2E"/>
+            <Setter Property="BorderBrush" Value="#1F1F1F"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Foreground" Value="{StaticResource TextColor}"/>
+            <Setter Property="Padding" Value="8,6"/>
+            <Setter Property="CornerRadius" Value="4"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="HorizontalContentAlignment" Value="Center"/>
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
+
+            <Style Selector="^:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+                <Setter Property="BorderBrush" Value="#1F1F1F"/>
+                <Setter Property="BorderThickness" Value="1"/>
+            </Style>
+
+            <Style Selector="^:pressed">
+                <Setter Property="RenderTransform" Value="none"/>
+            </Style>
+
+            <Style Selector="^:pressed /template/ ContentPresenter#PART_ContentPresenter">
+                <Setter Property="BorderBrush" Value="#1F1F1F"/>
+                <Setter Property="BorderThickness" Value="1"/>
+            </Style>
+
+            <Style Selector="^.active">
+                <Setter Property="Background" Value="{StaticResource AccentColor}"/>
+            </Style>
+        </Style>
+    </UserControl.Styles>
+
+    <StackPanel Orientation="Horizontal" Spacing="4">
+        <!-- Crop Tool -->
+        <Button Classes="editor-button"
+                Classes.active="{Binding ActiveTool, Converter={StaticResource EqualsConverter}, ConverterParameter=Crop}"
+                Command="{Binding SelectToolCommand}" CommandParameter="{x:Static models:EditorTool.Crop}"
+                ToolTip.Tip="Crop (C)"
+                AutomationProperties.Name="Crop Tool"
+                FontFamily="{StaticResource FontAwesome}" FontWeight="Black" FontSize="16" Content="{StaticResource IconCrop}"/>
+
+        <!-- CutOut Tool -->
+        <Button Classes="editor-button"
+                Classes.active="{Binding ActiveTool, Converter={StaticResource EqualsConverter}, ConverterParameter=CutOut}"
+                Command="{Binding SelectToolCommand}" CommandParameter="{x:Static models:EditorTool.CutOut}"
+                ToolTip.Tip="Cut Out (U)"
+                AutomationProperties.Name="Cut Out Tool"
+                FontFamily="{StaticResource FontAwesome}" FontWeight="Black" FontSize="16" Content="{StaticResource IconCutOut}"/>
+
+        <!-- Background Settings -->
+        <Button Classes="editor-button"
+                Classes.active="{Binding IsSettingsPanelOpen}"
+                Command="{Binding ToggleSettingsPanelCommand}"
+                ToolTip.Tip="Background"
+                AutomationProperties.Name="Background Settings"
+                FontFamily="{StaticResource FontAwesome}" FontWeight="Black" FontSize="16" Content="{StaticResource IconBackground}"/>
+
+        <!-- Effects Menu Dropdown -->
+        <controls:EffectsMenuDropdown x:Name="EffectsMenuDropdown"
+            Height="40"
+            ToolTip.Tip="Effects"/>
+    </StackPanel>
+</UserControl>

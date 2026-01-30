@@ -42,6 +42,7 @@ using System.Linq; // Added for Enumerable.Select
 using ShareX.Editor.Views.Dialogs;
 using ShareX.Editor.ImageEffects;
 using ShareX.Editor.ImageEffects.Adjustments;
+using ShareX.Editor.Views.Controls;
 
 namespace ShareX.Editor.Views
 {
@@ -892,7 +893,7 @@ namespace ShareX.Editor.Views
             }
         }
 
-        private void OnShadowButtonClick(object? sender, global::Avalonia.Interactivity.RoutedEventArgs e)
+        private void OnShadowButtonClick(object? sender, EventArgs e)
         {
             if (DataContext is MainViewModel vm)
             {
