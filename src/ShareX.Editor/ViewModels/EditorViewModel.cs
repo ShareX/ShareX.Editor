@@ -20,7 +20,8 @@ public partial class EditorViewModel : ObservableObject
         public required IBrush Brush { get; init; }
     }
 
-    public EditorOptions Options => EditorOptions.Instance;
+    private readonly EditorOptions _options;
+    public EditorOptions Options => _options;
 
     private const double MinZoom = 0.25;
     private const double MaxZoom = 4.0;
@@ -232,8 +233,9 @@ public partial class EditorViewModel : ObservableObject
     [ObservableProperty]
     private BoxShadows _canvasShadow;
 
-    public EditorViewModel()
+    public EditorViewModel(EditorOptions? options = null)
     {
+        _options = options ?? new EditorOptions();
         GradientPresets = BuildGradientPresets();
         _canvasBackground = CopyBrush(GradientPresets[1].Brush);
         UpdateCanvasProperties();

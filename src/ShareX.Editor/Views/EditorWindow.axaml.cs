@@ -36,11 +36,15 @@ namespace ShareX.Editor.Views
         private readonly MainViewModel _viewModel;
         private string? _pendingFilePath;
 
-        public EditorWindow()
+        public EditorWindow() : this(null)
+        {
+        }
+
+        public EditorWindow(EditorOptions? options)
         {
             InitializeComponent();
 
-            _viewModel = new MainViewModel();
+            _viewModel = new MainViewModel(options);
             DataContext = _viewModel;
 
             // Defer image loading until EditorView is loaded and subscribed

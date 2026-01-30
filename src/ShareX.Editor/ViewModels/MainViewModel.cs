@@ -44,7 +44,8 @@ namespace ShareX.Editor.ViewModels
             public required IBrush Brush { get; init; }
         }
 
-        public EditorOptions Options => EditorOptions.Instance;
+        private readonly EditorOptions _options;
+        public EditorOptions Options => _options;
 
         private const string OutputRatioAuto = "Auto";
 
@@ -703,8 +704,9 @@ namespace ShareX.Editor.ViewModels
 
         public static MainViewModel Current { get; private set; } = null!;
 
-        public MainViewModel()
+        public MainViewModel(EditorOptions? options = null)
         {
+            _options = options ?? new EditorOptions();
             Current = this;
             GradientPresets = BuildGradientPresets();
             _canvasBackground = CopyBrush(GradientPresets[0].Brush);
