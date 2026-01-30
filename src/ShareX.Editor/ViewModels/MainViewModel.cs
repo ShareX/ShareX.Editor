@@ -153,16 +153,6 @@ namespace ShareX.Editor.ViewModels
         }
 
         [ObservableProperty]
-        private bool _isPinned;
-
-        [RelayCommand]
-        private void PinToScreen()
-        {
-            IsPinned = !IsPinned;
-            // Actual window topmost logic would be bound or handled in View code-behind
-        }
-
-        [ObservableProperty]
         private double _previewPadding = 30;
 
         [ObservableProperty]
@@ -1301,7 +1291,7 @@ namespace ShareX.Editor.ViewModels
         }
 
         [RelayCommand]
-        private async Task QuickSave()
+        private async Task Save()
         {
             // Try get flattened image first
             Bitmap? snapshot = null;
@@ -1384,6 +1374,12 @@ namespace ShareX.Editor.ViewModels
             {
                 DebugHelper.WriteLine($"File save failed (Save As): {ex.Message}");
             }
+        }
+
+        [RelayCommand]
+        private void PinToScreen()
+        {
+            // Actual window topmost logic would be bound or handled in View code-behind
         }
 
         [RelayCommand]

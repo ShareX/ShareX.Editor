@@ -660,7 +660,7 @@
                         <TextBlock Text="{StaticResource IconCopy}" FontSize="16" FontFamily="{StaticResource FontAwesome}" FontWeight="Black"/>
                     </Button>
 
-                    <Button Classes="editor-button" Command="{Binding QuickSaveCommand}" Width="40" Padding="0"
+                    <Button Classes="editor-button" Command="{Binding SaveCommand}" Width="40" Padding="0"
                             ToolTip.Tip="Save image" ToolTip.Placement="Top" ToolTip.VerticalOffset="-5">
                         <TextBlock Text="{StaticResource IconSave}" FontSize="16" FontFamily="{StaticResource FontAwesome}" FontWeight="Black"/>
                     </Button>
@@ -671,8 +671,7 @@
                     </Button>
 
                     <Button Classes="editor-button" Command="{Binding PinToScreenCommand}" Width="40" Padding="0"
-                            ToolTip.Tip="Pin image to screen" ToolTip.Placement="Top" ToolTip.VerticalOffset="-5"
-                            Classes.active="{Binding IsPinned}">
+                            ToolTip.Tip="Pin image to screen" ToolTip.Placement="Top" ToolTip.VerticalOffset="-5">
                         <TextBlock Text="{StaticResource IconThumbtack}" FontSize="16" FontFamily="{StaticResource FontAwesome}" FontWeight="Black"/>
                     </Button>
 

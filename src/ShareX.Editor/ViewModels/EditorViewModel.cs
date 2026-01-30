@@ -44,7 +44,7 @@ public partial class EditorViewModel : ObservableObject
     public event EventHandler? DeleteRequested;
     public event EventHandler? ClearAnnotationsRequested;
     public event EventHandler? CopyRequested;
-    public event EventHandler? QuickSaveRequested;
+    public event EventHandler? SaveRequested;
     public event EventHandler? SaveAsRequested;
     public event EventHandler<CropEventArgs>? CropRequested;
     public event EventHandler? ApplyEffectRequested;
@@ -292,7 +292,7 @@ public partial class EditorViewModel : ObservableObject
     private void Copy() => CopyRequested?.Invoke(this, EventArgs.Empty);
 
     [RelayCommand]
-    private void QuickSave() => QuickSaveRequested?.Invoke(this, EventArgs.Empty);
+    private void QuickSave() => SaveRequested?.Invoke(this, EventArgs.Empty);
 
     [RelayCommand]
     private void SaveAs() => SaveAsRequested?.Invoke(this, EventArgs.Empty);
