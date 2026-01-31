@@ -893,7 +893,7 @@ namespace ShareX.Editor.Views
             }
         }
 
-        private void OnShadowButtonClick(object? sender, EventArgs e)
+        private void OnShadowButtonClick(object? sender, RoutedEventArgs e)
         {
             if (DataContext is MainViewModel vm)
             {
