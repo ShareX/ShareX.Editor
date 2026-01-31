@@ -163,6 +163,7 @@ After creating `docs/jaex_feature_candidates.md`:
 - No UI removals, renames, or hiding; no regressions
 - No new warnings
 - No broken builds
+- Target framework must remain cross-platform (e.g. `net10.0`, NOT `net10.0-windows`)
  - If any conflict occurs, prefer `develop` behaviour across code and assets
 
 ## Geometry/parity protection (new)
@@ -176,6 +177,13 @@ If a `jaex` commit touches these areas, prefer **manual re-implementation** that
 If a `jaex` feature overlaps parity work (e.g., arrow/text/number/speech balloon geometry or
 `EditorView.axaml.cs` annotation restoration), treat the feature as **manual re-implementation** only.
 Cherry-pick is allowed only when it does not undo parity changes.
+
+### UI Component Protection
+The following files have diverged significantly from `jaex` and must **never** be overwritten by `jaex` files:
+- `src/ShareX.Editor/Views/Controls/AnnotationToolbar.axaml`
+- `src/ShareX.Editor/Views/Controls/EditorToolsPanel.axaml`
+
+If a feature involves these files, you must **manually implement** the feature in the local files. **Do not** replace them with files from `jaex`.
 
 ## Pre flight UI protection
 Before importing any approved feature:
@@ -216,6 +224,7 @@ For each approved feature:
  - **Geometry/parity overlap rule:** If changes touch annotation geometry/layout or shared helpers,
    do not accept `jaex` diffs that remove or bypass parity logic. Manually fold in the desired
    behavior while keeping the shared infrastructure intact.
+ - **Protected UI components:** `AnnotationToolbar.axaml` and `EditorToolsPanel.axaml` must **not** be replaced. Manually implement any new features for these controls.
 
 4. **Branch isolation rule (critical)**:
    - Do **NOT** merge these changes into `develop` locally before creating the PR.
@@ -241,6 +250,7 @@ After applying changes:
 - Run standard build
 - Run tests
 - Ensure zero new warnings
+- Verify `src/ShareX.Editor/ShareX.Editor.csproj` TargetFramework does NOT contain `-windows`
 
 5. Verify Image Effects.
    - Ensure all `ImageEffect` classes have public parameterless constructors.
