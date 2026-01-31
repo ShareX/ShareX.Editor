@@ -8,7 +8,6 @@
              xmlns:converters="using:ShareX.Editor.Converters"
              xmlns:helpers="using:ShareX.Editor.Helpers"
              xmlns:controls="using:ShareX.Editor.Controls"
-             xmlns:viewcontrols="using:ShareX.Editor.Views.Controls"
              mc:Ignorable="d" d:DesignWidth="1200" d:DesignHeight="800"
              x:Class="ShareX.Editor.Views.EditorView"
              Focusable="True">
@@ -58,8 +57,9 @@
             <GradientStop Color="#3E83F2" Offset="0"/>
             <GradientStop Color="#3975D5" Offset="1"/>
         </LinearGradientBrush>
-        <SolidColorBrush x:Key="TextColor">#E7E9EA</SolidColorBrush>
-        <SolidColorBrush x:Key="BorderColor">#1F1F1F</SolidColorBrush>
+        <!-- Map local keys to Fluent Theme Resources for dynamic theming -->
+        <SolidColorBrush x:Key="TextColor" Color="{DynamicResource TextFillColorPrimary}"/>
+        <SolidColorBrush x:Key="BorderColor" Color="{DynamicResource SurfaceStrokeColorDefault}"/>
 
         <DrawingBrush x:Key="CheckeredBrush" TileMode="Tile" SourceRect="0,0,30,30" DestinationRect="0,0,30,30">
             <DrawingBrush.Drawing>
@@ -92,10 +92,10 @@
         <Style Selector="Button.editor-button">
             <Setter Property="MinWidth" Value="40"/>
             <Setter Property="Height" Value="40"/>
-            <Setter Property="Background" Value="#2E2E2E"/>
-            <Setter Property="BorderBrush" Value="#1F1F1F"/>
+            <Setter Property="Background" Value="{DynamicResource ControlFillColorDefaultBrush}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource ControlStrokeColorDefaultBrush}"/>
             <Setter Property="BorderThickness" Value="1"/>
-            <Setter Property="Foreground" Value="{StaticResource TextColor}"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextFillColorPrimaryBrush}"/>
             <Setter Property="Padding" Value="8,6"/>
             <Setter Property="CornerRadius" Value="4"/>
             <Setter Property="FontSize" Value="12"/>
@@ -103,7 +103,8 @@
             <Setter Property="VerticalContentAlignment" Value="Center"/>
 
             <Style Selector="^:pointerover /template/ ContentPresenter#PART_ContentPresenter">
-                <Setter Property="BorderBrush" Value="#1F1F1F"/>
+                <Setter Property="Background" Value="{DynamicResource ControlFillColorSecondaryBrush}"/>
+                <Setter Property="BorderBrush" Value="{DynamicResource ControlStrokeColorSecondaryBrush}"/>
                 <Setter Property="BorderThickness" Value="1"/>
             </Style>
 
@@ -112,18 +113,21 @@
             </Style>
 
             <Style Selector="^:pressed /template/ ContentPresenter#PART_ContentPresenter">
-                <Setter Property="BorderBrush" Value="#1F1F1F"/>
+                <Setter Property="Background" Value="{DynamicResource ControlFillColorTertiaryBrush}"/>
+                <Setter Property="BorderBrush" Value="{DynamicResource ControlStrokeColorDefaultBrush}"/>
                 <Setter Property="BorderThickness" Value="1"/>
             </Style>
 
             <Style Selector="^.active">
                 <Setter Property="Background" Value="{StaticResource AccentColor}"/>
+                <Setter Property="Foreground" Value="White"/>
+                <Setter Property="BorderBrush" Value="Transparent"/>
             </Style>
         </Style>
 
         <Style Selector="Border.popup-border">
-            <Setter Property="Background" Value="#2E2E2E"/>
-            <Setter Property="BorderBrush" Value="#1F1F1F"/>
+            <Setter Property="Background" Value="{DynamicResource SolidBackgroundFillColorBaseBrush}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource SurfaceStrokeColorDefaultBrush}"/>
             <Setter Property="BorderThickness" Value="1"/>
             <Setter Property="CornerRadius" Value="4"/>
             <Setter Property="Padding" Value="8"/>
@@ -135,7 +139,7 @@
 
             <Style Selector="^ /template/ Thumb">
                 <Setter Property="Background" Value="{StaticResource AccentColor}"/>
-                <Setter Property="BorderBrush" Value="#2E2E2E"/>
+                <Setter Property="BorderBrush" Value="{DynamicResource ControlFillColorDefaultBrush}"/>
                 <Setter Property="BorderThickness" Value="4"/>
             </Style>
 
@@ -163,7 +167,7 @@
 
     <Grid RowDefinitions="Auto,Auto,*">
         <!-- Row 0: Menu Bar -->
-        <Border Grid.Row="0" Background="#2E2E2E">
+        <Border Grid.Row="0" Background="{DynamicResource SolidBackgroundFillColorBaseBrush}">
             <Menu Background="Transparent">
                 <MenuItem Header="File">
                     <MenuItem Header="Open file..." Command="{Binding OpenImageCommand}" InputGesture="Ctrl+O">
@@ -224,64 +228,249 @@
             </Menu>
         </Border>
 
-        <!-- Row 1: Annotation Toolbar with Editor Tools Panel injected -->
-        <viewcontrols:AnnotationToolbar x:Name="AnnotationToolbarControl" Grid.Row="1"
-            ColorChanged="OnColorChanged"
-            FillColorChanged="OnFillColorChanged"
-            WidthChanged="OnWidthChanged"
-            FontSizeChanged="OnFontSizeChanged"
-            StrengthChanged="OnStrengthChanged"
-            ShadowButtonClick="OnShadowButtonClick">
-            <viewcontrols:AnnotationToolbar.ExtensionContent>
-                <viewcontrols:EditorToolsPanel x:Name="EditorToolsPanelControl"
-                    ResizeImageRequested="OnResizeImageRequested"
-                    ResizeCanvasRequested="OnResizeCanvasRequested"
-                    CropImageRequested="OnCropImageRequested"
-                    AutoCropImageRequested="OnAutoCropImageRequested"
-                    Rotate90CWRequested="OnRotate90CWRequested"
-                    Rotate90CCWRequested="OnRotate90CCWRequested"
-                    Rotate180Requested="OnRotate180Requested"
-                    RotateCustomAngleRequested="OnRotateCustomAngleRequested"
-                    FlipHorizontalRequested="OnFlipHorizontalRequested"
-                    FlipVerticalRequested="OnFlipVerticalRequested"
-                    BrightnessRequested="OnBrightnessRequested"
-                    ContrastRequested="OnContrastRequested"
-                    HueRequested="OnHueRequested"
-                    SaturationRequested="OnSaturationRequested"
-                    GammaRequested="OnGammaRequested"
-                    AlphaRequested="OnAlphaRequested"
-                    ColorizeRequested="OnColorizeRequested"
-                    SelectiveColorRequested="OnSelectiveColorRequested"
-                    ReplaceColorRequested="OnReplaceColorRequested"
-                    GrayscaleRequested="OnGrayscaleRequested"
-                    InvertRequested="OnInvertRequested"
-                    BlackAndWhiteRequested="OnBlackAndWhiteRequested"
-                    SepiaRequested="OnSepiaRequested"
-                    PolaroidRequested="OnPolaroidRequested"
-                    BorderRequested="OnBorderRequested"
-                    OutlineRequested="OnOutlineRequested"
-                    ShadowRequested="OnShadowRequested"
-                    GlowRequested="OnGlowRequested"
-                    ReflectionRequested="OnReflectionRequested"
-                    TornEdgeRequested="OnTornEdgeRequested"
-                    SliceRequested="OnSliceRequested"
-                    RoundedCornersRequested="OnRoundedCornersRequested"
-                    SkewRequested="OnSkewRequested"
-                    Rotate3DRequested="OnRotate3DRequested"
-                    BlurRequested="OnBlurRequested"
-                    PixelateRequested="OnPixelateRequested"
-                    SharpenRequested="OnSharpenRequested"
-                    ImportPresetRequested="OnImportPresetRequested"
-                    ExportPresetRequested="OnExportPresetRequested"/>
-            </viewcontrols:AnnotationToolbar.ExtensionContent>
-        </viewcontrols:AnnotationToolbar>
+        <!-- Row 1: Annotation Toolbar (single row with all tools and controls) -->
+        <Border Grid.Row="1" Padding="0" Background="{DynamicResource SolidBackgroundFillColorSecondaryBrush}" BorderBrush="{DynamicResource SurfaceStrokeColorDefaultBrush}" BorderThickness="0,0,0,1">
+            <ScrollViewer x:Name="ToolbarScrollViewer" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled" ScrollChanged="OnToolbarScrollChanged">
+                <StackPanel Orientation="Horizontal" Spacing="4" Margin="0,8,8,8">
+                    <!-- Drawing Tools -->
+                    <Button Classes="editor-button"
+                            Classes.active="{Binding ActiveTool, Converter={StaticResource EqualsConverter}, ConverterParameter=Select}"
+                            Command="{Binding SelectToolCommand}" CommandParameter="{x:Static models:EditorTool.Select}"
+                            ToolTip.Tip="Select (V)"
+                            AutomationProperties.Name="Select Tool"
+                            FontFamily="{StaticResource FontAwesome}" FontWeight="Black" FontSize="16" Content="{StaticResource IconSelect}"/>
+                    <Button Classes="editor-button"
+                            Classes.active="{Binding ActiveTool, Converter={StaticResource EqualsConverter}, ConverterParameter=Rectangle}"
+                            Command="{Binding SelectToolCommand}" CommandParameter="{x:Static models:EditorTool.Rectangle}"
+                            ToolTip.Tip="Rectangle (R)"
+                            AutomationProperties.Name="Rectangle Tool"
+                            FontFamily="{StaticResource FontAwesome}" FontWeight="Black" FontSize="16" Content="{StaticResource IconRectangle}"/>
+                    <Button Classes="editor-button"
+                            Classes.active="{Binding ActiveTool, Converter={StaticResource EqualsConverter}, ConverterParameter=Ellipse}"
+                            Command="{Binding SelectToolCommand}" CommandParameter="{x:Static models:EditorTool.Ellipse}"
+                            ToolTip.Tip="Ellipse (E)"
+                            AutomationProperties.Name="Ellipse Tool"
+                            FontFamily="{StaticResource FontAwesome}" FontWeight="Black" FontSize="16" Content="{StaticResource IconEllipse}"/>
+                    <Button Classes="editor-button"
+                            Classes.active="{Binding ActiveTool, Converter={StaticResource EqualsConverter}, ConverterParameter=Line}"
+                            Command="{Binding SelectToolCommand}" CommandParameter="{x:Static models:EditorTool.Line}"
+                            ToolTip.Tip="Line (L)"
+                            AutomationProperties.Name="Line Tool"
+                            FontFamily="{StaticResource FontAwesome}" FontWeight="Black" FontSize="16" Content="{StaticResource IconLine}"/>
+                    <Button Classes="editor-button"
+                            Classes.active="{Binding ActiveTool, Converter={StaticResource EqualsConverter}, ConverterParameter=Arrow}"
+                            Command="{Binding SelectToolCommand}" CommandParameter="{x:Static models:EditorTool.Arrow}"
+                            ToolTip.Tip="Arrow (A)"
+                            AutomationProperties.Name="Arrow Tool"
+                            FontFamily="{StaticResource FontAwesome}" FontWeight="Black" FontSize="16" Content="{StaticResource IconArrow}"/>
+                    <Button Classes="editor-button"
+                            Classes.active="{Binding ActiveTool, Converter={StaticResource EqualsConverter}, ConverterParameter=Pen}"
+                            Command="{Binding SelectToolCommand}" CommandParameter="{x:Static models:EditorTool.Pen}"
+                            ToolTip.Tip="Freehand (P)"
+                            AutomationProperties.Name="Freehand Pen Tool"
+                            FontFamily="{StaticResource FontAwesome}" FontWeight="Black" FontSize="16" Content="{StaticResource IconPen}"/>
+                    <Button Classes="editor-button"
+                            Classes.active="{Binding ActiveTool, Converter={StaticResource EqualsConverter}, ConverterParameter=Highlighter}"
+                            Command="{Binding SelectToolCommand}" CommandParameter="{x:Static models:EditorTool.Highlighter}"
+                            ToolTip.Tip="Highlighter (H)"
+                            AutomationProperties.Name="Highlighter Tool"
+                            FontFamily="{StaticResource FontAwesome}" FontWeight="Black" FontSize="16" Content="{StaticResource IconHighlighter}"/>
+                    <Button Classes="editor-button"
+                            Classes.active="{Binding ActiveTool, Converter={StaticResource EqualsConverter}, ConverterParameter=Text}"
+                            Command="{Binding SelectToolCommand}" CommandParameter="{x:Static models:EditorTool.Text}"
+                            ToolTip.Tip="Text (T)"
+                            AutomationProperties.Name="Text Tool"
+                            FontFamily="{StaticResource FontAwesome}" FontWeight="Black" FontSize="16" Content="{StaticResource IconText}"/>
+                    <Button Classes="editor-button"
+                            Classes.active="{Binding ActiveTool, Converter={StaticResource EqualsConverter}, ConverterParameter=SpeechBalloon}"
+                            Command="{Binding SelectToolCommand}" CommandParameter="{x:Static models:EditorTool.SpeechBalloon}"
+                            ToolTip.Tip="Speech Balloon (B)"
+                            AutomationProperties.Name="Speech Balloon Tool"
+                            FontFamily="{StaticResource FontAwesome}" FontWeight="Black" FontSize="16" Content="{StaticResource IconSpeechBalloon}"/>
+                    <Button Classes="editor-button"
+                            Classes.active="{Binding ActiveTool, Converter={StaticResource EqualsConverter}, ConverterParameter=Number}"
+                            Command="{Binding SelectToolCommand}" CommandParameter="{x:Static models:EditorTool.Number}"
+                            ToolTip.Tip="Step/Number (N)"
+                            AutomationProperties.Name="Step Number Tool"
+                            FontFamily="{StaticResource FontAwesome}" FontWeight="Black" FontSize="16" Content="{StaticResource IconNumber}"/>
+                    <Button Classes="editor-button"
+                            Classes.active="{Binding ActiveTool, Converter={StaticResource EqualsConverter}, ConverterParameter=Blur}"
+                            Command="{Binding SelectToolCommand}" CommandParameter="{x:Static models:EditorTool.Blur}"
+                            ToolTip.Tip="Blur Region"
+                            AutomationProperties.Name="Blur Tool"
+                            FontFamily="{StaticResource FontAwesome}" FontWeight="Black" FontSize="16" Content="{StaticResource IconBlur}"/>
+                    <Button Classes="editor-button"
+                            Classes.active="{Binding ActiveTool, Converter={StaticResource EqualsConverter}, ConverterParameter=Pixelate}"
+                            Command="{Binding SelectToolCommand}" CommandParameter="{x:Static models:EditorTool.Pixelate}"
+                            ToolTip.Tip="Pixelate Region"
+                            AutomationProperties.Name="Pixelate Tool"
+                            FontFamily="{StaticResource FontAwesome}" FontWeight="Black" FontSize="16" Content="{StaticResource IconPixelate}"/>
+                    <Button Classes="editor-button"
+                            Classes.active="{Binding ActiveTool, Converter={StaticResource EqualsConverter}, ConverterParameter=Magnify}"
+                            Command="{Binding SelectToolCommand}" CommandParameter="{x:Static models:EditorTool.Magnify}"
+                            ToolTip.Tip="Magnifier (M)"
+                            AutomationProperties.Name="Magnifier Tool"
+                            FontFamily="{StaticResource FontAwesome}" FontWeight="Black" FontSize="16" Content="{StaticResource IconMagnify}"/>
+                    <Button Classes="editor-button"
+                            Classes.active="{Binding ActiveTool, Converter={StaticResource EqualsConverter}, ConverterParameter=Spotlight}"
+                            Command="{Binding SelectToolCommand}" CommandParameter="{x:Static models:EditorTool.Spotlight}"
+                            ToolTip.Tip="Spotlight (S)"
+                            AutomationProperties.Name="Spotlight Tool"
+                            FontFamily="{StaticResource FontAwesome}" FontWeight="Black" FontSize="16" Content="{StaticResource IconSpotlight}"/>
+                    <Button Classes="editor-button"
+                            Classes.active="{Binding ActiveTool, Converter={StaticResource EqualsConverter}, ConverterParameter=SmartEraser}"
+                            Command="{Binding SelectToolCommand}" CommandParameter="{x:Static models:EditorTool.SmartEraser}"
+                            ToolTip.Tip="Smart Eraser"
+                            AutomationProperties.Name="Smart Eraser Tool"
+                            FontFamily="{StaticResource FontAwesome}" FontWeight="Black" FontSize="16" Content="{StaticResource IconSmartEraser}"/>
+                    <Button Classes="editor-button"
+                            Classes.active="{Binding ActiveTool, Converter={StaticResource EqualsConverter}, ConverterParameter=Crop}"
+                            Command="{Binding SelectToolCommand}" CommandParameter="{x:Static models:EditorTool.Crop}"
+                            ToolTip.Tip="Crop (C)"
+                            AutomationProperties.Name="Crop Tool"
+                            FontFamily="{StaticResource FontAwesome}" FontWeight="Black" FontSize="16" Content="{StaticResource IconCrop}"/>
+                    <Button Classes="editor-button"
+                            Classes.active="{Binding ActiveTool, Converter={StaticResource EqualsConverter}, ConverterParameter=CutOut}"
+                            Command="{Binding SelectToolCommand}" CommandParameter="{x:Static models:EditorTool.CutOut}"
+                            ToolTip.Tip="Cut Out (U)"
+                            AutomationProperties.Name="Cut Out Tool"
+                            FontFamily="{StaticResource FontAwesome}" FontWeight="Black" FontSize="16" Content="{StaticResource IconCutOut}"/>
+                    <Button Classes="editor-button"
+                            Classes.active="{Binding IsSettingsPanelOpen}"
+                            Command="{Binding ToggleSettingsPanelCommand}"
+                            ToolTip.Tip="Background"
+                            AutomationProperties.Name="Background Settings"
+                            FontFamily="{StaticResource FontAwesome}" FontWeight="Black" FontSize="16" Content="{StaticResource IconBackground}"/>
+
+                    <!-- Effects Menu Dropdown -->
+                    <controls:EffectsMenuDropdown x:Name="EffectsMenuDropdown"
+                        Height="40"
+                        ToolTip.Tip="Effects"
+                        ResizeImageRequested="OnResizeImageRequested"
+                        ResizeCanvasRequested="OnResizeCanvasRequested"
+                        CropImageRequested="OnCropImageRequested"
+                        AutoCropImageRequested="OnAutoCropImageRequested"
+                        Rotate90CWRequested="OnRotate90CWRequested"
+                        Rotate90CCWRequested="OnRotate90CCWRequested"
+                        Rotate180Requested="OnRotate180Requested"
+                        RotateCustomAngleRequested="OnRotateCustomAngleRequested"
+                        FlipHorizontalRequested="OnFlipHorizontalRequested"
+                        FlipVerticalRequested="OnFlipVerticalRequested"
+                        BrightnessRequested="OnBrightnessRequested"
+                        ContrastRequested="OnContrastRequested"
+                        HueRequested="OnHueRequested"
+                        SaturationRequested="OnSaturationRequested"
+                        GammaRequested="OnGammaRequested"
+                        AlphaRequested="OnAlphaRequested"
+                        ColorizeRequested="OnColorizeRequested"
+                        SelectiveColorRequested="OnSelectiveColorRequested"
+                        ReplaceColorRequested="OnReplaceColorRequested"
+                        GrayscaleRequested="OnGrayscaleRequested"
+                        InvertRequested="OnInvertRequested"
+                        BlackAndWhiteRequested="OnBlackAndWhiteRequested"
+                        SepiaRequested="OnSepiaRequested"
+                        PolaroidRequested="OnPolaroidRequested"
+                        BorderRequested="OnBorderRequested"
+                        OutlineRequested="OnOutlineRequested"
+                        ShadowRequested="OnShadowRequested"
+                        GlowRequested="OnGlowRequested"
+                        ReflectionRequested="OnReflectionRequested"
+                        TornEdgeRequested="OnTornEdgeRequested"
+                        SliceRequested="OnSliceRequested"
+                        RoundedCornersRequested="OnRoundedCornersRequested"
+                        SkewRequested="OnSkewRequested"
+                        Rotate3DRequested="OnRotate3DRequested"
+                        BlurRequested="OnBlurRequested"
+                        PixelateRequested="OnPixelateRequested"
+                        SharpenRequested="OnSharpenRequested"
+                        ImportPresetRequested="OnImportPresetRequested"
+                        ExportPresetRequested="OnExportPresetRequested"/>
+
+                    <!-- Separator -->
+                    <Border Width="1" Height="40" Background="{DynamicResource SurfaceStrokeColorDefaultBrush}" Margin="4,0"/>
+
+                    <!-- Border Color Picker Dropdown -->
+                    <controls:ColorPickerDropdown x:Name="ColorPickerDropdown"
+                        SelectedColor="{Binding SelectedColorBrush}"
+                        ColorChanged="OnColorChanged"
+                        Height="40"
+                        IsVisible="{Binding ShowBorderColor}"
+                        ToolTip.Tip="Border Color"/>
+
+                    <!-- Fill Color Picker Dropdown -->
+                    <controls:ColorPickerDropdown x:Name="FillColorPickerDropdown"
+                        SelectedColor="{Binding FillColorBrush}"
+                        ColorChanged="OnFillColorChanged"
+                        Height="40"
+                        IsVisible="{Binding ShowFillColor}"
+                        ToolTip.Tip="Fill Color"/>
+
+                    <!-- Thickness Picker Dropdown -->
+                    <controls:WidthPickerDropdown
+                        SelectedWidth="{Binding StrokeWidth}"
+                        WidthChanged="OnWidthChanged"
+                        Height="40"
+                        IsVisible="{Binding ShowThickness}"
+                        ToolTip.Tip="Thickness"/>
+
+                    <!-- Font Size Picker Dropdown -->
+                    <controls:FontSizePickerDropdown
+                        SelectedFontSize="{Binding FontSize}"
+                        FontSizeChanged="OnFontSizeChanged"
+                        Height="40"
+                        IsVisible="{Binding ShowFontSize}"
+                        ToolTip.Tip="Font Size"/>
+
+                    <!-- Strength Slider -->
+                    <controls:StrengthSlider
+                        SelectedStrength="{Binding EffectStrength}"
+                        StrengthChanged="OnStrengthChanged"
+                        IsVisible="{Binding ShowStrength}"
+                        ToolTip.Tip="Effect Strength"/>
+
+                    <!-- Shadow Toggle Button -->
+                    <Button Classes="editor-button" Width="40" Height="40"
+                            Classes.active="{Binding ShadowEnabled}"
+                            Click="OnShadowButtonClick"
+                            IsVisible="{Binding ShowShadow}"
+                            ToolTip.Tip="Toggle Shadow"
+                            FontFamily="{StaticResource FontAwesome}" FontWeight="Black" FontSize="16" Content="{StaticResource IconMoon}"/>
+
+                    <!-- Separator -->
+                    <Border Width="1" Height="40" Background="{DynamicResource SurfaceStrokeColorDefaultBrush}" Margin="4,0"/>
+
+                    <!-- Undo Button -->
+                    <Button Classes="editor-button"
+                            Command="{Binding UndoCommand}" ToolTip.Tip="Undo (Ctrl+Z)"
+                            FontFamily="{StaticResource FontAwesome}" FontWeight="Black" FontSize="16" Content="{StaticResource IconUndo}"/>
+
+                    <!-- Redo Button -->
+                    <Button Classes="editor-button" Width="40" Height="40"
+                            Command="{Binding RedoCommand}" ToolTip.Tip="Redo (Ctrl+Y)"
+                            FontFamily="{StaticResource FontAwesome}" FontWeight="Black" FontSize="16" Content="{StaticResource IconRedo}"/>
+
+                    <!-- Separator -->
+                    <Border Width="1" Height="40" Background="{DynamicResource SurfaceStrokeColorDefaultBrush}" Margin="4,0"/>
+
+                    <!-- Delete Button -->
+                    <Button Classes="editor-button" Width="40" Height="40"
+                            Command="{Binding DeleteSelectedCommand}" ToolTip.Tip="Delete Selected (Del)"
+                            FontFamily="{StaticResource FontAwesome}" FontWeight="Black" FontSize="16" Content="{StaticResource IconDelete}"/>
+
+                    <!-- Clear Button -->
+                    <Button Classes="editor-button"
+                            Command="{Binding ClearAnnotationsCommand}" ToolTip.Tip="Clear all annotations"
+                            FontFamily="{StaticResource FontAwesome}" FontWeight="Black" FontSize="16" Content="{StaticResource IconClear}"/>
+                </StackPanel>
+            </ScrollViewer>
+        </Border>
 
         <!-- Row 2: Main Content Area with Preview and Sidebar -->
-        <Grid Grid.Row="2" ColumnDefinitions="Auto,*,Auto" Background="#272727">
+        <Grid Grid.Row="2" ColumnDefinitions="Auto,*,Auto" Background="{DynamicResource LayerFillColorDefaultBrush}">
 
             <!-- Left Sidebar (Settings Panel) -->
-            <Border Grid.Column="0" Padding="0" IsVisible="{Binding IsSettingsPanelOpen}" Background="#242424"
-                    BorderBrush="#1F1F1F" BorderThickness="0,0,1,0">
+            <Border Grid.Column="0" Padding="0" IsVisible="{Binding IsSettingsPanelOpen}" Background="{DynamicResource SolidBackgroundFillColorTertiaryBrush}"
+                    BorderBrush="{DynamicResource SurfaceStrokeColorDefaultBrush}" BorderThickness="0,0,1,0">
                 <ScrollViewer x:Name="SidebarScrollViewer" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto"
                               ScrollChanged="OnSidebarScrollChanged">
                     <StackPanel Width="220" Spacing="16" Margin="16">
@@ -289,7 +478,7 @@
                         <!-- Margin Slider -->
                         <StackPanel Spacing="0">
                             <Grid ColumnDefinitions="*,Auto">
-                                <TextBlock Grid.Column="0" Text="Margin" Foreground="#9CA3AF"/>
+                                <TextBlock Grid.Column="0" Text="Margin" Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
                                 <Border Grid.Column="1" Classes="capsule">
                                     <TextBlock Text="{Binding PreviewPadding, StringFormat='{}{0:F0} px'}"/>
                                 </Border>
@@ -303,7 +492,7 @@
                         <!-- Padding Slider -->
                         <StackPanel Spacing="0">
                             <Grid ColumnDefinitions="*,Auto">
-                                <TextBlock Grid.Column="0" Text="Padding" Foreground="#9CA3AF"/>
+                                <TextBlock Grid.Column="0" Text="Padding" Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
                                 <Border Grid.Column="1" Classes="capsule">
                                     <TextBlock Text="{Binding SmartPadding, StringFormat='{}{0:F0} px'}"/>
                                 </Border>
@@ -314,7 +503,7 @@
                                     Background="#374151"/>
                             <!-- Smart Padding Checkbox -->
                             <CheckBox IsChecked="{Binding UseSmartPadding}"
-                                      Foreground="#9CA3AF"
+                                      Foreground="{DynamicResource TextFillColorSecondaryBrush}"
                                       Content="Smart Padding"
                                       Margin="0,0,0,8"/>
                         </StackPanel>
@@ -322,7 +511,7 @@
                         <!-- Rounded Corner Slider -->
                         <StackPanel Spacing="0">
                             <Grid ColumnDefinitions="*,Auto">
-                                <TextBlock Grid.Column="0" Text="Rounded Corner" Foreground="#9CA3AF"/>
+                                <TextBlock Grid.Column="0" Text="Rounded Corner" Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
                                 <Border Grid.Column="1" Classes="capsule">
                                     <TextBlock Text="{Binding PreviewCornerRadius, StringFormat='{}{0:F0} px'}"/>
                                 </Border>
@@ -336,7 +525,7 @@
                         <!-- Shadow Slider -->
                         <StackPanel Spacing="0">
                             <Grid ColumnDefinitions="*,Auto">
-                                <TextBlock Grid.Column="0" Text="Shadow" Foreground="#9CA3AF"/>
+                                <TextBlock Grid.Column="0" Text="Shadow" Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
                                 <Border Grid.Column="1" Classes="capsule">
                                     <TextBlock Text="{Binding ShadowBlur, StringFormat='{}{0:F0} px'}"/>
                                 </Border>
@@ -349,7 +538,7 @@
 
                         <!-- Ratio -->
                         <StackPanel Spacing="0">
-                            <TextBlock Text="Ratio" Foreground="#9CA3AF" Margin="0,0,0,8"/>
+                            <TextBlock Text="Ratio" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,0,0,8"/>
                             <Grid RowDefinitions="Auto,Auto,Auto" ColumnDefinitions="*,*,*">
                                 <Grid.Styles>
                                     <Style Selector="Button.editor-button">
@@ -414,7 +603,7 @@
 
                         <!-- Background -->
                         <StackPanel Spacing="0">
-                            <TextBlock Text="Background" Foreground="#9CA3AF" Margin="0,8"/>
+                            <TextBlock Text="Background" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,8"/>
                             <ItemsControl ItemsSource="{Binding GradientPresets}">
                                 <ItemsControl.ItemsPanel>
                                     <ItemsPanelTemplate>
@@ -522,8 +711,8 @@
             </Grid>
 
             <!-- Right Sidebar (Effects Panel) -->
-            <Border Grid.Column="2" Padding="0" IsVisible="{Binding IsEffectsPanelOpen}" Background="#242424"
-                    BorderBrush="#1F1F1F" BorderThickness="1,0,0,0">
+            <Border Grid.Column="2" Padding="0" IsVisible="{Binding IsEffectsPanelOpen}" Background="{DynamicResource SolidBackgroundFillColorTertiaryBrush}"
+                    BorderBrush="{DynamicResource SurfaceStrokeColorDefaultBrush}" BorderThickness="1,0,0,0">
                 <Grid>
                      <Grid.RowDefinitions>
                          <RowDefinition Height="*" />
