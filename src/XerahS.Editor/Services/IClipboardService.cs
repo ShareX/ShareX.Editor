@@ -25,7 +25,7 @@
 
 using SkiaSharp;
 
-namespace ShareX.Editor.Services;
+namespace XerahS.Editor.Services;
 
 /// <summary>
 /// Interface for clipboard operations. Host applications should provide an implementation.

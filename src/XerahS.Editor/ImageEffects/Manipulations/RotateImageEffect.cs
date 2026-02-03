@@ -1,8 +1,8 @@
 using Newtonsoft.Json;
 using SkiaSharp;
-using ShareX.Editor.Helpers;
+using XerahS.Editor.Helpers;
 
-namespace ShareX.Editor.ImageEffects.Manipulations;
+namespace XerahS.Editor.ImageEffects.Manipulations;
 
 public class RotateImageEffect : ImageEffect
 {

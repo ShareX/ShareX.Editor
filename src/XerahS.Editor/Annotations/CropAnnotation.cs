@@ -25,7 +25,7 @@
 
 using SkiaSharp;
 
-namespace ShareX.Editor.Annotations;
+namespace XerahS.Editor.Annotations;
 
 /// <summary>
 /// Crop annotation - modifies the image dimensions

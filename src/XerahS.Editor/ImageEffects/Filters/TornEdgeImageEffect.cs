@@ -1,8 +1,8 @@
-using ShareX.Editor.Helpers;
+using XerahS.Editor.Helpers;
 using SkiaSharp;
 using System.Collections.Generic;
 
-namespace ShareX.Editor.ImageEffects.Filters;
+namespace XerahS.Editor.ImageEffects.Filters;
 
 public class TornEdgeImageEffect : ImageEffect
 {

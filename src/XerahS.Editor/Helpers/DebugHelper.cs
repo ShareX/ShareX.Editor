@@ -25,7 +25,7 @@
 
 using System.Diagnostics;
 
-namespace ShareX.Editor.Helpers;
+namespace XerahS.Editor.Helpers;
 
 /// <summary>
 /// Simple debug helper for logging within the Editor library.

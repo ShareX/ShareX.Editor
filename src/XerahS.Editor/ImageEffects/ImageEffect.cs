@@ -1,6 +1,6 @@
 using SkiaSharp;
 
-namespace ShareX.Editor.ImageEffects;
+namespace XerahS.Editor.ImageEffects;
 
 public abstract class ImageEffect
 {

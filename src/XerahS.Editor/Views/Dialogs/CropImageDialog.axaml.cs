@@ -3,7 +3,7 @@ using Avalonia.Controls;
 using Avalonia.Interactivity;
 using Avalonia.Markup.Xaml;
 
-namespace ShareX.Editor.Views.Dialogs
+namespace XerahS.Editor.Views.Dialogs
 {
     public partial class CropImageDialog : UserControl
     {

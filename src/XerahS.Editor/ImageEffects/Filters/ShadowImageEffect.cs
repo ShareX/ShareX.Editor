@@ -1,7 +1,7 @@
-using ShareX.Editor.Helpers;
+using XerahS.Editor.Helpers;
 using SkiaSharp;
 
-namespace ShareX.Editor.ImageEffects.Filters;
+namespace XerahS.Editor.ImageEffects.Filters;
 
 public class ShadowImageEffect : ImageEffect
 {

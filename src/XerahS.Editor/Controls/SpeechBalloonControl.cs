@@ -26,10 +26,10 @@
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Media;
-using ShareX.Editor.Annotations;
+using XerahS.Editor.Annotations;
 using SkiaSharp;
 
-namespace ShareX.Editor.Controls
+namespace XerahS.Editor.Controls
 {
     /// <summary>
     /// Custom control for rendering a speech balloon with a draggable tail using Avalonia Path

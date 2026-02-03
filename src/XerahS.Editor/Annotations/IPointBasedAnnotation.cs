@@ -25,7 +25,7 @@
 
 using SkiaSharp;
 
-namespace ShareX.Editor.Annotations;
+namespace XerahS.Editor.Annotations;
 
 /// <summary>
 /// Interface for annotations that store a collection of points (freehand, polyline, etc.)

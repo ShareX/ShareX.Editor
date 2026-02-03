@@ -3,7 +3,7 @@ using Avalonia.Controls;
 using Avalonia.Media;
 using SkiaSharp;
 
-namespace ShareX.Editor.Annotations;
+namespace XerahS.Editor.Annotations;
 
 /// <summary>
 /// Freehand pen/drawing annotation

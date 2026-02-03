@@ -23,11 +23,11 @@
 
 #endregion License Information (GPL v3)
 
-using ShareX.Editor.Annotations;
-using ShareX.Editor.ImageEffects;
+using XerahS.Editor.Annotations;
+using XerahS.Editor.ImageEffects;
 using SkiaSharp;
 
-namespace ShareX.Editor;
+namespace XerahS.Editor;
 
 /// <summary>
 /// Memento pattern implementation for storing editor state.

@@ -1,9 +1,9 @@
 using Avalonia.Controls;
-using ShareX.Editor.Controls;
-using ShareX.Editor.Helpers;
+using XerahS.Editor.Controls;
+using XerahS.Editor.Helpers;
 using SkiaSharp;
 
-namespace ShareX.Editor.Annotations;
+namespace XerahS.Editor.Annotations;
 
 /// <summary>
 /// Speech Balloon annotation with tail

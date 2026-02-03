@@ -1,13 +1,13 @@
-using ShareX.Editor.ImageEffects.Adjustments;
+using XerahS.Editor.ImageEffects.Adjustments;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Interactivity;
 using Avalonia.Markup.Xaml;
-using ShareX.Editor.ImageEffects;
+using XerahS.Editor.ImageEffects;
 using SkiaSharp;
 using System;
 
-namespace ShareX.Editor.Views.Dialogs
+namespace XerahS.Editor.Views.Dialogs
 {
     public partial class HueDialog : UserControl, IEffectDialog
     {

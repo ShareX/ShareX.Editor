@@ -1,8 +1,8 @@
 using SkiaSharp;
 
-namespace ShareX.Editor.ImageEffects.Adjustments;
+namespace XerahS.Editor.ImageEffects.Adjustments;
 
-public abstract class ImageEffect : ShareX.Editor.ImageEffects.ImageEffect
+public abstract class ImageEffect : XerahS.Editor.ImageEffects.ImageEffect
 {
     public override ImageEffectCategory Category => ImageEffectCategory.Adjustments;
     public override bool HasParameters => true;

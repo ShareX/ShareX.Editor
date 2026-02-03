@@ -1,13 +1,13 @@
-using ShareX.Editor.ImageEffects.Adjustments;
+using XerahS.Editor.ImageEffects.Adjustments;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Interactivity;
 using Avalonia.Markup.Xaml;
-using ShareX.Editor.ImageEffects;
+using XerahS.Editor.ImageEffects;
 using SkiaSharp;
 using System;
 
-namespace ShareX.Editor.Views.Dialogs
+namespace XerahS.Editor.Views.Dialogs
 {
     public partial class BrightnessDialog : UserControl, IEffectDialog
     {
@@ -70,9 +70,9 @@ namespace ShareX.Editor.Views.Dialogs
     {
         public Func<SKBitmap, SKBitmap> EffectOperation { get; }
         public string StatusMessage { get; }
-        public ShareX.Editor.ImageEffects.ImageEffect? EffectInstance { get; }
+        public XerahS.Editor.ImageEffects.ImageEffect? EffectInstance { get; }
 
-        public EffectEventArgs(Func<SKBitmap, SKBitmap> operation, string statusMessage, ShareX.Editor.ImageEffects.ImageEffect? effectInstance = null)
+        public EffectEventArgs(Func<SKBitmap, SKBitmap> operation, string statusMessage, XerahS.Editor.ImageEffects.ImageEffect? effectInstance = null)
         {
             EffectOperation = operation;
             StatusMessage = statusMessage;

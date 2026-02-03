@@ -1,6 +1,6 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 
-namespace ShareX.Editor.ViewModels
+namespace XerahS.Editor.ViewModels
 {
     public class ViewModelBase : ObservableObject
     {

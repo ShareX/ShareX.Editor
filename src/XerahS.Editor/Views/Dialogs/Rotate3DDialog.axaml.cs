@@ -1,12 +1,12 @@
-using ShareX.Editor.ImageEffects.Manipulations;
+using XerahS.Editor.ImageEffects.Manipulations;
 using Avalonia.Controls;
 using Avalonia.Interactivity;
 using Avalonia.Markup.Xaml;
-using ShareX.Editor.Helpers;
-using ShareX.Editor.ImageEffects;
+using XerahS.Editor.Helpers;
+using XerahS.Editor.ImageEffects;
 using System;
 
-namespace ShareX.Editor.Views.Dialogs
+namespace XerahS.Editor.Views.Dialogs
 {
     public partial class Rotate3DDialog : UserControl, IEffectDialog
     {

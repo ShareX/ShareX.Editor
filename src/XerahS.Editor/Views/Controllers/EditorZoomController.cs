@@ -2,10 +2,10 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Threading;
-using ShareX.Editor.ViewModels;
+using XerahS.Editor.ViewModels;
 using System;
 
-namespace ShareX.Editor.Views.Controllers;
+namespace XerahS.Editor.Views.Controllers;
 
 public class EditorZoomController
 {

@@ -26,7 +26,7 @@
 using Avalonia;
 using System;
 
-namespace ShareX.Editor.Loader
+namespace XerahS.Editor.Loader
 {
     internal class Program
     {

@@ -5,7 +5,7 @@ using Avalonia.Markup.Xaml;
 using Avalonia.Media;
 using SkiaSharp;
 
-namespace ShareX.Editor.Views.Dialogs
+namespace XerahS.Editor.Views.Dialogs
 {
     public partial class ResizeCanvasDialog : UserControl
     {

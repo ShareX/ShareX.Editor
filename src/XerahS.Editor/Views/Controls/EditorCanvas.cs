@@ -29,7 +29,7 @@ using Avalonia.Input;
 using Avalonia.Media;
 using SkiaSharp;
 
-namespace ShareX.Editor.Views.Controls;
+namespace XerahS.Editor.Views.Controls;
 
 /// <summary>
 /// Avalonia control that hosts EditorCore and renders via SkiaSharp.

@@ -4,7 +4,7 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:cp="clr-namespace:Avalonia.Controls;assembly=Avalonia.Controls.ColorPicker"
              mc:Ignorable="d" d:DesignWidth="200" d:DesignHeight="40"
-             x:Class="ShareX.Editor.Controls.ColorPickerDropdown"
+             x:Class="XerahS.Editor.Controls.ColorPickerDropdown"
              x:Name="ColorPickerDropdownRoot">
 
     <UserControl.Styles>
@@ -51,7 +51,7 @@
                 <!-- Chevron Icon (FontAwesome ChevronDown) -->
                 <TextBlock Grid.Column="2"
                            Text="&#xf078;"
-                           FontFamily="avares://ShareX.Editor/Assets#Font Awesome 7 Free"
+                          FontFamily="avares://XerahS.Editor/Assets#Font Awesome 7 Free"
                            FontWeight="Black"
                            FontSize="10"
                            Foreground="#94A3B8"

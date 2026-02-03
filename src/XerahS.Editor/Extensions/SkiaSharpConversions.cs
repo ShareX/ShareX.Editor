@@ -27,7 +27,7 @@ using Avalonia;
 using Avalonia.Media.Imaging;
 using SkiaSharp;
 
-namespace ShareX.Editor.Extensions;
+namespace XerahS.Editor.Extensions;
 
 /// <summary>
 /// Helper methods for converting between Avalonia and SkiaSharp types.

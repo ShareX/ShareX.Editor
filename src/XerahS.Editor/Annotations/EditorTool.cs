@@ -23,7 +23,7 @@
 
 #endregion License Information (GPL v3)
 
-namespace ShareX.Editor.Annotations;
+namespace XerahS.Editor.Annotations;
 
 /// <summary>
 /// Annotation/editing tool types

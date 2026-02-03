@@ -5,14 +5,14 @@ using Avalonia.Input;
 using Avalonia.Media;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
-using ShareX.Editor.Annotations;
-using ShareX.Editor.Controls;
-using ShareX.Editor.ViewModels;
+using XerahS.Editor.Annotations;
+using XerahS.Editor.Controls;
+using XerahS.Editor.ViewModels;
 using SkiaSharp;
 using System;
 using System.Collections.Generic;
 
-namespace ShareX.Editor.Views.Controllers;
+namespace XerahS.Editor.Views.Controllers;
 
 public class EditorSelectionController
 {
@@ -455,7 +455,7 @@ public class EditorSelectionController
              return;
         }
 
-        if (_selectedShape is ShareX.Editor.Controls.SpotlightControl spotlight && spotlight.Annotation is SpotlightAnnotation sa)
+        if (_selectedShape is XerahS.Editor.Controls.SpotlightControl spotlight && spotlight.Annotation is SpotlightAnnotation sa)
         {
              var bounds = sa.GetBounds();
              var newLeft = bounds.Left;
@@ -717,7 +717,7 @@ public class EditorSelectionController
             return;
         }
 
-        if (_selectedShape is ShareX.Editor.Controls.SpotlightControl spotlightControl && spotlightControl.Annotation is SpotlightAnnotation spotlightAnn)
+        if (_selectedShape is XerahS.Editor.Controls.SpotlightControl spotlightControl && spotlightControl.Annotation is SpotlightAnnotation spotlightAnn)
         {
             var bounds = spotlightAnn.GetBounds();
             CreateHandle(bounds.Left, bounds.Top, "TopLeft");

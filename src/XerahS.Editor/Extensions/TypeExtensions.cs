@@ -26,7 +26,7 @@
 using System.ComponentModel;
 using System.Reflection;
 
-namespace ShareX.Editor.Extensions;
+namespace XerahS.Editor.Extensions;
 
 public static class TypeExtensions
 {

@@ -29,7 +29,7 @@ using SkiaSharp;
 using System.IO.Compression;
 using System.Reflection;
 
-namespace ShareX.Editor.Helpers;
+namespace XerahS.Editor.Helpers;
 
 /// <summary>
 /// Exports ShareX.Editor image effect presets to legacy ShareX .sxie format.

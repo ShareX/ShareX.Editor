@@ -1,7 +1,7 @@
 using SkiaSharp;
 using System;
 
-namespace ShareX.Editor.Views.Dialogs
+namespace XerahS.Editor.Views.Dialogs
 {
     /// <summary>
     /// Interface for effect dialog controls that provide Apply, Preview, and Cancel functionality.

@@ -27,7 +27,7 @@ using Avalonia;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Markup.Xaml;
 
-namespace ShareX.Editor.Loader
+namespace XerahS.Editor.Loader
 {
     public partial class App : Application
     {

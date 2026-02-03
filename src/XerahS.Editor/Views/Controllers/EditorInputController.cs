@@ -5,13 +5,13 @@ using Avalonia.Input;
 using Avalonia.Media;
 using Avalonia.Platform.Storage;
 using Avalonia.VisualTree;
-using ShareX.Editor.Annotations;
-using ShareX.Editor.Controls;
-using ShareX.Editor.Helpers;
-using ShareX.Editor.ViewModels;
+using XerahS.Editor.Annotations;
+using XerahS.Editor.Controls;
+using XerahS.Editor.Helpers;
+using XerahS.Editor.ViewModels;
 using SkiaSharp;
 
-namespace ShareX.Editor.Views.Controllers;
+namespace XerahS.Editor.Views.Controllers;
 
 public class EditorInputController
 {
@@ -500,7 +500,7 @@ public class EditorInputController
             if (path.Tag is ArrowAnnotation arrowAnn) { arrowAnn.EndPoint = ToSKPoint(currentPoint); }
             _selectionController.RegisterArrowEndpoint(path, _startPoint, currentPoint);
         }
-        else if (_currentShape is ShareX.Editor.Controls.SpotlightControl spotlight)
+        else if (_currentShape is XerahS.Editor.Controls.SpotlightControl spotlight)
         {
             if (spotlight.Annotation is SpotlightAnnotation spotAnn)
             {

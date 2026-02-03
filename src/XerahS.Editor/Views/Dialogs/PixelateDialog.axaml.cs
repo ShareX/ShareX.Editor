@@ -1,12 +1,12 @@
-using ShareX.Editor.ImageEffects.Filters;
+using XerahS.Editor.ImageEffects.Filters;
 using Avalonia.Controls;
 using Avalonia.Interactivity;
 using Avalonia.Markup.Xaml;
-using ShareX.Editor.Helpers;
-using ShareX.Editor.ImageEffects;
+using XerahS.Editor.Helpers;
+using XerahS.Editor.ImageEffects;
 using System;
 
-namespace ShareX.Editor.Views.Dialogs
+namespace XerahS.Editor.Views.Dialogs
 {
     public partial class PixelateDialog : UserControl, IEffectDialog
     {

@@ -1,6 +1,6 @@
 using SkiaSharp;
 
-namespace ShareX.Editor.ImageEffects.Filters;
+namespace XerahS.Editor.ImageEffects.Filters;
 
 public class SharpenImageEffect : ImageEffect
 {

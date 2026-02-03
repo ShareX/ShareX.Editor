@@ -25,9 +25,9 @@
 #endregion License Information (GPL v3)
 
 using Avalonia.Controls;
-using ShareX.Editor.Controls;
+using XerahS.Editor.Controls;
 
-namespace ShareX.Editor.Views.Controls
+namespace XerahS.Editor.Views.Controls
 {
     /// <summary>
     /// Editor-specific tools panel containing Crop, CutOut, Background, and Effects.

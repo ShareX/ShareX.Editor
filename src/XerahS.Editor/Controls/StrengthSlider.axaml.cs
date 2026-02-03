@@ -2,7 +2,7 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Markup.Xaml;
 
-namespace ShareX.Editor.Controls
+namespace XerahS.Editor.Controls
 {
     public partial class StrengthSlider : UserControl
     {

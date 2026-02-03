@@ -2,9 +2,9 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Interactivity;
 using Avalonia.Markup.Xaml;
-using ShareX.Editor.ViewModels;
+using XerahS.Editor.ViewModels;
 
-namespace ShareX.Editor.Views.Dialogs;
+namespace XerahS.Editor.Views.Dialogs;
 
 public partial class RotateCustomAngleDialog : UserControl
 {

@@ -1,12 +1,12 @@
-using ShareX.Editor.ImageEffects.Adjustments;
+using XerahS.Editor.ImageEffects.Adjustments;
 using Avalonia.Controls;
 using Avalonia.Interactivity;
 using Avalonia.Markup.Xaml;
-using ShareX.Editor.Helpers;
-using ShareX.Editor.ImageEffects;
+using XerahS.Editor.Helpers;
+using XerahS.Editor.ImageEffects;
 using System;
 
-namespace ShareX.Editor.Views.Dialogs
+namespace XerahS.Editor.Views.Dialogs
 {
     public partial class GrayscaleDialog : UserControl, IEffectDialog
     {

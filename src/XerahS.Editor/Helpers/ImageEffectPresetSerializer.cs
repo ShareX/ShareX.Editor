@@ -25,11 +25,11 @@
 
 using Newtonsoft.Json;
 using Newtonsoft.Json.Serialization;
-using ShareX.Editor.ImageEffects;
+using XerahS.Editor.ImageEffects;
 using SkiaSharp;
 using System.IO.Compression;
 
-namespace ShareX.Editor.Helpers;
+namespace XerahS.Editor.Helpers;
 
 public static class ImageEffectPresetSerializer
 {
@@ -116,7 +116,7 @@ internal sealed class ImageEffectSerializationBinder : ISerializationBinder
         if (string.IsNullOrWhiteSpace(typeName))
             throw new JsonSerializationException("Missing type name for image effect.");
 
-        if (!typeName.StartsWith("ShareX.Editor.ImageEffects.", StringComparison.Ordinal))
+        if (!typeName.StartsWith("XerahS.Editor.ImageEffects.", StringComparison.Ordinal))
             throw new JsonSerializationException($"Unsupported image effect type: {typeName}");
 
         var assembly = typeof(ImageEffect).Assembly;

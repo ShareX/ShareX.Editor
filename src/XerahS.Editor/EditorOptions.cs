@@ -1,4 +1,4 @@
-﻿#region License Information (GPL v3)
+#region License Information (GPL v3)
 
 /*
     ShareX.Editor - The UI-agnostic Editor library for ShareX
@@ -25,7 +25,7 @@
 
 using Avalonia.Media;
 
-namespace ShareX.Editor
+namespace XerahS.Editor
 {
     public class EditorOptions
     {

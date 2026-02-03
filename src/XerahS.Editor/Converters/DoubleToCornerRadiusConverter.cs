@@ -2,7 +2,7 @@ using Avalonia;
 using Avalonia.Data.Converters;
 using System.Globalization;
 
-namespace ShareX.Editor.Converters
+namespace XerahS.Editor.Converters
 {
     public class DoubleToCornerRadiusConverter : IValueConverter
     {

@@ -27,7 +27,7 @@ using Avalonia.Controls;
 using Avalonia.Media;
 using SkiaSharp;
 
-namespace ShareX.Editor.Annotations;
+namespace XerahS.Editor.Annotations;
 
 /// <summary>
 /// Ellipse/circle annotation

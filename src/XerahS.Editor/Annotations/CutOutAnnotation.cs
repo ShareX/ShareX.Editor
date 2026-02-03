@@ -25,7 +25,7 @@
 
 using SkiaSharp;
 
-namespace ShareX.Editor.Annotations;
+namespace XerahS.Editor.Annotations;
 
 /// <summary>
 /// CutOut annotation - cuts out a horizontal or vertical section and joins remaining parts

@@ -27,9 +27,9 @@
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Media;
-using ShareX.Editor.Controls;
+using XerahS.Editor.Controls;
 
-namespace ShareX.Editor.Views.Controls
+namespace XerahS.Editor.Views.Controls
 {
     /// <summary>
     /// Reusable annotation toolbar control containing drawing tools, property controls, and actions.

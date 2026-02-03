@@ -2,20 +2,20 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-             xmlns:vm="using:ShareX.Editor.ViewModels"
-             xmlns:views="using:ShareX.Editor.Views"
-             xmlns:models="using:ShareX.Editor.Annotations"
-             xmlns:converters="using:ShareX.Editor.Converters"
-             xmlns:helpers="using:ShareX.Editor.Helpers"
-             xmlns:controls="using:ShareX.Editor.Controls"
+             xmlns:vm="using:XerahS.Editor.ViewModels"
+             xmlns:views="using:XerahS.Editor.Views"
+             xmlns:models="using:XerahS.Editor.Annotations"
+             xmlns:converters="using:XerahS.Editor.Converters"
+             xmlns:helpers="using:XerahS.Editor.Helpers"
+             xmlns:controls="using:XerahS.Editor.Controls"
              mc:Ignorable="d" d:DesignWidth="1200" d:DesignHeight="800"
-             x:Class="ShareX.Editor.Views.EditorView"
+             x:Class="XerahS.Editor.Views.EditorView"
              Focusable="True">
 
     <UserControl.Resources>
         <converters:DoubleToCornerRadiusConverter x:Key="DoubleToCornerRadius" />
         <converters:EqualsConverter x:Key="EqualsConverter" />
-        <FontFamily x:Key="FontAwesome">avares://ShareX.Editor/Assets#Font Awesome 7 Free</FontFamily>
+        <FontFamily x:Key="FontAwesome">avares://XerahS.Editor/Assets#Font Awesome 7 Free</FontFamily>
         <x:String x:Key="IconSelect">&#xf25a;</x:String>
         <x:String x:Key="IconRectangle">&#xf0c8;</x:String>
         <x:String x:Key="IconEllipse">&#xf111;</x:String>

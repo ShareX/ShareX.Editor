@@ -1,4 +1,4 @@
-namespace ShareX.Editor.Annotations;
+namespace XerahS.Editor.Annotations;
 
 /// <summary>
 /// Smart Eraser annotation - samples pixel color from the rendered canvas (including other annotations)

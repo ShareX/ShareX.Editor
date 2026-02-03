@@ -1,6 +1,6 @@
 using SkiaSharp;
 
-namespace ShareX.Editor.Helpers;
+namespace XerahS.Editor.Helpers;
 
 public enum SpeechBalloonTailEdge
 {

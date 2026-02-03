@@ -26,7 +26,7 @@
 using SkiaSharp;
 using System.Text.Json.Serialization;
 
-namespace ShareX.Editor.Annotations;
+namespace XerahS.Editor.Annotations;
 
 /// <summary>
 /// Base class for all annotation types

@@ -1,9 +1,9 @@
 using SkiaSharp;
-using ShareX.Editor.Helpers;
-using ShareX.Editor.ImageEffects;
+using XerahS.Editor.Helpers;
+using XerahS.Editor.ImageEffects;
 using System.Diagnostics;
 
-namespace ShareX.Editor.Verification;
+namespace XerahS.Editor.Verification;
 
 class Program
 {

@@ -1,7 +1,7 @@
-using ShareX.Editor.Annotations;
+using XerahS.Editor.Annotations;
 using System.Text.Json;
 
-namespace ShareX.Editor.Serialization
+namespace XerahS.Editor.Serialization
 {
     public static class AnnotationSerializer
     {

@@ -2,7 +2,7 @@ using Avalonia.Controls;
 using Avalonia.Media;
 using SkiaSharp;
 
-namespace ShareX.Editor.Annotations;
+namespace XerahS.Editor.Annotations;
 
 /// <summary>
 /// Pixelate annotation - applies pixelation to the region

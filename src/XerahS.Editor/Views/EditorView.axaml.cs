@@ -31,20 +31,20 @@ using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Layout; // Added for HorizontalAlignment/VerticalAlignment
 using Avalonia.Media;
-using ShareX.Editor.Annotations;
-using ShareX.Editor.Helpers;
-using ShareX.Editor.ViewModels;
-using ShareX.Editor.Controls;
-using ShareX.Editor.Views.Controllers;
+using XerahS.Editor.Annotations;
+using XerahS.Editor.Helpers;
+using XerahS.Editor.ViewModels;
+using XerahS.Editor.Controls;
+using XerahS.Editor.Views.Controllers;
 using SkiaSharp;
 using System.ComponentModel;
 using System.Linq; // Added for Enumerable.Select
-using ShareX.Editor.Views.Dialogs;
-using ShareX.Editor.ImageEffects;
-using ShareX.Editor.ImageEffects.Adjustments;
-using ShareX.Editor.Views.Controls;
+using XerahS.Editor.Views.Dialogs;
+using XerahS.Editor.ImageEffects;
+using XerahS.Editor.ImageEffects.Adjustments;
+using XerahS.Editor.Views.Controls;
 
-namespace ShareX.Editor.Views
+namespace XerahS.Editor.Views
 {
     public partial class EditorView : UserControl
     {
@@ -1350,12 +1350,12 @@ namespace ShareX.Editor.Views
 
         private async Task OnCopyRequested(Avalonia.Media.Imaging.Bitmap bitmap)
         {
-            if (ShareX.Editor.Services.EditorServices.Clipboard != null)
+            if (XerahS.Editor.Services.EditorServices.Clipboard != null)
             {
                 using var skBitmap = BitmapConversionHelpers.ToSKBitmap(bitmap);
                 if (skBitmap != null)
                 {
-                    ShareX.Editor.Services.EditorServices.Clipboard.SetImage(skBitmap);
+                    XerahS.Editor.Services.EditorServices.Clipboard.SetImage(skBitmap);
                 }
             }
             await Task.CompletedTask;

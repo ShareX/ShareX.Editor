@@ -27,11 +27,11 @@ using Newtonsoft.Json.Linq;
 using SkiaSharp;
 using System.IO.Compression;
 
-namespace ShareX.Editor.Helpers;
+namespace XerahS.Editor.Helpers;
 
 /// <summary>
 /// Imports legacy ShareX .sxie image effect presets.
-/// Maps compatible effects to ShareX.Editor.ImageEffects classes.
+/// Maps compatible effects to XerahS.Editor.ImageEffects classes.
 /// </summary>
 public static class LegacyImageEffectImporter
 {
@@ -70,7 +70,7 @@ public static class LegacyImageEffectImporter
     };
 
     /// <summary>
-    /// Import an .sxie file and return the preset data as JSON compatible with ShareX.Editor.
+    /// Import an .sxie file and return the preset data as JSON compatible with XerahS.Editor.
     /// </summary>
     public static LegacyPresetImportResult? ImportSxieFile(string filePath)
     {

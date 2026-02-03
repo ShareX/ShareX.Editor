@@ -1,4 +1,4 @@
-namespace ShareX.Editor.ImageEffects;
+namespace XerahS.Editor.ImageEffects;
 
 public enum ImageEffectCategory
 {

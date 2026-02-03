@@ -6,7 +6,7 @@ using Avalonia.Platform;
 using SkiaSharp;
 using System;
 
-namespace ShareX.Editor.Controls;
+namespace XerahS.Editor.Controls;
 
 /// <summary>
 /// A control that allows direct SkiaSharp rendering into a WriteableBitmap.

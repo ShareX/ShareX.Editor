@@ -1,6 +1,6 @@
 using SkiaSharp;
 
-namespace ShareX.Editor.ImageEffects.Manipulations;
+namespace XerahS.Editor.ImageEffects.Manipulations;
 
 public class RoundedCornersImageEffect : ImageEffect
 {

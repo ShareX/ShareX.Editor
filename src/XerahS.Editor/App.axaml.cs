@@ -1,8 +1,8 @@
 #region License Information (GPL v3)
 
 /*
-    ShareX.Editor - The UI-agnostic Editor library for ShareX
-    Copyright (c) 2007-2026 ShareX Team
+XerahS.Editor - The UI-agnostic Editor library for XerahS
+Copyright (c) 2007-2026 ShareX Team
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -26,7 +26,7 @@
 using Avalonia;
 using Avalonia.Markup.Xaml;
 
-namespace ShareX.Editor
+namespace XerahS.Editor
 {
     public partial class App : Application
     {

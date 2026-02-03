@@ -3,13 +3,13 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Markup.Xaml;
 using Avalonia.Media.Imaging;
-using ShareX.Editor.ViewModels;
+using XerahS.Editor.ViewModels;
 using SkiaSharp;
 using System;
 using System.IO;
 using System.Threading.Tasks;
 
-namespace ShareX.Editor.Views
+namespace XerahS.Editor.Views
 {
     public partial class EditorWindow : Window
     {

@@ -25,13 +25,13 @@
 
 using Avalonia.Controls;
 using Avalonia.Threading;
-using ShareX.Editor.ViewModels;
+using XerahS.Editor.ViewModels;
 using SkiaSharp;
 using System;
 using System.IO;
 using System.Threading.Tasks;
 
-namespace ShareX.Editor.Loader
+namespace XerahS.Editor.Loader
 {
     public partial class MainWindow : Window
     {

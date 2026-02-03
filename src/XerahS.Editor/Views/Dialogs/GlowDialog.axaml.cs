@@ -3,11 +3,11 @@ using Avalonia.Controls.Primitives;
 using Avalonia.Interactivity;
 using Avalonia.Markup.Xaml;
 using Avalonia.Media;
-using ShareX.Editor.Helpers;
-using ShareX.Editor.ImageEffects.Filters;
+using XerahS.Editor.Helpers;
+using XerahS.Editor.ImageEffects.Filters;
 using SkiaSharp;
 
-namespace ShareX.Editor.Views.Dialogs;
+namespace XerahS.Editor.Views.Dialogs;
 
 public partial class GlowDialog : UserControl, IEffectDialog
 {

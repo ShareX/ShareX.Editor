@@ -1,10 +1,10 @@
 using System.Collections.Generic;
 using System.Linq;
-using ShareX.Editor.ImageEffects.Adjustments;
-using ShareX.Editor.ImageEffects.Filters;
-using ShareX.Editor.ImageEffects.Manipulations;
+using XerahS.Editor.ImageEffects.Adjustments;
+using XerahS.Editor.ImageEffects.Filters;
+using XerahS.Editor.ImageEffects.Manipulations;
 
-namespace ShareX.Editor.ImageEffects;
+namespace XerahS.Editor.ImageEffects;
 
 public static class ImageEffectRegistry
 {

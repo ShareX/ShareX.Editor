@@ -5,7 +5,7 @@ using Avalonia.Interactivity;
 using Avalonia.Markup.Xaml;
 using Avalonia.Media;
 
-namespace ShareX.Editor.Controls
+namespace XerahS.Editor.Controls
 {
     public partial class ColorPickerDropdown : UserControl
     {

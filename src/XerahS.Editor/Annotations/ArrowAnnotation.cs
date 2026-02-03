@@ -26,10 +26,10 @@
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Media;
-using ShareX.Editor.Helpers;
+using XerahS.Editor.Helpers;
 using SkiaSharp;
 
-namespace ShareX.Editor.Annotations;
+namespace XerahS.Editor.Annotations;
 
 /// <summary>
 /// Arrow annotation (line with arrowhead)

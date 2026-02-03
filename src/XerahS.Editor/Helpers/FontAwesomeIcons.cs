@@ -1,4 +1,4 @@
-namespace ShareX.Editor.Helpers;
+namespace XerahS.Editor.Helpers;
 
 /// <summary>
 /// Font Awesome icon unicode constants for editor tools

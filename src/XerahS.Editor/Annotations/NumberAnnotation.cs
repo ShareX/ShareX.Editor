@@ -26,10 +26,10 @@
 using Avalonia.Controls;
 using Avalonia.Layout;
 using Avalonia.Media;
-using ShareX.Editor.Helpers;
+using XerahS.Editor.Helpers;
 using SkiaSharp;
 
-namespace ShareX.Editor.Annotations;
+namespace XerahS.Editor.Annotations;
 
 /// <summary>
 /// Number annotation - auto-incrementing numbered circle markers

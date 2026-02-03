@@ -5,7 +5,7 @@ using Avalonia.Markup.Xaml;
 using Avalonia.Threading;
 using System;
 
-namespace ShareX.Editor.Controls
+namespace XerahS.Editor.Controls
 {
     public partial class EffectsMenuDropdown : UserControl
     {

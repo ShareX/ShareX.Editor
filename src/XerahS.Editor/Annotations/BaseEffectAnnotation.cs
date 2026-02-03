@@ -1,6 +1,6 @@
 using SkiaSharp;
 
-namespace ShareX.Editor.Annotations;
+namespace XerahS.Editor.Annotations;
 
 /// <summary>
 /// Base class for effect annotations (Blur, Pixelate, Highlight)

@@ -3,7 +3,7 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              mc:Ignorable="d" d:DesignWidth="200" d:DesignHeight="40"
-             x:Class="ShareX.Editor.Controls.FontSizePickerDropdown"
+             x:Class="XerahS.Editor.Controls.FontSizePickerDropdown"
              x:Name="FontSizePickerDropdownRoot">
 
     <UserControl.Styles>
@@ -45,7 +45,7 @@
                 <!-- Chevron Icon (FontAwesome ChevronDown) -->
                 <TextBlock Grid.Column="2"
                            Text="&#xf078;"
-                           FontFamily="avares://ShareX.Editor/Assets#Font Awesome 7 Free"
+                          FontFamily="avares://XerahS.Editor/Assets#Font Awesome 7 Free"
                            FontWeight="Black"
                            FontSize="10"
                            Foreground="#94A3B8"

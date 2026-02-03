@@ -2,7 +2,7 @@ using Avalonia.Data.Converters;
 using Avalonia.Media;
 using System.Globalization;
 
-namespace ShareX.Editor.Converters
+namespace XerahS.Editor.Converters
 {
     /// <summary>
     /// Converts a boolean to an active/inactive background brush

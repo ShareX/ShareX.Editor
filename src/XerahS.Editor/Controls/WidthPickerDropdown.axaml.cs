@@ -5,7 +5,7 @@ using Avalonia.Controls.Primitives;
 using Avalonia.Interactivity;
 using Avalonia.Markup.Xaml;
 
-namespace ShareX.Editor.Controls
+namespace XerahS.Editor.Controls
 {
     public partial class WidthPickerDropdown : UserControl
     {

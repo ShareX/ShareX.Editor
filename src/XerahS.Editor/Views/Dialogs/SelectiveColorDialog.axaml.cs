@@ -1,12 +1,12 @@
 using Avalonia.Controls;
 using Avalonia.Interactivity;
 using Avalonia.Markup.Xaml;
-using ShareX.Editor.Helpers;
-using ShareX.Editor.ImageEffects;
-using ShareX.Editor.ImageEffects.Adjustments;
+using XerahS.Editor.Helpers;
+using XerahS.Editor.ImageEffects;
+using XerahS.Editor.ImageEffects.Adjustments;
 using SkiaSharp;
 
-namespace ShareX.Editor.Views.Dialogs
+namespace XerahS.Editor.Views.Dialogs
 {
     public partial class SelectiveColorDialog : UserControl, IEffectDialog
     {

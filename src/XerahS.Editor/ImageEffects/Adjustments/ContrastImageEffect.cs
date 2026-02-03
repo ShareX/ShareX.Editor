@@ -1,7 +1,7 @@
 using SkiaSharp;
 
 
-namespace ShareX.Editor.ImageEffects.Adjustments;
+namespace XerahS.Editor.ImageEffects.Adjustments;
 
 public class ContrastImageEffect : ImageEffect
 {

@@ -3,11 +3,11 @@ using Avalonia.Media;
 using Avalonia.Media.Imaging;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using ShareX.Editor.Annotations;
-using ShareX.Editor.Extensions;
+using XerahS.Editor.Annotations;
+using XerahS.Editor.Extensions;
 using System.Collections.ObjectModel;
 
-namespace ShareX.Editor.ViewModels;
+namespace XerahS.Editor.ViewModels;
 
 /// <summary>
 /// Lightweight ViewModel that drives the editor view without depending on the host application.

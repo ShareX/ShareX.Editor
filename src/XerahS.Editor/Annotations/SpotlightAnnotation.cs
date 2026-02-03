@@ -24,10 +24,10 @@
 #endregion License Information (GPL v3)
 
 using Avalonia.Controls;
-using ShareX.Editor.Controls;
+using XerahS.Editor.Controls;
 using SkiaSharp;
 
-namespace ShareX.Editor.Annotations;
+namespace XerahS.Editor.Annotations;
 
 /// <summary>
 /// Spotlight annotation - darkens entire image except highlighted area
