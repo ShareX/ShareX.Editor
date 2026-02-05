@@ -77,8 +77,12 @@ public class EditorCanvas : Control
 
         if (_editor.SourceImage == null) return;
 
-        int width = _editor.SourceImage.Width;
-        int height = _editor.SourceImage.Height;
+        // Get the composited image to determine actual dimensions (effects may expand canvas)
+        var composited = _editor.GetCompositedImage();
+        if (composited == null) return;
+
+        int width = composited.Width;
+        int height = composited.Height;
 
         if (width <= 0 || height <= 0) return;
 

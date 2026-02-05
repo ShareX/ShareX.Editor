@@ -137,7 +137,7 @@ public class EditorCore : IDisposable
     /// Uses a cached bitmap that is only recomputed when effects or source change.
     /// Includes the temporary preview effect if one is set.
     /// </summary>
-    internal SKBitmap? GetCompositedImage()
+    public SKBitmap? GetCompositedImage()
     {
         if (SourceImage == null) return null;
 
