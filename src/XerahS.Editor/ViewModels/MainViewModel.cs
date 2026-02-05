@@ -644,7 +644,7 @@ namespace XerahS.Editor.ViewModels
             SetAppliedEffects(effects);
         }
 
-        private void SetAppliedEffects(IEnumerable<ImageEffectBase> effects)
+        public void SetAppliedEffects(IEnumerable<ImageEffectBase> effects)
         {
             _appliedImageEffects.Clear();
             _appliedImageEffects.AddRange(effects);

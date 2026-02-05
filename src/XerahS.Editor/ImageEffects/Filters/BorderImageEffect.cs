@@ -71,17 +71,23 @@ public class BorderImageEffect : ImageEffect
 
         float halfStroke = Size / 2f;
         
-        // Calculate border rectangle properly inset for stroke width
-        SKRect canvasBounds = Type == ImageHelpers.BorderType.Outside
-            ? new SKRect(0, 0, newWidth, newHeight)
-            : new SKRect(0, 0, source.Width, source.Height);
-
-        // Inset the rectangle by half the stroke width on all sides
-        // This ensures the stroke is fully contained within the canvas
-        SKRect borderRect = canvasBounds;
-        borderRect.Inflate(-halfStroke, -halfStroke);
-
-        canvas.DrawRect(borderRect, paint);
+        // Create a path for the border to ensure all four edges are drawn correctly
+        using var path = new SKPath();
+        
+        if (Type == ImageHelpers.BorderType.Outside)
+        {
+            // For outside borders, draw rect around the expanded canvas
+            SKRect borderRect = new SKRect(halfStroke, halfStroke, newWidth - halfStroke, newHeight - halfStroke);
+            path.AddRect(borderRect);
+        }
+        else
+        {
+            // For inside borders, draw rect within the source image bounds
+            SKRect borderRect = new SKRect(halfStroke, halfStroke, source.Width - halfStroke, source.Height - halfStroke);
+            path.AddRect(borderRect);
+        }
+        
+        canvas.DrawPath(path, paint);
 
         return result;
     }

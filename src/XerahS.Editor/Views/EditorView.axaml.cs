@@ -101,6 +101,14 @@ namespace XerahS.Editor.Views
                     vm.RecalculateNumberCounter(_editorCore.Annotations);
                 }
             });
+            _editorCore.EffectsChanged += () => Avalonia.Threading.Dispatcher.UIThread.Post(() => {
+                if (DataContext is MainViewModel vm)
+                {
+                    // Sync EditorCore effects to ViewModel for HasAppliedEffects property
+                    var effectsSnapshot = _editorCore.GetEffectsSnapshot();
+                    vm.SetAppliedEffects(effectsSnapshot);
+                }
+            });
 
             // Capture wheel events in tunneling phase so ScrollViewer doesn't scroll when using Ctrl+wheel zoom.
             AddHandler(PointerWheelChangedEvent, OnPreviewPointerWheelChanged, RoutingStrategies.Tunnel | RoutingStrategies.Bubble, true);
