@@ -344,6 +344,7 @@
 
                     <!-- Effects Menu Dropdown -->
                     <controls:EffectsMenuDropdown x:Name="EffectsMenuDropdown"
+                        DataContext="{Binding}"
                         Height="40"
                         ToolTip.Tip="Effects"
                         ResizeImageRequested="OnResizeImageRequested"
