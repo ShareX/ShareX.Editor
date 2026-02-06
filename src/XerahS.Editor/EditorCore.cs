@@ -357,6 +357,18 @@ public class EditorCore : IDisposable
         if (ActiveTool == EditorTool.SmartEraser)
         {
             sampledSmartEraserColor = SampleCanvasColor(point);
+
+            // Fallback: sample directly from SourceImage if composite snapshot failed
+            if (string.IsNullOrEmpty(sampledSmartEraserColor) && SourceImage != null)
+            {
+                int px = Math.Clamp((int)Math.Round(point.X), 0, SourceImage.Width - 1);
+                int py = Math.Clamp((int)Math.Round(point.Y), 0, SourceImage.Height - 1);
+                var pixel = SourceImage.GetPixel(px, py);
+                if (pixel.Alpha > 0)
+                {
+                    sampledSmartEraserColor = $"#{pixel.Red:X2}{pixel.Green:X2}{pixel.Blue:X2}";
+                }
+            }
         }
 
         // Interact with currently selected annotation first so users can resize/move immediately after drawing
