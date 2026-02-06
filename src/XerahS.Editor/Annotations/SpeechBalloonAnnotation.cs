@@ -191,7 +191,11 @@ public class SpeechBalloonAnnotation : Annotation
             float minY = renderRect.Top + padding - metrics.Ascent;
             float maxY = renderRect.Bottom - padding - metrics.Descent - totalHeight + lineHeight;
             float startY = renderRect.MidY - totalHeight / 2 - metrics.Ascent;
-            startY = Math.Clamp(startY, minY, maxY);
+            // Guard against balloon too small for text (maxY < minY)
+            if (minY <= maxY)
+                startY = Math.Clamp(startY, minY, maxY);
+            else
+                startY = minY;
 
             for (int i = 0; i < lines.Count; i++)
             {
