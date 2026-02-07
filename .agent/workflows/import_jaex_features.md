@@ -82,7 +82,13 @@ These rules protect repository integrity:
 **Golden rule:** `jaex` is **read-only**. We pull from ShareX.ImageEditor; we never write to it.
 
 ## Goal
-Selectively integrate high-value features from ShareX.ImageEditor into the `origin/develop` branch of XerahS.Editor with minimal risk of regression.
+Identify and manually integrate high-value features from ShareX.ImageEditor into the `origin/develop` branch of XerahS.Editor.
+
+**Integration approach:**
+- All features are implemented via **manual re-implementation** in XerahS.Editor code.
+- ShareX.ImageEditor source code is used as a **reference only**; never cherry-picked.
+- Features that enhance existing behavior are adopted (with manual implementation).
+- Features that do not enhance existing behavior are **ignored** (not implemented).
 
 **Non-negotiable:**
 - No UI regressions allowed.
@@ -91,7 +97,7 @@ Selectively integrate high-value features from ShareX.ImageEditor into the `orig
   - `Export Preset...`
 - No removal or breaking of functionality.
 
-XerahS.Editor is our primary destination repository. ShareX.ImageEditor is an independently maintained reference repository. We integrate features selectively via cherry-pick.
+XerahS.Editor is our primary destination repository. ShareX.ImageEditor is an independently maintained reference repository. We integrate features based on their value, not their availability.
 
 ## Documentation placement
 All integration documentation lives under `docs/jaex-integration/`:
@@ -103,54 +109,60 @@ All integration documentation lives under `docs/jaex-integration/`:
 - **Readiness signal:** `integrate/ready.md` (repository root) — Created when an integration branch is ready for PR.
 
 ## State tracking and resume
-Maintain a state marker to avoid re-processing commits from ShareX.ImageEditor:
+Maintain a feature integration log for tracking and resume:
 
-- **Marker file:** `docs/jaex-integration/completed/LAST_PROCESSED_JAEX_COMMIT.txt`
-- **Content:** Single commit SHA — the newest commit from ShareX.ImageEditor that was successfully integrated in the last batch.
+- **Log file:** `docs/jaex-integration/completed/features_log.md`
+- **Entry format:** `| Date | Feature ID | Feature Name | Implementation Type | Notes |`
+- **Purpose:** Track which features have been integrated, for quick reference when resuming work.
 
 **Usage:**
-- When starting Phase 0, check if the marker exists.
-  - If it exists: Use its SHA as the `<BASE>` for comparisons (this is a resume).
-  - If missing: Stop and report as blocking (do not start from origin/develop).
-- After each successful feature integration and merge, update the marker with the newest integrated SHA from ShareX.ImageEditor.
-- Optionally maintain `docs/jaex-integration/completed/features_log.md` for provenance: `Date | Feature ID | Name | SHAs from ShareX.ImageEditor | Notes`
+- When starting work: review the log to see which features have already been integrated.
+- If resuming at JX-012: do **not** re-implement JX-001 through JX-011 (already completed).
+- After merging a feature: add an entry to the log.
+
+**Note:** Unlike the cherry-pick workflow, this is **not** a resume gate. Manual implementation is self-contained per feature and does not depend on commit SHAs. The log is purely for human reference and to avoid duplicate work.
 
 ### Resume gate (required)
-Before starting Phase 0, verify you are resuming from the last completed feature:
-1. Read `docs/jaex-integration/completed/LAST_PROCESSED_JAEX_COMMIT.txt` and record it as `<LAST>`.
-2. Compare `origin/develop` vs `<JAEX_BRANCH>` using `<LAST>` as the base. Do **not** use `origin/develop` if `<LAST>` exists.
-   - Replace `<JAEX_BRANCH>` with the actual branch name identified in setup step 5.
-3. If `<LAST>` is missing, stop and report this as blocking (do not re-start from the beginning).
+Before starting integration of a new feature batch:
 
-### Skip merged features (required)
-For each candidate JX feature:
-1. Check whether its cherry-picked SHAs already exist in `origin/develop` (or are logged in `docs/jaex-integration/completed/features_log.md`).
-2. If all SHAs are present, mark the feature as **Already merged** and **do not** create a new integration branch.
-3. Only proceed with features that are missing from `origin/develop`.
+1. Review `docs/jaex-integration/completed/features_log.md` to see which features have already been integrated.
+2. Do **not** re-implement any feature already listed in the log.
+3. Only proceed with features that are not yet in the log (i.e., marked as Rejected or not yet processed).
+
+Unlike cherry-pick workflows, manual implementation does not depend on commit SHAs or base references. The log is purely for human tracking.
+
+### Skip already-integrated features (required)
+Before starting implementation of a feature:
+
+1. Check `docs/jaex-integration/completed/features_log.md` for the feature ID.
+2. If the feature already has a log entry (Approved: Y and merged), **skip it**—do not re-implement.
+3. Only implement features that are:
+   - Approved (Y)
+   - **Not** already in the log as merged
+
+This prevents duplicate work when resuming across sessions.
 
 ## Phase 0. Feature discovery and approval gate
 No code changes are allowed until a high level feature list is produced and explicitly approved.
 
 ### 0.1 Identify candidate changes
-Determine the BASE for comparison:
+Determine what features from ShareX.ImageEditor are worth integrating:
 
-- If `docs/jaex-integration/completed/LAST_PROCESSED_JAEX_COMMIT.txt` exists, set `<BASE>` to its SHA.
-- Otherwise stop and report missing marker as blocking (resume gate).
+1. **Review the reference repository:** Visit ShareX.ImageEditor to understand recent features and changes.
+2. **Assess value:** Determine which features would enhance XerahS.Editor's functionality.
+3. **Document features:** List candidates with clear descriptions of what they do and why they are valuable.
 
-Run the following comparisons using `<BASE>`. Replace `<JAEX_BRANCH>` with the actual branch name identified during setup:
-
-- `git log --oneline <BASE>..<JAEX_BRANCH>`
-- `git range-diff <BASE>...<JAEX_BRANCH>`
-- `git diff --name-only <BASE>...<JAEX_BRANCH>`
-
-Group commits into coherent user visible features.
+Unlike cherry-pick workflows, there is **no git-based comparison**. Instead, rely on:
+- Code review of ShareX.ImageEditor's recent commits
+- Feature descriptions and pull requests in that repository
+- Manual assessment of what would benefit XerahS.Editor
 
 ### 0.1b Local state sanity check (required)
-Before any cherry-picks:
+Before implementing any features:
 - Ensure you are on a clean working tree: `git status -sb`
 - Ensure `origin/develop` is current: `git fetch origin`
-- Ensure `jaex` is current: `git fetch jaex`
-- Verify no stale local integration branches exist for already-merged features.
+- Ensure `jaex` is current: `git fetch jaex` (for reference purposes)
+- Verify no stale local integration branches exist from earlier sessions.
 
 ### 0.2 Produce feature list for approval
 Create `docs/jaex-integration/jaex_feature_candidates.md`.
@@ -159,30 +171,30 @@ For each feature include:
 - Feature ID `JX-###`
 - Feature name
 - One sentence user visible outcome
-- Primary areas touched
-- Commit SHAs and messages
-- Risk rating Low Medium High
-- UI impact statement
+- Primary areas touched in ShareX.ImageEditor (as reference)
+- Commit SHAs and messages from ShareX.ImageEditor
+- Risk rating: Low / Medium / High
+- **Behavior value:** Does this feature enhance existing XerahS.Editor behavior? (Y/N)
+  - If **Yes**: Recommend for integration (manual implementation)
+  - If **No**: Recommend for rejection (ignore)
+- UI impact statement (from ShareX.ImageEditor source code)
   - Whether `.axaml` files are touched
   - Whether menus or commands are touched
   - Explicit statement about `Import Preset...` and `Export Preset...`
-- Recommended import method
-  - Clean cherry pick
-  - Cherry pick with conflicts
-  - Manual re implementation
+  - **Note:** These are only references; XerahS.Editor UI will be manually adapted
 
 Interactive approval (chat):
 
-- The agent will read [docs/jaex-integration/jaex_feature_candidates.md](XerahS.Editor/docs/jaex-integration/jaex_feature_candidates.md), display the candidate features in chat, and prompt for approval decisions.
+- The agent will read `docs/jaex-integration/jaex_feature_candidates.md`, display the candidate features in chat, and prompt for approval decisions.
 - Supported responses:
    - "Approve all" (approves every JX feature listed)
    - "Approve all (except JX-###, JX-###)"
    - "Approve: JX-###, JX-###; Reject: JX-###, JX-###"
    - Explicit per-feature decisions (approve/reject) by JX ID
-- After you reply, the agent will update the approval table in [docs/jaex-integration/jaex_feature_candidates.md](XerahS.Editor/docs/jaex-integration/jaex_feature_candidates.md) to reflect the final decisions.
+- After you reply, the agent will update the approval table in `docs/jaex-integration/jaex_feature_candidates.md` to reflect the final decisions.
    - The table format remains:
     
-      | Feature ID | Name | Risk | UI touched | Approved (Y/N) | Notes |
+      | Feature ID | Name | Risk | Enhances Behavior | Approved (Y/N) | Notes |
       | --- | --- | --- | --- | --- | --- |
 
 ### 0.3 Stop point
@@ -192,14 +204,15 @@ After creating `docs/jaex_feature_candidates.md`:
 - Wait for explicit approval per feature
 
 ## Hard rules
-- **Never** merge ShareX.ImageEditor branches directly into develop. Always cherry-pick individual features.
-- Use `git cherry-pick -x` to preserve commit attribution.
-- One approved feature per integration batch.
+- **All features are manually implemented** in XerahS.Editor code. Never cherry-pick from ShareX.ImageEditor.
+- ShareX.ImageEditor source code is reference material only.
 - `origin/develop` is the authoritative source of truth for XerahS.Editor.
 - No UI removals, renames, or hiding. No regressions.
 - Zero new warnings or broken builds.
 - Target framework must remain cross-platform (e.g., `net10.0`, NOT `net10.0-windows`).
-- On any conflict: prefer XerahS.Editor's behavior. Never accept ShareX.ImageEditor code that removes or breaks functionality.
+- Features that do not enhance behavior in XerahS.Editor are ignored (not implemented).
+- Always preserve XerahS.Editor's geometry, parity logic, and protected UI components.
+- Only approved features are implemented. Rejected features are disregarded entirely.
 
 ## Geometry/parity protection
 XerahS.Editor has shared geometry and parity logic (e.g., `AnnotationGeometryHelper`) and unified annotation visual creation. When integrating features from ShareX.ImageEditor, do not regress this work.
@@ -257,49 +270,59 @@ For each approved feature:
 
 2. **Never re-run earlier features.** If resuming at JX-012, do not reopen JX-001 through JX-011.
 
-3. **Cherry-pick approved commits from ShareX.ImageEditor.**
-   ```
-   git cherry-pick -x <sha1> <sha2> ...
-   ```
-   Use `-x` to preserve commit attribution.
+3. **Manually implement the feature in XerahS.Editor.**
+   - Review the ShareX.ImageEditor source code for the feature (reference in candidates list).
+   - Translate the feature into XerahS.Editor's codebase, respecting all architecture, geometry, parity, and UI constraints.
+   - Do not copy-paste code directly; adapt and refactor as needed.
+   - Ensure all changes follow XerahS.Editor's coding standards and patterns.
 
-4. **Resolve conflicts using these rules:**
-   - Preserve all existing UI from `origin/develop`.
-   - Re-apply only logic changes from ShareX.ImageEditor.
+4. **Preserve all existing behavior and UI.**
    - Do not remove or rename any menu items.
-   - If conflicts occur: prefer XerahS.Editor behavior; do not hide or remove functionality.
-   - **Geometry/parity rule:** If changes touch geometry, layout, or parity helpers: do not accept diffs that bypass parity. Manually fold in desired behavior while preserving shared infrastructure.
-   - **Protected components:** `AnnotationToolbar.axaml` and `EditorToolsPanel.axaml` must **never** be replaced. Manually implement new features in local files.
+   - Maintain all `Import Preset...` and `Export Preset...` functionality.
+   - Do not alter geometry, layout, or parity helpers.
+   - If the feature conflicts with existing behavior: prefer XerahS.Editor's behavior.
+   - **Protected components:** `AnnotationToolbar.axaml` and `EditorToolsPanel.axaml` must only be modified to add new features; never remove or restructure existing UI.
 
-5. **Branch isolation rule (critical):**
+5. **Test thoroughly before PR.**
+   - Compile with zero warnings.
+   - Run all unit tests.
+   - Verify the feature works as intended.
+   - Perform manual UI smoke test.
+
+6. **Branch isolation rule (critical):**
    - Do **NOT** merge the feature branch into `develop` locally before creating the PR.
    - The PR must contain the actual feature diff (non-empty merge).
    - If `origin/develop` has moved since branching: rebase/merge it into the *feature branch only*, resolve conflicts there, then open/refresh the PR.
    - Do **NOT** push or merge `develop` ahead of the feature PR.
 
 ## Mandatory verification
-After applying changes:
+After implementing changes:
 
-1. Review impact.
-   - `git diff --stat develop...HEAD`
+1. **Compile and verify no warnings.**
+   - Run: `dotnet build`
+   - Ensure **zero warnings** (warnings as errors mode is enabled)
 
-2. Review UI diffs.
-   - `git diff develop...HEAD -- src/**/*.axaml src/**/*.axaml.cs src/**/Views/**`
+2. **Run tests.**
+   - Run: `dotnet test` (or equivalent)
+   - Ensure all tests pass
 
-3. Verify protected UI.
+3. **Review code changes.**
+   - `git diff develop...HEAD --stat` — Verify reasonable change scope
+   - `git diff develop...HEAD -- src/**/*.axaml src/**/*.axaml.cs` — Verify UI changes are intentional
+
+4. **Verify protected UI items.**
    - `git grep -n "Import Preset" src/`
    - `git grep -n "Export Preset" src/`
-   - Confirm protected UI items still exist and bindings remain intact
+   - Confirm these items still exist and bindings remain intact
 
-4. Build and test.
-- Run standard build
-- Run tests
-- Ensure zero new warnings
-- Verify `src/XerahS.Editor/XerahS.Editor.csproj` TargetFramework does NOT contain `-windows`
-
-5. Verify Image Effects.
+5. **Verify Image Effects compatibility** (if applicable).
    - Ensure all `ImageEffect` classes have public parameterless constructors.
-   - Verify `Border`, `Glow`, `Outline`, `Reflection`, `Shadow`, `Slice`, `TornEdge` are present in the `AvailableEffects` list.
+   - Verify standard effects are present: `Border`, `Glow`, `Outline`, `Reflection`, `Shadow`, `Slice`, `TornEdge`.
+   - Verify they are registered in the `AvailableEffects` list.
+
+6. **Manual smoke test.**
+   - Test the feature end-to-end in the running application.
+   - Verify no side effects or regressions in other features.
 
 ## UI regression gate
 Before PR:
@@ -315,11 +338,12 @@ For each feature PR, create a summary file:
 
 **Contents:**
 - PR link
-- Feature name and one-paragraph description of the change
-- SHAs cherry-picked from ShareX.ImageEditor (from candidates list)
-- Files touched (high-level summary)
-- Tests run (or "Not run")
-- UI snapshot references (if applicable)
+- Feature name and one-paragraph description of the implementation
+- Reference source in ShareX.ImageEditor (commit SHAs, files reviewed)
+- Files modified in XerahS.Editor (manual implementation locations)
+- Tests run and results
+- UI changes made (if any)
+- Verification checklist (warnings, tests, protected components, etc.)
 
 Do **not** merge or delete the feature branch until this summary exists.
 
@@ -335,15 +359,20 @@ Once the integration branch is verified end-to-end:
 ## Pull request requirements
 **PR title:**
 ```
-Sync feature: <feature-id> <feature-name>
+Feature: <feature-id> <feature-name>
 ```
-(Example: `Sync feature: JX-042 Advanced blur effect`)
+(Example: `Feature: JX-042 Advanced blur effect`)
 
 **PR description must include:**
-- Commit SHAs cherry-picked from ShareX.ImageEditor
-- Summary of behavior changes
-- Explicit UI confirmation ("No UI regressions", "All menus intact")
-- Links to UI snapshots (before and after)
+- Feature summary and user-visible behavior
+- Reference to ShareX.ImageEditor source (commit SHAs, files reviewed)
+- List of files modified in XerahS.Editor (manual implementation)
+- Verification results:
+  - Build status (zero warnings)
+  - Test results (all passed)
+  - UI verification (no regressions, all protected items intact)
+  - Manual smoke test results
+- Links to UI snapshots (before and after, if applicable)
 
 ## Merge and cleanup
 - Merge the PR into `develop` (do not pre-merge locally).
@@ -355,16 +384,30 @@ Sync feature: <feature-id> <feature-name>
 ### Update state marker (after merge)
 After the feature batch is merged into `develop`:
 
-1. Identify the newest commit SHA from ShareX.ImageEditor that was integrated.
-2. Overwrite `docs/jaex-integration/completed/LAST_PROCESSED_JAEX_COMMIT.txt` with that single SHA.
-3. Append an entry to `docs/jaex-integration/completed/features_log.md`:
+1. Identify the feature ID integrated (e.g., JX-042).
+2. Append an entry to `docs/jaex-integration/completed/features_log.md`:
    ```
-   | Date | Feature ID | Feature Name | SHAs from ShareX.ImageEditor | Notes |
+   | Date | Feature ID | Feature Name | Implementation Type | Notes |
    ```
+   Example: `| 2026-02-08 | JX-042 | Advanced blur effect | Manual implementation | Successfully integrated, no conflicts |`
 
-## Fallback rule
-If a feature cannot be cleanly cherry-picked from ShareX.ImageEditor:
-- Do not force-resolve conflicts.
-- Re-implement manually using ShareX.ImageEditor code as reference only.
-- Keep XerahS.Editor `develop` UI and behavior as authoritative.
-- Preserve all geometry, parity, and protected UI components.
+3. The marker file `docs/jaex-integration/completed/LAST_PROCESSED_JAEX_COMMIT.txt` is **not used** in manual implementation (it was for cherry-pick workflow). You may delete it if it exists or leave it as historical record.
+
+## Implementation reference
+When implementing a feature from ShareX.ImageEditor:
+
+1. **Study the source:** Read the ShareX.ImageEditor source code for the feature.
+2. **Understand the intent:** Determine what the feature does and why it is valuable.
+3. **Adapt to XerahS.Editor:** Implement the feature using XerahS.Editor's architecture, patterns, and constraints.
+4. **Do not copy-paste:** Refactor and integrate the code into XerahS.Editor's style and structure.
+5. **Preserve all constraints:**
+   - Geometry and parity helpers must not be bypassed.
+   - Protected UI components must not be replaced.
+   - All menu items must remain present and functional.
+   - Target framework must remain cross-platform.
+
+Manual implementation allows us to:
+- Maintain full control over XerahS.Editor's architecture.
+- Avoid importing unwanted dependencies or design patterns.
+- Ensure features integrate cleanly with existing code.
+- Preserve all constraints and protections.
