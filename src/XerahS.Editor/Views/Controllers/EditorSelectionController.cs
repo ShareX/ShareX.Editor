@@ -16,6 +16,15 @@ namespace XerahS.Editor.Views.Controllers;
 
 public class EditorSelectionController
 {
+    private const double DefaultHandleSize = 15;
+    private const double CropHandleHitSize = 22;
+    private const double CropCornerPadding = 4;
+    private const double CropCornerArmLength = 12;
+    private const double CropCornerOuterStroke = 5;
+    private const double CropCornerInnerStroke = 3;
+    private const double CropSideLong = 14;
+    private const double CropSideShort = 5;
+
     private readonly EditorView _view;
     private Control? _selectedShape;
     private List<Control> _selectionHandles = new();
@@ -777,10 +786,22 @@ public class EditorSelectionController
         else if (tag.Contains("Top") || tag.Contains("Bottom")) cursor = new Cursor(StandardCursorType.SizeNorthSouth);
         else if (tag.Contains("Left") || tag.Contains("Right")) cursor = new Cursor(StandardCursorType.SizeWestEast);
 
-        var handleBorder = new Border
+        bool useCropHandles = _selectedShape?.Name == "CropOverlay";
+        var handleBorder = useCropHandles ? CreateCropHandle(tag, cursor) : CreateDefaultHandle(tag, cursor);
+
+        Canvas.SetLeft(handleBorder, x - handleBorder.Width / 2);
+        Canvas.SetTop(handleBorder, y - handleBorder.Height / 2);
+
+        overlay.Children.Add(handleBorder);
+        _selectionHandles.Add(handleBorder);
+    }
+
+    private static Border CreateDefaultHandle(string tag, Cursor cursor)
+    {
+        return new Border
         {
-            Width = 15,
-            Height = 15,
+            Width = DefaultHandleSize,
+            Height = DefaultHandleSize,
             CornerRadius = new CornerRadius(10),
             Background = Brushes.White,
             Tag = tag,
@@ -794,12 +815,139 @@ public class EditorSelectionController
                 Color = Color.FromArgb(100, 0, 0, 0)
             })
         };
+    }
 
-        Canvas.SetLeft(handleBorder, x - handleBorder.Width / 2);
-        Canvas.SetTop(handleBorder, y - handleBorder.Height / 2);
+    private Border CreateCropHandle(string tag, Cursor cursor)
+    {
+        var root = new Border
+        {
+            Width = CropHandleHitSize,
+            Height = CropHandleHitSize,
+            Background = Brushes.Transparent,
+            Tag = tag,
+            Cursor = cursor
+        };
 
-        overlay.Children.Add(handleBorder);
-        _selectionHandles.Add(handleBorder);
+        root.Child = IsCornerHandle(tag) ? CreateCropCornerVisual(tag) : CreateCropSideVisual(tag);
+        return root;
+    }
+
+    private static bool IsCornerHandle(string tag)
+    {
+        return tag is "TopLeft" or "TopRight" or "BottomRight" or "BottomLeft";
+    }
+
+    private Control CreateCropCornerVisual(string tag)
+    {
+        var canvas = new Canvas
+        {
+            Width = CropHandleHitSize,
+            Height = CropHandleHitSize,
+            IsHitTestVisible = false
+        };
+
+        var (horizontalStart, horizontalEnd, verticalStart, verticalEnd) = GetCropCornerArmPoints(tag);
+        AddCropLine(canvas, horizontalStart, horizontalEnd);
+        AddCropLine(canvas, verticalStart, verticalEnd);
+        return canvas;
+    }
+
+    private static (Point HorizontalStart, Point HorizontalEnd, Point VerticalStart, Point VerticalEnd) GetCropCornerArmPoints(string tag)
+    {
+        double s = CropHandleHitSize;
+        double p = CropCornerPadding;
+        double a = CropCornerArmLength;
+
+        return tag switch
+        {
+            "TopRight" => (
+                new Point(s - p - a, p),
+                new Point(s - p, p),
+                new Point(s - p, p),
+                new Point(s - p, p + a)
+            ),
+            "BottomRight" => (
+                new Point(s - p - a, s - p),
+                new Point(s - p, s - p),
+                new Point(s - p, s - p - a),
+                new Point(s - p, s - p)
+            ),
+            "BottomLeft" => (
+                new Point(p, s - p),
+                new Point(p + a, s - p),
+                new Point(p, s - p - a),
+                new Point(p, s - p)
+            ),
+            _ => (
+                new Point(p, p),
+                new Point(p + a, p),
+                new Point(p, p),
+                new Point(p, p + a)
+            )
+        };
+    }
+
+    private static void AddCropLine(Canvas canvas, Point start, Point end)
+    {
+        canvas.Children.Add(new Line
+        {
+            StartPoint = start,
+            EndPoint = end,
+            Stroke = Brushes.Black,
+            StrokeThickness = CropCornerOuterStroke,
+            StrokeLineCap = PenLineCap.Square,
+            IsHitTestVisible = false
+        });
+
+        canvas.Children.Add(new Line
+        {
+            StartPoint = start,
+            EndPoint = end,
+            Stroke = Brushes.White,
+            StrokeThickness = CropCornerInnerStroke,
+            StrokeLineCap = PenLineCap.Square,
+            IsHitTestVisible = false
+        });
+    }
+
+    private static Control CreateCropSideVisual(string tag)
+    {
+        bool horizontal = tag is "TopCenter" or "BottomCenter";
+        double outerWidth = horizontal ? CropSideLong : CropSideShort;
+        double outerHeight = horizontal ? CropSideShort : CropSideLong;
+        double innerWidth = Math.Max(1, outerWidth - 4);
+        double innerHeight = Math.Max(1, outerHeight - 4);
+
+        var grid = new Grid
+        {
+            Width = CropHandleHitSize,
+            Height = CropHandleHitSize,
+            IsHitTestVisible = false
+        };
+
+        grid.Children.Add(new Border
+        {
+            Width = outerWidth,
+            Height = outerHeight,
+            CornerRadius = new CornerRadius(2),
+            Background = Brushes.Black,
+            HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Center,
+            VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center,
+            IsHitTestVisible = false
+        });
+
+        grid.Children.Add(new Border
+        {
+            Width = innerWidth,
+            Height = innerHeight,
+            CornerRadius = new CornerRadius(1),
+            Background = Brushes.White,
+            HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Center,
+            VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center,
+            IsHitTestVisible = false
+        });
+
+        return grid;
     }
     
     private void ShowSpeechBalloonTextEditor(SpeechBalloonControl balloonControl, Canvas unusedCanvas)

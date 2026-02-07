@@ -296,6 +296,10 @@ namespace XerahS.Editor.Views
                 else if (e.PropertyName == nameof(MainViewModel.ActiveTool))
                 {
                     _selectionController.ClearSelection();
+                    if (vm.ActiveTool != EditorTool.Crop)
+                    {
+                        ResetCropOverlay();
+                    }
                     UpdateCursorForTool(); // ISSUE-018 fix: Update cursor feedback for active tool
                 }
             }
@@ -451,7 +455,13 @@ namespace XerahS.Editor.Views
 
             if (DataContext is MainViewModel vm)
             {
-                if (e.Key == Key.Delete)
+                if (e.KeyModifiers == KeyModifiers.None && e.Key == Key.Enter && vm.ActiveTool == EditorTool.Crop)
+                {
+                    PerformCrop();
+                    e.Handled = true;
+                    return;
+                }
+                else if (e.Key == Key.Delete)
                 {
                     vm.DeleteSelectedCommand.Execute(null);
                     e.Handled = true;
@@ -961,7 +971,23 @@ namespace XerahS.Editor.Views
                     _editorCore.PerformCrop(physX, physY, physW, physH);
                 }
                 cropOverlay.IsVisible = false;
+                cropOverlay.Width = 0;
+                cropOverlay.Height = 0;
+                _selectionController.ClearSelection();
             }
+        }
+
+        private void ResetCropOverlay()
+        {
+            var cropOverlay = this.FindControl<global::Avalonia.Controls.Shapes.Rectangle>("CropOverlay");
+            if (cropOverlay == null)
+            {
+                return;
+            }
+
+            cropOverlay.IsVisible = false;
+            cropOverlay.Width = 0;
+            cropOverlay.Height = 0;
         }
 
         private void OnWidthChanged(object? sender, int width)
@@ -1167,23 +1193,30 @@ namespace XerahS.Editor.Views
         {
             if (DataContext is MainViewModel vm && vm.PreviewImage != null)
             {
-                var dialog = new CropImageDialog();
-                dialog.Initialize((int)vm.ImageWidth, (int)vm.ImageHeight);
-                
-                dialog.ApplyRequested += (s, args) =>
-                {
-                    _editorCore.PerformCrop(args.X, args.Y, args.Width, args.Height);
-                    vm.CloseEffectsPanelCommand.Execute(null);
-                };
-                
-                dialog.CancelRequested += (s, args) =>
-                {
-                    vm.CloseEffectsPanelCommand.Execute(null);
-                };
-                
-                vm.EffectsPanelContent = dialog;
-                vm.IsEffectsPanelOpen = true;
+                vm.CloseEffectsPanelCommand.Execute(null);
+                vm.SelectToolCommand.Execute(EditorTool.Crop);
+                ShowInteractiveCropOverlay(vm);
             }
+        }
+
+        private void ShowInteractiveCropOverlay(MainViewModel vm)
+        {
+            var cropOverlay = this.FindControl<global::Avalonia.Controls.Shapes.Rectangle>("CropOverlay");
+            if (cropOverlay == null)
+            {
+                return;
+            }
+
+            double cropWidth = Math.Max(1, vm.ImageWidth);
+            double cropHeight = Math.Max(1, vm.ImageHeight);
+
+            cropOverlay.IsVisible = true;
+            Canvas.SetLeft(cropOverlay, 0);
+            Canvas.SetTop(cropOverlay, 0);
+            cropOverlay.Width = cropWidth;
+            cropOverlay.Height = cropHeight;
+
+            _selectionController.SetSelectedShape(cropOverlay);
         }
 
         private void OnAutoCropImageRequested(object? sender, EventArgs e)

@@ -134,6 +134,8 @@ public class EditorInputController
             var cropOverlay = _view.FindControl<global::Avalonia.Controls.Shapes.Rectangle>("CropOverlay");
             if (cropOverlay != null)
             {
+                _selectionController.ClearSelection();
+
                 // Clamp start point to canvas bounds
                 var clampedX = Math.Max(0, Math.Min(_startPoint.X, canvas.Bounds.Width));
                 var clampedY = Math.Max(0, Math.Min(_startPoint.Y, canvas.Bounds.Height));
@@ -543,7 +545,7 @@ public class EditorInputController
             {
                 if (vm.ActiveTool == EditorTool.Crop)
                 {
-                    PerformCrop();
+                    FinalizeCropSelection();
                     return;
                 }
                 else if (vm.ActiveTool == EditorTool.CutOut)
@@ -634,6 +636,7 @@ public class EditorInputController
             if (rect.Name == "CropOverlay") { rect.IsVisible = false; rect.Width = 0; rect.Height = 0; }
             else if (rect.Name == "CutOutOverlay") { canvas.Children.Remove(rect); }
         }
+        _selectionController.ClearSelection();
         _currentShape = null;
         _cutOutDirection = null;
         _isDrawing = false;
@@ -677,35 +680,22 @@ public class EditorInputController
         catch { }
     }
 
-    private void PerformCrop()
+    private void FinalizeCropSelection()
     {
         var cropOverlay = _view.FindControl<global::Avalonia.Controls.Shapes.Rectangle>("CropOverlay");
         if (cropOverlay == null || !cropOverlay.IsVisible) return;
 
-        var x = Canvas.GetLeft(cropOverlay);
-        var y = Canvas.GetTop(cropOverlay);
-        var w = cropOverlay.Width;
-        var h = cropOverlay.Height;
-
-        if (w <= 0 || h <= 0)
+        if (cropOverlay.Width < MinShapeSize || cropOverlay.Height < MinShapeSize)
         {
             cropOverlay.IsVisible = false;
+            cropOverlay.Width = 0;
+            cropOverlay.Height = 0;
+            _selectionController.ClearSelection();
             return;
         }
 
-        var scaling = 1.0;
-        var topLevel = TopLevel.GetTopLevel(_view);
-        if (topLevel != null) scaling = topLevel.RenderScaling;
-
-        var physX = (int)(x * scaling);
-        var physY = (int)(y * scaling);
-        var physW = (int)(w * scaling);
-        var physH = (int)(h * scaling);
-
-        _view.EditorCore.PerformCrop(physX, physY, physW, physH);
-
-        cropOverlay.IsVisible = false;
-        _currentShape = null; // Ensure we clear current shape
+        _selectionController.SetSelectedShape(cropOverlay);
+        _currentShape = null;
     }
 
     private void PerformCutOut(Canvas canvas)
