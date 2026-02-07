@@ -3,9 +3,9 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 18
 VisualStudioVersion = 18.1.11312.151 d18.0
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ShareX.Editor.Loader", "src\ShareX.Editor.Loader\ShareX.Editor.Loader.csproj", "{39BD7CA6-CED4-1F3D-FD5A-72738BFC0144}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ShareX.Editor.Loader", "src\XerahS.Editor.Loader\ShareX.Editor.Loader.csproj", "{39BD7CA6-CED4-1F3D-FD5A-72738BFC0144}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ShareX.Editor", "src\ShareX.Editor\ShareX.Editor.csproj", "{445C4AF8-8E87-CB94-B4DC-82A6192C680A}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ShareX.Editor", "src\XerahS.Editor\XerahS.Editor.csproj", "{445C4AF8-8E87-CB94-B4DC-82A6192C680A}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

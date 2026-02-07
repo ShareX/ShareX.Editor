@@ -26,6 +26,12 @@
 using Avalonia;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Markup.Xaml;
+using XerahS.Editor;
+using XerahS.Editor.ViewModels;
+using XerahS.Editor.Views;
+using SkiaSharp;
+using System;
+using System.IO;
 
 namespace XerahS.Editor.Loader
 {
@@ -44,10 +50,60 @@ namespace XerahS.Editor.Loader
         {
             if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
             {
-                desktop.MainWindow = new MainWindow();
+                var options = new EditorOptions();
+                var window = new EditorWindow(options);
+                desktop.MainWindow = window;
+
+                if (window.DataContext is MainViewModel vm)
+                {
+                    LoadExampleImage(vm);
+                }
             }
 
             base.OnFrameworkInitializationCompleted();
+        }
+
+        private static void LoadExampleImage(MainViewModel vm)
+        {
+            try
+            {
+                string location = AppDomain.CurrentDomain.BaseDirectory;
+                string path = Path.Combine(location, "Assets", "Sample.png");
+
+                if (File.Exists(path))
+                {
+                    using FileStream stream = File.OpenRead(path);
+                    SKBitmap? skBitmap = SKBitmap.Decode(stream);
+                    if (skBitmap != null)
+                    {
+                        vm.UpdatePreview(skBitmap);
+                        return;
+                    }
+                }
+            }
+            catch
+            {
+                // Fall through to generated image.
+            }
+
+            GenerateSampleImage(vm);
+        }
+
+        private static void GenerateSampleImage(MainViewModel vm)
+        {
+            const int width = 800;
+            const int height = 600;
+            var info = new SKImageInfo(width, height);
+            var skBitmap = new SKBitmap(info);
+
+            using (var canvas = new SKCanvas(skBitmap))
+            {
+                canvas.Clear(SKColors.Transparent);
+                using var paint = new SKPaint { Color = SKColors.LightBlue, IsAntialias = true };
+                canvas.DrawCircle(width / 2, height / 2, 100, paint);
+            }
+
+            vm.UpdatePreview(skBitmap);
         }
     }
 }

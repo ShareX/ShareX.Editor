@@ -29,8 +29,6 @@ namespace XerahS.Editor
 {
     public class EditorOptions
     {
-        public static EditorOptions Instance { get; } = new EditorOptions();
-
         public Color BorderColor { get; set; } = Color.FromArgb(255, 255, 67, 67);
         public Color FillColor { get; set; } = Colors.Transparent;
         public int Thickness { get; set; } = 4;
@@ -39,6 +37,7 @@ namespace XerahS.Editor
 
         public Color StepBorderColor { get; set; } = Colors.Transparent;
         public Color StepFillColor { get; set; } = Color.FromArgb(255, 255, 67, 67);
+        public float StepFontSize { get; set; } = 30;
         public Color HighlighterColor { get; set; } = Colors.Yellow;
         public float BlurStrength { get; set; } = 30;
         public float PixelateStrength { get; set; } = 20;

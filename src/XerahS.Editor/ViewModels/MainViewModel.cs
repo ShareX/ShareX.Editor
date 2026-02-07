@@ -46,12 +46,15 @@ namespace XerahS.Editor.ViewModels
             public required IBrush Brush { get; init; }
         }
 
-        public EditorOptions Options => EditorOptions.Instance;
+        private readonly EditorOptions _options;
+        public EditorOptions Options => _options;
 
         private const string OutputRatioAuto = "Auto";
 
         [ObservableProperty]
         private string _exportState = "";
+
+        private bool _isSyncingFromCore;
 
         [ObservableProperty]
         private string _windowTitle = "ShareX - Image Editor";
@@ -135,7 +138,7 @@ namespace XerahS.Editor.ViewModels
 
                 // Apply smart padding crop if enabled (but not if we're already applying it)
                 // Only trigger if background effects are active to avoid overwriting live previews
-                if (UseSmartPadding && !_isApplyingSmartPadding && AreBackgroundEffectsActive)
+                if (UseSmartPadding && !_isApplyingSmartPadding && AreBackgroundEffectsActive && !_isSyncingFromCore)
                 {
                     ApplySmartPaddingCrop();
                 }
@@ -150,14 +153,10 @@ namespace XerahS.Editor.ViewModels
             }
         }
 
-        [ObservableProperty]
-        private bool _isPinned;
-
         [RelayCommand]
         private void PinToScreen()
         {
-            IsPinned = !IsPinned;
-            // Actual window topmost logic would be bound or handled in View code-behind
+            // Actual window topmost logic should be provided by host/view integration.
         }
 
         [ObservableProperty]
@@ -370,7 +369,21 @@ namespace XerahS.Editor.ViewModels
 
         partial void OnFontSizeChanged(float value)
         {
-            Options.FontSize = value;
+            bool isStepNumber = ActiveTool == EditorTool.Number || ActiveTool == EditorTool.Step;
+
+            if (ActiveTool == EditorTool.Select && SelectedAnnotation is NumberAnnotation)
+            {
+                isStepNumber = true;
+            }
+
+            if (isStepNumber)
+            {
+                Options.StepFontSize = value;
+            }
+            else
+            {
+                Options.FontSize = value;
+            }
         }
 
         [ObservableProperty]
@@ -541,7 +554,7 @@ namespace XerahS.Editor.ViewModels
                     FillColorValue = Options.StepFillColor;
                     StrokeWidth = Options.Thickness; // Or specific step thickness? EditorOptions uses generic Thickness.
                     ShadowEnabled = Options.Shadow;
-                    FontSize = Options.FontSize;
+                    FontSize = Options.StepFontSize;
                     break;
 
                 case EditorTool.Highlighter:
@@ -856,8 +869,9 @@ namespace XerahS.Editor.ViewModels
 
         public static MainViewModel Current { get; private set; } = null!;
 
-        public MainViewModel()
+        public MainViewModel(EditorOptions? options = null)
         {
+            _options = options ?? new EditorOptions();
             Current = this;
             GradientPresets = BuildGradientPresets();
             _canvasBackground = CopyBrush(GradientPresets[0].Brush);
@@ -1327,7 +1341,7 @@ namespace XerahS.Editor.ViewModels
                         _imageUndoStack.Push(copy);
                     }
                 }
-                UpdatePreview(next, clearAnnotations: true);
+                UpdatePreview(next, clearAnnotations: false);
                 RestoreAppliedEffectsFromRedo();
                 UpdateUndoRedoProperties();
             }
@@ -1464,7 +1478,7 @@ namespace XerahS.Editor.ViewModels
         }
 
         [RelayCommand]
-        private async Task QuickSave()
+        private async Task Save()
         {
             // Try get flattened image first
             Bitmap? snapshot = null;
@@ -1502,6 +1516,9 @@ namespace XerahS.Editor.ViewModels
             }
             await Task.CompletedTask;
         }
+
+        [RelayCommand]
+        private Task QuickSave() => Save();
 
         [RelayCommand]
         private async Task SaveAs()
@@ -2226,7 +2243,7 @@ namespace XerahS.Editor.ViewModels
             PushImageUndoSnapshot(undoCopy);
 
             var result = effect.Apply(_currentSourceImage);
-            UpdatePreview(result, clearAnnotations: true);
+            UpdatePreview(result, clearAnnotations: false);
             UpdateUndoRedoProperties();
             RecordAppliedEffect(effect);
         }
@@ -2282,7 +2299,15 @@ namespace XerahS.Editor.ViewModels
             // 2. Backs up original (WE DO NOT WANT THIS)
             // 3. Converts to Avalonia Bitmap (WE WANT THIS)
 
-            PreviewImage = Helpers.BitmapConversionHelpers.ToAvaloniBitmap(preview);
+            try
+            {
+                _isSyncingFromCore = true;
+                PreviewImage = Helpers.BitmapConversionHelpers.ToAvaloniBitmap(preview);
+            }
+            finally
+            {
+                _isSyncingFromCore = false;
+            }
         }
 
         /// <summary>
@@ -2300,7 +2325,7 @@ namespace XerahS.Editor.ViewModels
             }
             PushImageUndoSnapshot(undoCopy);
 
-            UpdatePreview(result, clearAnnotations: true);
+            UpdatePreview(result, clearAnnotations: false);
             UpdateUndoRedoProperties();
             RecordAppliedEffect(effectInstance);
 

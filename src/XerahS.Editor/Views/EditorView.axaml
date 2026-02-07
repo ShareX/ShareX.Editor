@@ -176,7 +176,7 @@
                         </MenuItem.Icon>
                     </MenuItem>
                     <Separator/>
-                    <MenuItem Header="Save" Command="{Binding QuickSaveCommand}" InputGesture="Ctrl+S">
+                    <MenuItem Header="Save" Command="{Binding SaveCommand}" InputGesture="Ctrl+S">
                         <MenuItem.Icon>
                             <TextBlock Text="{StaticResource IconSave}" FontFamily="{StaticResource FontAwesome}"/>
                         </MenuItem.Icon>
