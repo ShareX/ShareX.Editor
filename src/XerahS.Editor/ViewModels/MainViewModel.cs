@@ -1727,7 +1727,8 @@ namespace XerahS.Editor.ViewModels
                 }
             }
 
-            UpdatePreview(result, clearAnnotations: true);
+            // Keep annotations when loading presets to avoid destructive preview refresh.
+            UpdatePreview(result, clearAnnotations: false);
             UpdateUndoRedoProperties();
 
             SetAppliedEffects(effects);
