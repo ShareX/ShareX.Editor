@@ -69,6 +69,12 @@ namespace XerahS.Editor.ViewModels
         public event EventHandler? ClearAnnotationsRequested;
         public event EventHandler? DeselectRequested;
 
+        /// <summary>
+        /// Event raised when navigation is requested via a menu command.
+        /// The string argument is the navigation tag (e.g., "Tools_ColorPicker", "About").
+        /// </summary>
+        public event EventHandler<string>? NavigateRequested;
+
         private Bitmap? _previewImage;
         public Bitmap? PreviewImage
         {
@@ -1281,6 +1287,15 @@ namespace XerahS.Editor.ViewModels
         private void SetColor(string color)
         {
             SelectedColor = color;
+        }
+
+        /// <summary>
+        /// Command to request navigation to a specific view or tool via the main window.
+        /// </summary>
+        [RelayCommand]
+        private void Navigate(string tag)
+        {
+            NavigateRequested?.Invoke(this, tag);
         }
 
         [RelayCommand]

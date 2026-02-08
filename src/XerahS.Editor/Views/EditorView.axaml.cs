@@ -48,6 +48,19 @@ namespace XerahS.Editor.Views
 {
     public partial class EditorView : UserControl
     {
+        /// <summary>
+        /// StyledProperty for ShowMenuBar. When false, the internal menu bar is hidden.
+        /// Used when EditorView is hosted inside a parent window that provides its own menu.
+        /// </summary>
+        public static readonly StyledProperty<bool> ShowMenuBarProperty =
+            AvaloniaProperty.Register<EditorView, bool>(nameof(ShowMenuBar), defaultValue: true);
+
+        public bool ShowMenuBar
+        {
+            get => GetValue(ShowMenuBarProperty);
+            set => SetValue(ShowMenuBarProperty, value);
+        }
+
         private readonly EditorZoomController _zoomController;
         private readonly EditorSelectionController _selectionController;
         private readonly EditorInputController _inputController;
