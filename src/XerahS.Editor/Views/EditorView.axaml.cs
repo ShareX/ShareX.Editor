@@ -48,6 +48,19 @@ namespace XerahS.Editor.Views
 {
     public partial class EditorView : UserControl
     {
+        /// <summary>
+        /// StyledProperty for ShowMenuBar. When false, the internal menu bar is hidden.
+        /// Used when EditorView is hosted inside a parent window that provides its own menu.
+        /// </summary>
+        public static readonly StyledProperty<bool> ShowMenuBarProperty =
+            AvaloniaProperty.Register<EditorView, bool>(nameof(ShowMenuBar), defaultValue: true);
+
+        public bool ShowMenuBar
+        {
+            get => GetValue(ShowMenuBarProperty);
+            set => SetValue(ShowMenuBarProperty, value);
+        }
+
         private readonly EditorZoomController _zoomController;
         private readonly EditorSelectionController _selectionController;
         private readonly EditorInputController _inputController;
@@ -123,10 +136,84 @@ namespace XerahS.Editor.Views
         
         private void OnSelectionChanged(bool hasSelection)
         {
-            if (DataContext is MainViewModel vm)
+            if (DataContext is not MainViewModel vm)
             {
-                vm.HasSelectedAnnotation = hasSelection;
+                return;
             }
+
+            vm.HasSelectedAnnotation = hasSelection;
+            var selectedAnnotation = _selectionController.SelectedShape?.Tag as Annotation;
+            vm.SelectedAnnotation = selectedAnnotation;
+
+            if (selectedAnnotation == null)
+            {
+                return;
+            }
+
+            vm.SelectedColor = selectedAnnotation.StrokeColor;
+            vm.StrokeWidth = (int)selectedAnnotation.StrokeWidth;
+            vm.ShadowEnabled = selectedAnnotation.ShadowEnabled;
+
+            switch (selectedAnnotation)
+            {
+                case NumberAnnotation number:
+                    vm.FillColor = number.FillColor;
+                    vm.FontSize = number.FontSize;
+                    break;
+                case TextAnnotation text:
+                    vm.FontSize = text.FontSize;
+                    break;
+                case SpeechBalloonAnnotation balloon:
+                    vm.FillColor = balloon.FillColor;
+                    vm.FontSize = balloon.FontSize;
+                    break;
+                case RectangleAnnotation rect:
+                    vm.FillColor = rect.FillColor;
+                    break;
+                case EllipseAnnotation ellipse:
+                    vm.FillColor = ellipse.FillColor;
+                    break;
+                case BaseEffectAnnotation effect:
+                    vm.EffectStrength = effect.Amount;
+                    break;
+                case SpotlightAnnotation spotlight:
+                    vm.EffectStrength = (float)(spotlight.DarkenOpacity / 255.0 * 30.0);
+                    break;
+            }
+        }
+
+        private bool BeginStyleChangeIfNeeded(Control? selectedShape, Func<Annotation, bool> shouldCapture)
+        {
+            if (selectedShape?.Tag is not Annotation annotation)
+            {
+                return false;
+            }
+
+            if (!shouldCapture(annotation))
+            {
+                return false;
+            }
+
+            _editorCore.BeginAnnotationTransform();
+            return true;
+        }
+
+        private void EndStyleChangeIfNeeded(bool started)
+        {
+            if (started)
+            {
+                _editorCore.EndAnnotationTransform();
+            }
+        }
+
+        private static bool ColorChanged(string current, string next)
+        {
+            return !string.Equals(current, next, StringComparison.OrdinalIgnoreCase);
+        }
+
+        private static bool FloatChanged(float current, float next)
+        {
+            return Math.Abs(current - next) > 0.01f;
         }
         
         private void UpdateViewModelHistoryState(MainViewModel vm)
@@ -818,7 +905,17 @@ namespace XerahS.Editor.Views
             if (DataContext is MainViewModel vm && color is SolidColorBrush solidBrush)
             {
                 var hexColor = $"#{solidBrush.Color.A:X2}{solidBrush.Color.R:X2}{solidBrush.Color.G:X2}{solidBrush.Color.B:X2}";
-                vm.SetColorCommand.Execute(hexColor);
+                var selected = _selectionController.SelectedShape;
+                var captureHistory = BeginStyleChangeIfNeeded(selected, annotation => ColorChanged(annotation.StrokeColor, hexColor));
+
+                try
+                {
+                    vm.SetColorCommand.Execute(hexColor);
+                }
+                finally
+                {
+                    EndStyleChangeIfNeeded(captureHistory);
+                }
             }
         }
 
@@ -827,30 +924,45 @@ namespace XerahS.Editor.Views
             if (DataContext is MainViewModel vm && color is SolidColorBrush solidBrush)
             {
                 var hexColor = $"#{solidBrush.Color.A:X2}{solidBrush.Color.R:X2}{solidBrush.Color.G:X2}{solidBrush.Color.B:X2}";
-                vm.FillColor = hexColor;
-                
-                // Apply to selected annotation if any
                 var selected = _selectionController.SelectedShape;
-                if (selected?.Tag is Annotation annotation)
+                var captureHistory = BeginStyleChangeIfNeeded(selected, annotation => ColorChanged(annotation.FillColor, hexColor));
+
+                try
                 {
-                    annotation.FillColor = hexColor;
-                    
-                    // Update the UI control's Fill property
-                    if (selected is Shape shape)
+                    vm.FillColor = hexColor;
+
+                    // Apply to selected annotation if any
+                    if (selected?.Tag is Annotation annotation)
                     {
-                        shape.Fill = hexColor == "#00000000" ? Brushes.Transparent : solidBrush;
-                    }
-                    else if (selected is Grid grid)
-                    {
-                        // For NumberAnnotation, update the Ellipse fill
-                        foreach (var child in grid.Children)
+                        annotation.FillColor = hexColor;
+
+                        // Update the UI control's Fill property
+                        if (selected is Shape shape)
                         {
-                            if (child is Avalonia.Controls.Shapes.Ellipse ellipse)
+                            shape.Fill = hexColor == "#00000000" ? Brushes.Transparent : solidBrush;
+                        }
+                        else if (selected is Grid grid)
+                        {
+                            // For NumberAnnotation, update the Ellipse fill
+                            foreach (var child in grid.Children)
                             {
-                                ellipse.Fill = hexColor == "#00000000" ? Brushes.Transparent : solidBrush;
+                                if (child is Avalonia.Controls.Shapes.Ellipse ellipse)
+                                {
+                                    ellipse.Fill = hexColor == "#00000000" ? Brushes.Transparent : solidBrush;
+                                }
                             }
                         }
+                        else if (selected is SpeechBalloonControl balloon)
+                        {
+                            balloon.InvalidateVisual();
+                        }
+
+                        _selectionController.UpdateActiveTextEditorProperties();
                     }
+                }
+                finally
+                {
+                    EndStyleChangeIfNeeded(captureHistory);
                 }
             }
         }
@@ -859,37 +971,62 @@ namespace XerahS.Editor.Views
         {
             if (DataContext is MainViewModel vm)
             {
-                vm.FontSize = fontSize;
-                
-                // Apply to selected annotation if any
                 var selected = _selectionController.SelectedShape;
-                if (selected?.Tag is TextAnnotation textAnn)
+                var captureHistory = BeginStyleChangeIfNeeded(selected, annotation => annotation switch
                 {
-                    textAnn.FontSize = fontSize;
-                    if (selected is TextBox textBox)
-                    {
-                        textBox.FontSize = fontSize;
-                    }
-                }
-                else if (selected?.Tag is NumberAnnotation numAnn)
+                    TextAnnotation text => FloatChanged(text.FontSize, fontSize),
+                    NumberAnnotation number => FloatChanged(number.FontSize, fontSize),
+                    SpeechBalloonAnnotation balloon => FloatChanged(balloon.FontSize, fontSize),
+                    _ => false
+                });
+
+                try
                 {
-                    numAnn.FontSize = fontSize;
-                    
-                    // Update the visual - resize grid and update text
-                    if (selected is Grid grid)
+                    vm.FontSize = fontSize;
+
+                    // Apply to selected annotation if any
+                    if (selected?.Tag is TextAnnotation textAnn)
                     {
-                        var radius = AnnotationGeometryHelper.CalculateNumberRadius(fontSize);
-                        grid.Width = radius * 2;
-                        grid.Height = radius * 2;
-                        
-                        foreach (var child in grid.Children)
+                        textAnn.FontSize = fontSize;
+                        if (selected is TextBox textBox)
                         {
-                            if (child is TextBlock textBlock)
+                            textBox.FontSize = fontSize;
+                        }
+                    }
+                    else if (selected?.Tag is NumberAnnotation numAnn)
+                    {
+                        numAnn.FontSize = fontSize;
+
+                        // Update the visual - resize grid and update text
+                        if (selected is Grid grid)
+                        {
+                            var radius = AnnotationGeometryHelper.CalculateNumberRadius(fontSize);
+                            grid.Width = radius * 2;
+                            grid.Height = radius * 2;
+
+                            foreach (var child in grid.Children)
                             {
-                                textBlock.FontSize = fontSize * 0.6; // Match CreateVisual scaling
+                                if (child is TextBlock textBlock)
+                                {
+                                    textBlock.FontSize = fontSize * 0.6; // Match CreateVisual scaling
+                                }
                             }
                         }
                     }
+                    else if (selected?.Tag is SpeechBalloonAnnotation balloonAnn)
+                    {
+                        balloonAnn.FontSize = fontSize;
+                        if (selected is SpeechBalloonControl balloonControl)
+                        {
+                            balloonControl.InvalidateVisual();
+                        }
+
+                        _selectionController.UpdateActiveTextEditorProperties();
+                    }
+                }
+                finally
+                {
+                    EndStyleChangeIfNeeded(captureHistory);
                 }
             }
         }
@@ -898,15 +1035,38 @@ namespace XerahS.Editor.Views
         {
             if (DataContext is MainViewModel vm)
             {
-                vm.EffectStrength = strength;
-                
-                // Apply to selected annotation if any
                 var selected = _selectionController.SelectedShape;
-                if (selected?.Tag is BaseEffectAnnotation effectAnn)
+                var targetDarkenOpacity = (byte)Math.Clamp(strength / 30.0 * 255, 0, 255);
+                var captureHistory = BeginStyleChangeIfNeeded(selected, annotation => annotation switch
                 {
-                    effectAnn.Amount = strength;
-                    // Regenerate effect
-                    OnRequestUpdateEffect(selected);
+                    BaseEffectAnnotation effect => FloatChanged(effect.Amount, strength),
+                    SpotlightAnnotation spotlight => spotlight.DarkenOpacity != targetDarkenOpacity,
+                    _ => false
+                });
+
+                try
+                {
+                    vm.EffectStrength = strength;
+
+                    // Apply to selected annotation if any
+                    if (selected?.Tag is BaseEffectAnnotation effectAnn)
+                    {
+                        effectAnn.Amount = strength;
+                        // Regenerate effect
+                        OnRequestUpdateEffect(selected);
+                    }
+                    else if (selected?.Tag is SpotlightAnnotation spotlightAnn)
+                    {
+                        spotlightAnn.DarkenOpacity = targetDarkenOpacity;
+                        if (selected is SpotlightControl spotlightControl)
+                        {
+                            spotlightControl.InvalidateVisual();
+                        }
+                    }
+                }
+                finally
+                {
+                    EndStyleChangeIfNeeded(captureHistory);
                 }
             }
         }
@@ -915,34 +1075,44 @@ namespace XerahS.Editor.Views
         {
             if (DataContext is MainViewModel vm)
             {
-                // Toggle state
-                vm.ShadowEnabled = !vm.ShadowEnabled;
-                var isEnabled = vm.ShadowEnabled;
-                
-                // Apply to selected annotation if any
                 var selected = _selectionController.SelectedShape;
-                if (selected?.Tag is Annotation annotation)
+                var nextShadowState = !vm.ShadowEnabled;
+                var captureHistory = BeginStyleChangeIfNeeded(selected, annotation => annotation.ShadowEnabled != nextShadowState);
+
+                try
                 {
-                    annotation.ShadowEnabled = isEnabled;
-                    
-                    // Update the UI control's Effect property
-                    if (selected is Control control)
+                    // Toggle state
+                    vm.ShadowEnabled = nextShadowState;
+                    var isEnabled = vm.ShadowEnabled;
+
+                    // Apply to selected annotation if any
+                    if (selected?.Tag is Annotation annotation)
                     {
-                        if (isEnabled)
+                        annotation.ShadowEnabled = isEnabled;
+
+                        // Update the UI control's Effect property
+                        if (selected is Control control)
                         {
-                            control.Effect = new Avalonia.Media.DropShadowEffect
+                            if (isEnabled)
                             {
-                                OffsetX = 3,
-                                OffsetY = 3,
-                                BlurRadius = 4,
-                                Color = Avalonia.Media.Color.FromArgb(128, 0, 0, 0)
-                            };
-                        }
-                        else
-                        {
-                            control.Effect = null;
+                                control.Effect = new Avalonia.Media.DropShadowEffect
+                                {
+                                    OffsetX = 3,
+                                    OffsetY = 3,
+                                    BlurRadius = 4,
+                                    Color = Avalonia.Media.Color.FromArgb(128, 0, 0, 0)
+                                };
+                            }
+                            else
+                            {
+                                control.Effect = null;
+                            }
                         }
                     }
+                }
+                finally
+                {
+                    EndStyleChangeIfNeeded(captureHistory);
                 }
             }
         }

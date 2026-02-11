@@ -167,7 +167,8 @@
 
     <Grid RowDefinitions="Auto,Auto,*">
         <!-- Row 0: Menu Bar -->
-        <Border Grid.Row="0" Background="{DynamicResource SolidBackgroundFillColorBaseBrush}">
+        <Border Grid.Row="0" Background="{DynamicResource SolidBackgroundFillColorBaseBrush}"
+                IsVisible="{Binding ShowMenuBar, RelativeSource={RelativeSource AncestorType=views:EditorView}}">
             <Menu Background="Transparent">
                 <MenuItem Header="File">
                     <MenuItem Header="Open file..." Command="{Binding OpenImageCommand}" InputGesture="Ctrl+O">
@@ -176,7 +177,7 @@
                         </MenuItem.Icon>
                     </MenuItem>
                     <Separator/>
-                    <MenuItem Header="Save" Command="{Binding QuickSaveCommand}" InputGesture="Ctrl+S">
+                    <MenuItem Header="Save" Command="{Binding SaveCommand}" InputGesture="Ctrl+S">
                         <MenuItem.Icon>
                             <TextBlock Text="{StaticResource IconSave}" FontFamily="{StaticResource FontAwesome}"/>
                         </MenuItem.Icon>

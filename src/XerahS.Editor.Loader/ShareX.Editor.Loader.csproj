@@ -24,6 +24,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\ShareX.Editor\ShareX.Editor.csproj" />
+    <ProjectReference Include="..\XerahS.Editor\XerahS.Editor.csproj" />
   </ItemGroup>
 </Project>

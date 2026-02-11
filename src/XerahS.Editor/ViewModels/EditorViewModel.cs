@@ -20,7 +20,8 @@ public partial class EditorViewModel : ObservableObject
         public required IBrush Brush { get; init; }
     }
 
-    public EditorOptions Options => EditorOptions.Instance;
+    private readonly EditorOptions _options;
+    public EditorOptions Options => _options;
 
     private const double MinZoom = 0.25;
     private const double MaxZoom = 4.0;
@@ -44,6 +45,7 @@ public partial class EditorViewModel : ObservableObject
     public event EventHandler? ClearAnnotationsRequested;
     public event EventHandler? CopyRequested;
     public event EventHandler? QuickSaveRequested;
+    public event EventHandler? SaveRequested;
     public event EventHandler? SaveAsRequested;
     public event EventHandler<CropEventArgs>? CropRequested;
     public event EventHandler? ApplyEffectRequested;
@@ -236,8 +238,9 @@ public partial class EditorViewModel : ObservableObject
     [ObservableProperty]
     private BoxShadows _canvasShadow;
 
-    public EditorViewModel()
+    public EditorViewModel(EditorOptions? options = null)
     {
+        _options = options ?? new EditorOptions();
         GradientPresets = BuildGradientPresets();
         _canvasBackground = CopyBrush(GradientPresets[1].Brush);
         UpdateCanvasProperties();
@@ -294,7 +297,14 @@ public partial class EditorViewModel : ObservableObject
     private void Copy() => CopyRequested?.Invoke(this, EventArgs.Empty);
 
     [RelayCommand]
-    private void QuickSave() => QuickSaveRequested?.Invoke(this, EventArgs.Empty);
+    private void Save()
+    {
+        SaveRequested?.Invoke(this, EventArgs.Empty);
+        QuickSaveRequested?.Invoke(this, EventArgs.Empty);
+    }
+
+    [RelayCommand]
+    private void QuickSave() => Save();
 
     [RelayCommand]
     private void SaveAs() => SaveAsRequested?.Invoke(this, EventArgs.Empty);

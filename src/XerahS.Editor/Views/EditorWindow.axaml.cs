@@ -3,6 +3,7 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Markup.Xaml;
 using Avalonia.Media.Imaging;
+using XerahS.Editor;
 using XerahS.Editor.ViewModels;
 using SkiaSharp;
 using System;
@@ -16,11 +17,15 @@ namespace XerahS.Editor.Views
         private readonly MainViewModel _viewModel;
         private string? _pendingFilePath;
 
-        public EditorWindow()
+        public EditorWindow() : this(null)
+        {
+        }
+
+        public EditorWindow(EditorOptions? options)
         {
             InitializeComponent();
 
-            _viewModel = new MainViewModel();
+            _viewModel = new MainViewModel(options);
 
             DataContext = _viewModel;
 
